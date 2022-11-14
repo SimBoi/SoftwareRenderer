@@ -1,0 +1,179 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{cb417111-6189-4288-97c1-16b1e44543a3}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{a3b76a74-8ebe-4ba9-8238-f44ddbec06c6}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Header Files\irit">
+      <UniqueIdentifier>{a30802b0-2705-48de-bdd3-adc5478813f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{550aedc7-a085-4e7a-9f4f-12bd8107d19e}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CGWork.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CGWorkDoc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CGWorkView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="iritSkel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LightDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MainFrm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MaterialDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PngWrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="StdAfx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CG_Object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="CGWork.rc">
+      <Filter>Source Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CGWork.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CGWorkDoc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CGWorkView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="iritSkel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Light.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LightDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MainFrm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MaterialDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PngWrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StdAfx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\allocate.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\attribut.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\bool_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\cagd_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\extra_fn.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\filt.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\geom_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\grap_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\ip_cnvrt.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\irit_sm.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\iritprsr.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\irt_clr.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\mdl_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\misc_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\miscattr.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\mrchcube.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\mvar_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\obj_dpnd.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\rndr_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\symb_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\trim_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\triv_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\trng_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\user_lib.h">
+      <Filter>Header Files\irit</Filter>
+    </ClInclude>
+    <ClInclude Include="CG_Object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\CGWork.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\CGWorkDoc.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\Toolbar.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ReadMe.txt" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,526 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\CGWork.ico"
+IDR_CGWorkTYPE          ICON                    "res\\CGWorkDoc.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Toolbar
+//
+
+IDR_MAINFRAME TOOLBAR  16, 16
+BEGIN
+    BUTTON      ID_FILE_LOAD
+    SEPARATOR
+    BUTTON      ID_VIEW_ORTHOGRAPHIC
+    BUTTON      ID_VIEW_PERSPECTIVE
+    SEPARATOR
+    BUTTON      ID_ACTION_ROTATE
+    BUTTON      ID_ACTION_TRANSLATE
+    BUTTON      ID_ACTION_SCALE
+    SEPARATOR
+    BUTTON      ID_AXIS_X
+    BUTTON      ID_AXIS_Y
+    BUTTON      ID_AXIS_Z
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME MENU 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&Load",                       ID_FILE_LOAD
+        MENUITEM "E&xit",                       ID_APP_EXIT
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "&Toolbar",                    ID_VIEW_TOOLBAR
+        MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
+        MENUITEM SEPARATOR
+        MENUITEM "&Orthographic",               ID_VIEW_ORTHOGRAPHIC
+        MENUITEM "&Perspective",                ID_VIEW_PERSPECTIVE
+    END
+    POPUP "A&ction"
+    BEGIN
+        MENUITEM "&Rotate",                     ID_ACTION_ROTATE
+        MENUITEM "&Translate",                  ID_ACTION_TRANSLATE
+        MENUITEM "&Scale",                      ID_ACTION_SCALE
+    END
+    POPUP "A&xis"
+    BEGIN
+        MENUITEM "&X",                          ID_AXIS_X
+        MENUITEM "&Y",                          ID_AXIS_Y
+        MENUITEM "&Z",                          ID_AXIS_Z
+    END
+    POPUP "&Options"
+    BEGIN
+        MENUITEM "Perspective Control...",      ID_OPTIONS_PERSPECTIVECONTROL
+        MENUITEM "Mouse Sensitivity...",        ID_OPTIONS_MOUSESENSITIVITY
+    END
+    POPUP "&Light"
+    BEGIN
+        POPUP "&Shading"
+        BEGIN
+            MENUITEM "&Flat",                       ID_LIGHT_SHADING_FLAT
+            MENUITEM "&Gouraud",                    ID_LIGHT_SHADING_GOURAUD
+        END
+        MENUITEM "&Parameters...",              ID_LIGHT_CONSTANTS
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About CGWork...",            ID_APP_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_MAINFRAME ACCELERATORS 
+BEGIN
+    "N",            ID_FILE_NEW,            VIRTKEY, CONTROL
+    "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL
+    "S",            ID_FILE_SAVE,           VIRTKEY, CONTROL
+    "Z",            ID_EDIT_UNDO,           VIRTKEY, CONTROL
+    "X",            ID_EDIT_CUT,            VIRTKEY, CONTROL
+    "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL
+    "V",            ID_EDIT_PASTE,          VIRTKEY, CONTROL
+    VK_BACK,        ID_EDIT_UNDO,           VIRTKEY, ALT
+    VK_DELETE,      ID_EDIT_CUT,            VIRTKEY, SHIFT
+    VK_INSERT,      ID_EDIT_COPY,           VIRTKEY, CONTROL
+    VK_INSERT,      ID_EDIT_PASTE,          VIRTKEY, SHIFT
+    VK_F6,          ID_NEXT_PANE,           VIRTKEY 
+    VK_F6,          ID_PREV_PANE,           VIRTKEY, SHIFT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 235, 66
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About CGWorkCGWork"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
+    LTEXT           "Computer Graphics, MFC with CGWork",IDC_STATIC,40,10,119,8,SS_NOPREFIX
+    LTEXT           "Skeleton by: Dani Brunstein",IDC_STATIC,40,23,119,8
+    DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
+    LTEXT           "Implemented by: <your name>",IDC_STATIC,40,36,119,8
+    LTEXT           "                   and: <your name>",IDC_STATIC,40,49,119,8
+END
+
+IDD_LIGHTS_DLG DIALOGEX 0, 0, 355, 218
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Lighting"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,235,197,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,298,197,50,14
+    CONTROL         "Light 1",IDC_RADIO_LIGHT1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,7,9,37,10
+    GROUPBOX        "Light Properties",IDC_STATIC,55,7,293,124
+    CONTROL         "Light 2",IDC_RADIO_LIGHT2,"Button",BS_AUTORADIOBUTTON,7,25,37,10
+    CONTROL         "Light 3",IDC_RADIO_LIGHT3,"Button",BS_AUTORADIOBUTTON,7,41,37,10
+    CONTROL         "Light 4",IDC_RADIO_LIGHT4,"Button",BS_AUTORADIOBUTTON,7,57,37,10
+    CONTROL         "Light 5",IDC_RADIO_LIGHT5,"Button",BS_AUTORADIOBUTTON,7,73,37,10
+    CONTROL         "Light 6",IDC_RADIO_LIGHT6,"Button",BS_AUTORADIOBUTTON,7,89,37,10
+    CONTROL         "Light 7",IDC_RADIO_LIGHT7,"Button",BS_AUTORADIOBUTTON,7,105,37,10
+    CONTROL         "Light 8",IDC_RADIO_LIGHT8,"Button",BS_AUTORADIOBUTTON,7,121,37,10
+    GROUPBOX        "Ambient Light Properties",IDC_STATIC,7,142,341,41
+    LTEXT           "Color:",IDC_STATIC,14,166,20,8
+    EDITTEXT        IDC_AMBL_COLOR_R,56,165,30,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_AMBL_COLOR_G,100,165,30,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_AMBL_COLOR_B,144,165,30,14,ES_AUTOHSCROLL
+    LTEXT           "Red",IDC_STATIC,65,154,14,8
+    LTEXT           "Green",IDC_STATIC,107,153,20,8
+    LTEXT           "Blue",IDC_STATIC,149,154,14,8
+    LTEXT           "Color:",IDC_STATIC,186,28,20,8
+    EDITTEXT        IDC_LIGHT_COLOR_R,223,26,30,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_LIGHT_COLOR_G,267,26,30,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_LIGHT_COLOR_B,311,26,30,14,ES_AUTOHSCROLL
+    LTEXT           "Red",IDC_STATIC,233,14,14,8
+    LTEXT           "Green",IDC_STATIC,275,14,20,8
+    LTEXT           "Blue",IDC_STATIC,317,14,14,8
+    LTEXT           "Position:",IDC_STATIC,186,64,28,8
+    EDITTEXT        IDC_LIGHT_POS_X,223,61,37,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_LIGHT_POS_Y,265,61,37,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_LIGHT_POS_Z,307,61,37,14,ES_AUTOHSCROLL
+    LTEXT           "X",IDC_STATIC,237,51,8,8
+    LTEXT           "Y",IDC_STATIC,280,51,8,8
+    LTEXT           "Z",IDC_STATIC,323,51,8,8
+    LTEXT           "Direction:",IDC_STATIC,186,93,32,8
+    EDITTEXT        IDC_LIGHT_DIR_X,223,90,37,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_LIGHT_DIR_Y,265,90,37,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_LIGHT_DIR_Z,307,90,37,14,ES_AUTOHSCROLL
+    LTEXT           "X",IDC_STATIC,237,80,8,8
+    LTEXT           "Y",IDC_STATIC,279,80,8,8
+    LTEXT           "Z",IDC_STATIC,323,80,8,8
+    COMBOBOX        IDC_LIGHT_TYPE,111,42,58,46,CBS_DROPDOWN | WS_TABSTOP
+    LTEXT           "Type:",IDC_STATIC,66,43,20,8
+    CONTROL         "",IDC_LIGHT_ENABLED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,111,26,16,10
+    LTEXT           "Enabled:",IDC_STATIC,66,26,29,8
+    COMBOBOX        IDC_LIGHT_SPACE,111,61,59,40,CBS_DROPDOWN | WS_TABSTOP
+    LTEXT           "Space:",IDC_STATIC,66,64,23,8
+END
+
+IDD_MATERIAL_DLG DIALOGEX 0, 0, 307, 138
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Material Properties"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,193,117,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,250,117,50,14
+    EDITTEXT        IDC_MATERIAL_AMBIENT,51,15,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_MATERIAL_DIFFUSE,51,36,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_MATERIAL_SHININESS,51,57,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_MATERIAL_SPECULAR,51,78,40,14,ES_AUTOHSCROLL
+    LTEXT           "Ambient:",IDC_STATIC,15,18,30,8
+    LTEXT           "Diffuse:",IDC_STATIC,15,39,26,8
+    LTEXT           "Specular:",IDC_STATIC,15,81,31,8
+    LTEXT           "Shininess:",IDC_STATIC,15,60,33,8
+    GROUPBOX        "Shading",IDC_STATIC,7,7,102,91
+    GROUPBOX        "Texture Mapping",IDC_STATIC,118,7,182,91
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription", "CGWork MFC Application"
+            VALUE "FileVersion", "1, 0, 0, 1"
+            VALUE "InternalName", "CGWork"
+            VALUE "LegalCopyright", "Copyright (C) 2001"
+            VALUE "OriginalFilename", "CGWork.EXE"
+            VALUE "ProductName", "CGWork Application"
+            VALUE "ProductVersion", "1, 0, 0, 1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 57
+    END
+
+    IDD_LIGHTS_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 348
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 211
+    END
+
+    IDD_MATERIAL_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 300
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 131
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_LIGHTS_DLG DLGINIT
+BEGIN
+    IDC_LIGHT_TYPE, 0x403, 12, 0
+0x6944, 0x6572, 0x7463, 0x6f69, 0x616e, 0x006c, 
+    IDC_LIGHT_TYPE, 0x403, 6, 0
+0x6f50, 0x6e69, 0x0074, 
+    IDC_LIGHT_TYPE, 0x403, 5, 0
+0x7053, 0x746f, "\000" 
+    IDC_LIGHT_SPACE, 0x403, 5, 0
+0x6956, 0x7765, "\000" 
+    IDC_LIGHT_SPACE, 0x403, 6, 0
+0x6f4c, 0x6163, 0x006c, 
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDR_MAINFRAME           "CGWork\n\nCGWork\n\n\nCGWork.Document\nCGWork Document"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_APP_TITLE       "CGWork"
+    AFX_IDS_IDLEMESSAGE     "Ready"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_INDICATOR_EXT        "EXT"
+    ID_INDICATOR_CAPS       "CAP"
+    ID_INDICATOR_NUM        "NUM"
+    ID_INDICATOR_SCRL       "SCRL"
+    ID_INDICATOR_OVR        "OVR"
+    ID_INDICATOR_REC        "REC"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_FILE_NEW             "Create a new document\nNew"
+    ID_FILE_OPEN            "Open an existing document\nOpen"
+    ID_FILE_CLOSE           "Close the active document\nClose"
+    ID_FILE_SAVE            "Save the active document\nSave"
+    ID_FILE_SAVE_AS         "Save the active document with a new name\nSave As"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_APP_ABOUT            "Display program information, version number and copyright\nAbout"
+    ID_APP_EXIT             "Quit the application; prompts to save documents\nExit"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_FILE_MRU_FILE1       "Open this document"
+    ID_FILE_MRU_FILE2       "Open this document"
+    ID_FILE_MRU_FILE3       "Open this document"
+    ID_FILE_MRU_FILE4       "Open this document"
+    ID_FILE_MRU_FILE5       "Open this document"
+    ID_FILE_MRU_FILE6       "Open this document"
+    ID_FILE_MRU_FILE7       "Open this document"
+    ID_FILE_MRU_FILE8       "Open this document"
+    ID_FILE_MRU_FILE9       "Open this document"
+    ID_FILE_MRU_FILE10      "Open this document"
+    ID_FILE_MRU_FILE11      "Open this document"
+    ID_FILE_MRU_FILE12      "Open this document"
+    ID_FILE_MRU_FILE13      "Open this document"
+    ID_FILE_MRU_FILE14      "Open this document"
+    ID_FILE_MRU_FILE15      "Open this document"
+    ID_FILE_MRU_FILE16      "Open this document"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_NEXT_PANE            "Switch to the next window pane\nNext Pane"
+    ID_PREV_PANE            "Switch back to the previous window pane\nPrevious Pane"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_WINDOW_SPLIT         "Split the active window into panes\nSplit"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_EDIT_CLEAR           "Erase the selection\nErase"
+    ID_EDIT_CLEAR_ALL       "Erase everything\nErase All"
+    ID_EDIT_COPY            "Copy the selection and put it on the Clipboard\nCopy"
+    ID_EDIT_CUT             "Cut the selection and put it on the Clipboard\nCut"
+    ID_EDIT_FIND            "Find the specified text\nFind"
+    ID_EDIT_PASTE           "Insert Clipboard contents\nPaste"
+    ID_EDIT_REPEAT          "Repeat the last action\nRepeat"
+    ID_EDIT_REPLACE         "Replace specific text with different text\nReplace"
+    ID_EDIT_SELECT_ALL      "Select the entire document\nSelect All"
+    ID_EDIT_UNDO            "Undo the last action\nUndo"
+    ID_EDIT_REDO            "Redo the previously undone action\nRedo"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_VIEW_TOOLBAR         "Show or hide the toolbar\nToggle ToolBar"
+    ID_VIEW_STATUS_BAR      "Show or hide the status bar\nToggle StatusBar"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_SCSIZE          "Change the window size"
+    AFX_IDS_SCMOVE          "Change the window position"
+    AFX_IDS_SCMINIMIZE      "Reduce the window to an icon"
+    AFX_IDS_SCMAXIMIZE      "Enlarge the window to full size"
+    AFX_IDS_SCNEXTWINDOW    "Switch to the next document window"
+    AFX_IDS_SCPREVWINDOW    "Switch to the previous document window"
+    AFX_IDS_SCCLOSE         "Close the active window and prompts to save the documents"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_SCRESTORE       "Restore the window to normal size"
+    AFX_IDS_SCTASKLIST      "Activate Task List"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_FILE_LOAD            "Load a IRIT Data File\nLoad IRIT Data File"
+    ID_VIEW_ORTHOGRAPHIC    "View Orthographic Projection\nOrthographic"
+    ID_VIEW_PERSPECTIVE     "View Perspective projection\nPerspective"
+    ID_ACTION_ROTATE        "Rotate Model\nRotate"
+    ID_ACTION_TRANSLATE     "Translate Model\nTranslate"
+    ID_ACTION_SCALE         "Scale Model\nScale"
+    ID_AXIS_X               "X Axis\nX Axis"
+    ID_AXIS_Y               "Y Axis\nY Axis"
+    ID_AXIS_Z               "Z Axis\nZ Axis"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_BUTTON_SUBDIVIDE     "Run Subdivision Scheme\nSubdivide"
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Hebrew resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_HEB)
+#ifdef _WIN32
+LANGUAGE LANG_HEBREW, SUBLANG_DEFAULT
+#pragma code_page(1255)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE 9, 1\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#endif //_WIN32\r\n"
+    "#include ""afxres.rc""         // Standard components\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // Hebrew resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE 9, 1
+#pragma code_page(1252)
+#endif //_WIN32
+#include "afxres.rc"         // Standard components
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
