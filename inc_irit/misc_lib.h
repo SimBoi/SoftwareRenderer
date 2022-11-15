@@ -17,48 +17,8 @@
 #ifdef __WINNT__
 #    include <malloc.h> 
 #endif
-#include "irit_sm.h"
-#ifdef USE_VARARGS
-#include <varargs.h>
-#else
-#include <stdarg.h>
-#endif /* USE_VARARGS */
 
-/* #define IRIT_COMPILE_PARALLEL */
-
-/* Parallel execution controls: */
-#ifdef IRIT_COMPILE_PARALLEL
-    #include <omp.h>
-    #ifdef __WINNT__
-	#define IRIT_MUTEX		         VoidPtr
-	#define IRIT_MUTEX_GEN_VAR(IritMutex) \
-					IRIT_STATIC_DATA IRIT_MUTEX IritMutex;
-	#define IRIT_MUTEX_LOCK(IritMutex) \
-					IritEmulatePthreadMutexLock(&IritMutex);
-	#define IRIT_MUTEX_UNLOCK(IritMutex) \
-					IritEmulatePthreadMutexUnLock(IritMutex);
-	#define IRIT_PARALLEL_LOOP_NO_PARAMS() omp parallel for
-	#define IRIT_PARALLEL_LOOP_WITH_PARAMS(Private, Shared) \
-					omp parallel for Private Shared
-    #else
-	#include <pthread.h>
-	#define IRIT_MUTEX			 pthread_mutex_t
-	#define IRIT_MUTEX_GEN_VAR(IritMutex) \
-					IRIT_STATIC_DATA IRIT_MUTEX IritMutex;
-	#define IRIT_MUTEX_LOCK(IritMutex)   pthread_mutex_lock(&IritMutex);
-	#define IRIT_MUTEX_UNLOCK(IritMutex) pthread_mutex_unlock(&IritMutex);
-	#define IRIT_PARALLEL_LOOP_NO_PARAMS() omp parallel for
-	#define IRIT_PARALLEL_LOOP_WITH_PARAMS(Private, Shared) \
-					omp parallel for Private Shared
-    #endif /* __WINNT__ */
-#else
-    #define IRIT_MUTEX int
-    #define IRIT_MUTEX_GEN_VAR(IritMutex)
-    #define IRIT_MUTEX_LOCK(IritMutex)
-    #define IRIT_MUTEX_UNLOCK(IritMutex)
-    #define IRIT_PARALLEL_LOOP_NO_PARAMS()
-    #define IRIT_PARALLEL_LOOP(Private, Shared)
-#endif /* IRIT_COMPILE_PARALLEL */
+#include "inc_irit/irit_sm.h"
 
 typedef enum {
     MISC_ERR_MALLOC_FAILED,
@@ -90,6 +50,18 @@ typedef enum {
     MISC_ISC_BNW,
     MISC_ISC_GRAY
 } MiscISCColorTypeEnum;
+
+typedef enum {
+    IRIT_IMAGE_DITHER_REG_FL_TS = 0,
+    IRIT_IMAGE_DITHER_STUCKI,
+    IRIT_IMAGE_DITHER_FL_ST,
+    IRIT_IMAGE_DITHER_JAR_JUD,
+    IRIT_IMAGE_DITHER_BURKES,
+    IRIT_IMAGE_DITHER_SIERRA1,
+    IRIT_IMAGE_DITHER_SIERRA2,
+    IRIT_IMAGE_DITHER_SIERRA3,
+    IRIT_IMAGE_DITHER_LAST
+} IrtImgImageDitherType;
 
 typedef int (*MiscISCPrintFuncType)(const char *Format, ...);
 
@@ -212,6 +184,16 @@ typedef struct IrtImgRealPxlStruct {
     IrtImgRealClrType r, g, b, a;
 } IrtImgRealPxlStruct;
 
+typedef struct IritImgPrcssImgStruct {
+    unsigned int Height, Width;
+    float *Data; /* colors */
+} IritImgPrcssImgStruct;
+
+typedef void (*IritImgPrcssFunctionOnPixel)(IritImgPrcssImgStruct *Image,
+			                    unsigned int i,
+			                    unsigned int j,
+			                    void *Data);
+
 typedef struct IritPriorQue {
     struct IritPriorQue *Right, *Left; /* Pointers to two sons of this node. */
     VoidPtr Data;			     /* Pointers to the data itself. */
@@ -249,6 +231,7 @@ typedef unsigned long MiscISCImageSizeType;
 typedef void (*IritFatalMsgFuncType)(const char *Msg);
 typedef void (*IritWarningMsgFuncType)(const char *Msg);
 typedef void (*IritInfoMsgFuncType)(const char *Msg);
+typedef void (*IritInfoWMsgFuncType)(const wchar_t *Msg);
 typedef void (*MiscSetErrorFuncType)(MiscFatalErrorType ErrorFunc,
 				     const char *ErrorDescription);
 
@@ -300,7 +283,8 @@ void *IritDynMemoryDbgNoReport(void *p);
 /* A debug macro to state this allocation is global and made once. */
 #define IRIT_MALLOC_DBG_NO_REPORT(x)  IritDynMemoryDbgNoReport(x)
 #else
-#define IritMalloc(Size)	malloc(Size)
+VoidPtr IritMallocCheckNULL(unsigned Size);
+#define IritMalloc(Size)	IritMallocCheckNULL(Size)
 #define IritFree(Ptr)		free(Ptr)
 #define IRIT_MALLOC_DBG_NO_REPORT(x)   (x)
 #endif /* DEBUG_IRIT_MALLOC */
@@ -313,7 +297,7 @@ void IritFree2UnixFree(void *p);
 #define IritAlloca(Size) _alloca((Size) > IRIT_MAX_ALLOCA_SIZE ? \
 					     assert(0), (Size) : (Size))
 #   else
-#define IritAlloca(Size) _alloca(Size)
+#define IritAlloca(Size) _alloca(Size) 
 #   endif /* DEBUG */
 #else
 #define IritAlloca(Size) alloca(Size)
@@ -328,6 +312,7 @@ void IritConfigPrint(const IritConfigStruct *SetUp, int NumVar);
 int IritConfigSave(const char *FileName,
 		   const IritConfigStruct *SetUp,
 		   int NumVar);
+void IritConfigInitState(void);
 
 /* Get command line arguments. */
 #ifdef USE_VARARGS
@@ -642,6 +627,15 @@ int IrtImgReadUpdateCache(const char *ImageFileName,
 			  IrtBType *Image);
 void IrtImgReadClrCache(void);
 void IrtImgReadClrOneImage(const char *ImageName);
+int IrtImgWriteImg(const char *FName,
+		   const IrtImgRGBAPxlStruct *Pixels,
+		   int XSize,
+		   int YSize,
+		   int HasAlpha);
+int IrtImgWriteImg2(const char *FName,
+		    const IrtImgPixelStruct *Pixels,
+		    int XSize,
+		    int YSize);
 IrtImgImageType IrtImgWriteGetType(const char *ImageType);
 MiscWriteGenInfoStructPtr IrtImgWriteOpenFile(const char **argv,
 					      const char *FName,
@@ -653,6 +647,12 @@ void IrtImgWritePutLine(MiscWriteGenInfoStructPtr GI,
 			IrtBType *Alpha,
 			IrtImgPixelStruct *Pixels);
 void IrtImgWriteCloseFile(MiscWriteGenInfoStructPtr GI);
+IrtImgRGBAPxlStruct *IrtImgCnvrtRGB2RGBA(const IrtImgPixelStruct *RGBImg,
+				         int XSize,
+				         int YSize);
+IrtImgPixelStruct *IrtImgCnvrtRGBA2RGB(const IrtImgRGBAPxlStruct *RGBAImg,
+				       int XSize,
+				       int YSize);
 IrtImgPixelStruct *IrtImgFlipXYImage(const IrtImgPixelStruct *Img,
 				     int MaxX,
 				     int MaxY,
@@ -680,15 +680,153 @@ int IrtImgParsePTextureString2(const char *PTexture,
 			      int *NewImage,
 			      int *FlipHorizontally,
 			      int *FlipVertically);
-IrtBType *IrtImgDitherImage(IrtImgPixelStruct *Image,
-			    int XSize,
-			    int YSize,
-			    int DitherSize,
-			    IrtBType ErrorDiffusion);
+IrtBType *IrtImgDitherImageBW(IrtImgRGBAPxlStruct *Image,
+			      int XSize,
+			      int YSize,
+			      int DitherSize,
+			      IrtBType ErrorDiffusion);
+IrtBType *IrtImgDitherImageBW1(IrtImgPixelStruct *Image,
+			       int XSize,
+			       int YSize,
+			       int DitherSize,
+			       IrtBType ErrorDiffusion);
+IrtImgRGBAPxlStruct *IrtImgDitherImageBW2(IrtImgRGBAPxlStruct *Image,
+					  int XSize,
+					  int YSize,
+					  int DitherSize,
+					  IrtBType ErrorDiffusion);
+IrtImgRGBAPxlStruct *IrtImgDitherImageClr(
+				      IrtImgRGBAPxlStruct *Image,
+				      int XSize,
+				      int YSize,
+				      int DitherSize,
+				      IrtBType ErrorDiffusion,
+				      int NumColors,
+				      const IrtImgRGBAPxlStruct *DitherColors);
 int IrtImgDitherImage2(const char *InputImage,
 		       const char *OututImage,
 		       int DitherSize,
-		       IrtBType ErrorDiffusion);
+		       IrtBType ErrorDiffusion,
+		       int NumColors,
+		       const IrtImgRGBAPxlStruct *DitherColors);
+
+IrtImgRGBAPxlStruct *IrtDitherStucki(IrtImgRGBAPxlStruct *Image,
+				     int XSize,
+				     int YSize,
+				     int NumColors,
+				     const IrtImgRGBAPxlStruct *DitherColors);
+IrtImgRGBAPxlStruct *IrtDitherFloydSteinberg(
+				      IrtImgRGBAPxlStruct *Image,
+				      int XSize,
+				      int YSize,
+				      int NumColors,
+				      const IrtImgRGBAPxlStruct *DitherColors);
+IrtImgRGBAPxlStruct *IrtDitherJarvisJudiceNinke(
+				      IrtImgRGBAPxlStruct *Image,
+				      int XSize,
+				      int YSize,
+				      int NumColors,
+				      const IrtImgRGBAPxlStruct *DitherColors);
+IrtImgRGBAPxlStruct *IrtDitherBurkes(IrtImgRGBAPxlStruct *Image,
+				     int XSize,
+				     int YSize,
+				     int NumColors,
+				     const IrtImgRGBAPxlStruct *DitherColors);
+IrtImgRGBAPxlStruct *IrtDitherSierraFirst(
+				      IrtImgRGBAPxlStruct *Image,
+				      int XSize,
+				      int YSize,
+				      int NumColors,
+				      const IrtImgRGBAPxlStruct *DitherColors);
+IrtImgRGBAPxlStruct *IrtDitherSierraSecond(
+				      IrtImgRGBAPxlStruct *Image,
+				      int XSize,
+				      int YSize,
+				      int NumColors,
+				      const IrtImgRGBAPxlStruct *DitherColors);
+IrtImgRGBAPxlStruct *IrtDitherSierraThird(
+				      IrtImgRGBAPxlStruct *Image,
+				      int XSize,
+				      int YSize,
+				      int NumColors,
+				      const IrtImgRGBAPxlStruct *DitherColors);
+IrtImgRGBAPxlStruct *IrtImgDitherImageClr3(
+                                      IrtImgRGBAPxlStruct *Image,
+				      int XSize,
+				      int YSize,
+				      int NumColors,
+				      const IrtImgRGBAPxlStruct *DitherColors,
+				      IrtImgImageDitherType DitherMethod);
+int IrtImgDitherImage3(const char *InputImage,
+		       const char *OutputImage,
+		       int NumColors,
+		       const IrtImgRGBAPxlStruct *DitherColors,
+		       IrtImgImageDitherType DitherMethod);
+
+/* Simple processing of images. */
+
+#define IRIT_IMG_COPY_PIXEL_VALUE(Pixel1, Pixel2) \
+    IRIT_GEN_COPY(Pixel1, Pixel2, sizeof(float) * 4)
+#define IRIT_IMG_PRCSS_GET_PIXEL_VAL(Image, i, j, Color) \
+    assert(((int) (i)) <= (int) Image -> Height && \
+           ((int) (j)) <= (int) Image -> Width); \
+    IRIT_IMG_COPY_PIXEL_VALUE(Color, \
+		          &(Image -> Data[((i) * Image -> Width + (j)) * 4]))
+#define IRIT_IMG_PRCSS_GET_PIXEL_VAL2(Image, Idx, Color) \
+    IRIT_IMG_COPY_PIXEL_VALUE(Color, &(Image -> Data[Idx]))
+#define IRIT_IMG_PRCSS_GET_PIXEL_VAL3(Image, Idx) (&Image -> Data[Idx])
+#define IRIT_IMG_PRCSS_SET_PIXEL_VAL(Image, i, j, Color) \
+    assert(((int) (i)) <= (int) Image -> Height && \
+           ((int) (j)) <= (int) Image -> Width); \
+    IRIT_IMG_COPY_PIXEL_VALUE( \
+		   &(Image -> Data[((i) * Image -> Width + (j)) * 4]), Color)
+#define IRIT_IMG_PRCSS_SET_PIXEL_VAL2(Image, Idx, Color) \
+    IRIT_IMG_COPY_PIXEL_VALUE(&(Image -> Data[Idx]), Color)
+
+
+IritImgPrcssImgStruct *IritImgPrcssCreateWhiteImg(unsigned int Height,
+						  unsigned int Width);
+IritImgPrcssImgStruct *IritImgPrcssCreateBlkImg(unsigned int Height,
+					        unsigned int Width);
+IritImgPrcssImgStruct *IritImgPrcssCreateImg(unsigned int Height,
+					     unsigned int Width,
+					     float *Data);
+IritImgPrcssImgStruct *IritImgPrcssCopyImg(const IritImgPrcssImgStruct *Image);
+int IritImgPrcssGetPixelVal(const IritImgPrcssImgStruct *Image,
+			    unsigned int i,
+			    unsigned int j,
+			    float Color[4]);
+int IritImgPrcssSetPixelVal(IritImgPrcssImgStruct *Image,
+			    unsigned int i,
+			    unsigned int j,
+			    const float color[4]); 
+IritImgPrcssImgStruct *IritImgPrcssToGrayScale(const IritImgPrcssImgStruct
+								       *Image);
+void IritImgPrcssDeleteImg(IritImgPrcssImgStruct *Image);
+IritImgPrcssImgStruct *IritImgPrcssConv3(const IritImgPrcssImgStruct *Image,
+					 float Filter[9],
+					 int Normalize);
+IritImgPrcssImgStruct *IritImgPrcssSharpen(const IritImgPrcssImgStruct *Image);
+IritImgPrcssImgStruct *IritImgPrcssBiSobel(const IritImgPrcssImgStruct *Image);
+IritImgPrcssImgStruct *IritImgPrcssGaussianBlur(const IritImgPrcssImgStruct
+								       *Image);
+IritImgPrcssImgStruct *IritImgPrcssGaussianBlurMult(
+						 IritImgPrcssImgStruct *Image,
+						 int Amount);
+IritImgPrcssImgStruct *IritImgPrcssInvert(const IritImgPrcssImgStruct *Image);
+IritImgPrcssImgStruct *IritImgPrcssDetectEdges(const IritImgPrcssImgStruct
+								        *Image,
+					       int BlurAmount);
+IritImgPrcssImgStruct *IritImgPrcssReadImg(const char *Path);
+void IritImgPrcssWriteImg(IritImgPrcssImgStruct *Image, const char *SavePath);
+
+void IritImgPrcssAppFunOnLine(IritImgPrcssImgStruct *Image,
+			      int X0,
+			      int Y0,
+			      int X1,
+			      int Y1,
+			      IritImgPrcssFunctionOnPixel F,
+			      void *Data);
 
 /* Read/Write of movies. */
 IrtImgPixelStruct **IrtMovieReadMovie(const char *MovieFileName,
@@ -771,10 +909,14 @@ int MiscISCCalculateGreedy(MiscISCCalculatorPtrType Calc,
                            int *SolutionSize,
                            IrtRType *CoverPart);
 
-/* Bipartite graphs weighted matching. */
+/* Bipartite graphs weighted matching. and (1-to-1) matchings between sets  */
+/* of the different sizes.						    */
 int MiscBiPrWeightedMatchBipartite(const IrtRType **Weight,
 				   IritBiPrWeightedMatchStruct *Match,
 				   int n);
+int *MiscBiPrComputeMinCostRecMatching(const IrtRType *CostMat,
+				       int NumRows,
+				       int NumCols);
 
 /* Simple infix expression trees parser. */
 MiscExprTreeGenInfoStructPtr IritE2TExpr2TreeInit();
@@ -823,6 +965,7 @@ IrtRType IritApproxStrStrMatch(const char *Str1,
 void movmem(VoidPtr Src, VoidPtr Dest, int Len);
 #endif /* AMIGA */
 const char *searchpath(const char *Name, char *FullPath);
+const wchar_t *searchpathW(const wchar_t *Name, wchar_t *FullPath);
 
 #ifdef STRICMP
 int strnicmp(const char *s1, const char *s2, int n);
@@ -831,6 +974,7 @@ int stricmp(const char *s1, const char *s2);
 #if !(defined(__WINNT__) || defined(__WINCE__) || defined(OS2GCC) || defined(AMIGA) || defined(__CYGWIN__))
 #   define strnicmp(s1, s2, n) strncasecmp((s1), (s2), (n))
 #   define stricmp(s1, s2)     strcasecmp((s1), (s2))
+#   define _wcsicmp(s1, s2)     wcscasecmp((s1), (s2))
 #endif /* !(__WINNT__ || __WINCE__|| OS2GCC || AMIGA) */
 
 #ifdef __WINNT__
@@ -859,11 +1003,11 @@ int stricmp(const char *s1, const char *s2);
 #   define chdir(dir)		_chdir(dir)
 #   define putenv(str)		_putenv(str)
 #   endif /* _MSC_VER >= 1400 */
-#   ifdef IRIT_COMPILE_PARALLEL
-        void IritEmulatePthreadMutexLock(IRIT_MUTEX *Mx);
-        void IritEmulatePthreadMutexUnLock(IRIT_MUTEX Mx);
-#   endif /* IRIT_COMPILE_PARALLEL */
 #endif /*  __WINNT__ */
+
+/* Used by parallel computation (under windows). */
+void IritEmulatePthreadMutexLock(IRIT_MUTEX *Mx);
+void IritEmulatePthreadMutexUnLock(IRIT_MUTEX Mx);
 
 const char *IritStrIStr(const char *s, const char *Pattern);
 char *IritSubstStr(const char *S,
@@ -880,6 +1024,15 @@ char *strstr(const char *s, const char *Pattern);
 char *getcwd(char *s, int Len);
 #endif /* GETCWD */
 
+
+#if !defined(__WINNT__) && !defined(__OS2GCC__)
+/* Emulating windows functions under Unix... */
+FILE *_wfopen(const wchar_t *Filename, const wchar_t *Mode);
+FILE *_wpopen(const wchar_t *Command, const wchar_t *Mode);
+wchar_t *_wgetenv(const wchar_t *WName);
+#endif /* __WINNT__ || __OS2GCC__ */
+
+
 /* Error handling. */
 
 MiscSetErrorFuncType MiscSetFatalErrorFunc(MiscSetErrorFuncType ErrorFunc);
@@ -892,7 +1045,14 @@ void IritFatalError(const char *Msg);
 IritWarningMsgFuncType IritSetWarningMsgFunc(IritWarningMsgFuncType WrnMsgFunc);
 void IritWarningMsg(const char *Msg);
 IritInfoMsgFuncType IritSetInfoMsgFunc(IritInfoMsgFuncType InfoMsgFunc);
+IritInfoWMsgFuncType IritSetInfoWMsgFunc(IritInfoWMsgFuncType InfoWMsgFunc);
 void IritInformationMsg(const char *Msg);
+void IritInformationWMsg(const wchar_t *Msg);
+
+/* Wide char processing. */
+const char *IritTextLocaleInit(void);
+char *IritWChar2Ascii(const wchar_t *Str);
+wchar_t *IritAscii2WChar(const char *Str);
 
 #ifdef USE_VARARGS
 void IritFatalErrorPrintf(const char *va_alist, ...);

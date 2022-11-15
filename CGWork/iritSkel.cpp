@@ -47,7 +47,7 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 {
 	IPObjectStruct *PObjects;
 	IrtHmgnMatType CrntViewMat;
-
+	IPTraverseObjHierarchyStruct TraversState;
 	/* Get the data files: */
 	IPSetFlattenObjects(FALSE);
 	CStringA CStr(FileNames);
@@ -67,8 +67,10 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 	CGSkelFFCState.LinearOnePolyFlag = TRUE;    /* Linear srf gen. one poly. */
 
 	/* Traverse ALL the parsed data, recursively. */
-	IPTraverseObjListHierarchy(PObjects, CrntViewMat,
-        CGSkelDumpOneTraversedObject);
+	IPTraverseObjHierarchyInitState(&TraversState);
+	TraversState.ApplyFunc = (IPApplyObjFuncType) CGSkelDumpOneTraversedObject;
+	IRIT_GEN_COPY(TraversState.Mat, CrntViewMat, sizeof(IrtHmgnMatType));
+	IPTraverseObjListHierarchy(PObjects, &TraversState);
 	return true;
 }
 

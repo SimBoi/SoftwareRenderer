@@ -9,7 +9,8 @@
 #ifndef IRIT_MISC_ATTR_H
 #define IRIT_MISC_ATTR_H
 
-#include "irit_sm.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/misc_attr_id.h"
 
 typedef enum {
     IP_ATTR_NONE,
@@ -28,6 +29,8 @@ typedef enum {
 #define IP_ATTR_NO_COLOR	999
 #define IP_ATTR_NO_WIDTH	1e30
 
+#define IP_ATTR_MAX_STR_LENGTH	100000
+
 #define IP_ATTR_IS_BAD_INT(I)	((I) == IP_ATTR_BAD_INT)
 #define IP_ATTR_IS_BAD_REAL(R)	((R) > IP_ATTR_BAD_REAL / 10.0)
 #define IP_ATTR_IS_BAD_COLOR(C)	((C) == IP_ATTR_NO_COLOR)
@@ -44,19 +47,17 @@ typedef enum {
 	IP_ATTR_FREE_ATTRS(NewAttr); \
 	NewAttr = IP_ATTR_COPY_ATTRS(OldAttr); }
 
-#define IP_ATTR_ATTR_EXIST(Attrs, Name) (AttrFindAttribute(Attrs, Name) != NULL)
-
-// // GERSHON - Daniel - will require Locking
+// GERSHON - will require Locking
 #define IP_ATTR_INIT_UNIQUE_ID_NUM(AttrID, StrID) \
     if (AttrID == ATTRIB_NAME_BAD_NUMBER) { \
-        AttrID = AttrGetAttribNumber(StrID); \
+        AttrID = AttrGetAttribHashNumber(StrID); \
     }
 
 #define IP_ATTR_IRIT_COLOR_TABLE_SIZE	16
 
 typedef unsigned int IPAttrNumType;
 
-#define ATTRIB_NAME_BAD_NUMBER    ((IPAttrNumType) - 1)
+#define ATTRIB_NAME_BAD_NUMBER    ((IPAttrNumType) -1)
 
 /*****************************************************************************
 * Attributes - an attribute has a name and can be one of the following:	     *
@@ -78,31 +79,26 @@ typedef struct IPAttributeStruct {
 	VoidPtr Ptr;
 	VoidPtr RefPtr;
     } U;
-    IPAttrNumType _AttribNum;
+    IPAttrNumType _AttribNum;           /* Used in string based attributes. */
+    IPAttrIDType _AttribID;                  /* Used in Attribute ID attrs. */
 } IPAttributeStruct;
 
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
 
+IRIT_GLOBAL_DATA_HEADER const IPAttrIDDefStruct _IPAttrIDDefTable[];
 IRIT_GLOBAL_DATA_HEADER const int AttrIritColorTable[][3];
+IRIT_GLOBAL_DATA_HEADER const int AttrIritColorTableSize;
+
+/* Functions in miscattr.c */
 
 void AttrGetIndexColor(int Color, int *Red, int *Green, int *Blue);
-void AttrSetColor(IPAttributeStruct **Attrs, int Color);
-int AttrGetColor(const IPAttributeStruct *Attrs);
-void AttrSetRGBColor(IPAttributeStruct **Attrs, int Red, int Green, int Blue);
-int AttrGetRGBColor(const IPAttributeStruct *Attrs,
-		    int *Red,
-		    int *Green,
-		    int *Blue);
 int AttrGetRGBColor2(const IPAttributeStruct *Attrs, 
 		     const char *Name,
 		     int *Red, 
 		     int *Green, 
 		     int *Blue);
-void AttrSetWidth(IPAttributeStruct **Attrs, IrtRType Width);
-IrtRType AttrGetWidth(const IPAttributeStruct *Attrs);
-
 void AttrSetIntAttrib(IPAttributeStruct **Attrs, const char *Name, int Data);
 void AttrSetIntAttrib2(IPAttributeStruct **Attrs,
 		       IPAttrNumType AttribNum,
@@ -179,9 +175,12 @@ const IPAttributeStruct *AttrTraceAttributes(
 					  const IPAttributeStruct *FirstAttrs);
 const char *Attr2StringToData(const IPAttributeStruct *Attr,
 			      int DataFileFormat,
-			      char* data);
+			      char *Str);
 const char *Attr2StringMalloc(const IPAttributeStruct *Attr,
 			      int DataFileFormat);
+int AttrCmpTwoAttrByName(const IPAttributeStruct *AttrList1,
+			 const IPAttributeStruct *AttrList2,
+			 const char *AttrName);
 
 IPAttributeStruct *AttrReverseAttributes(IPAttributeStruct *Attr);
 
@@ -191,24 +190,34 @@ void AttrFreeAttributes(IPAttributeStruct **Attrs);
 IPAttributeStruct *AttrFindAttribute(const IPAttributeStruct *Attrs,
 				     const char *Name);
 
-IPAttributeStruct *_AttrMallocAttribute(const char *Name,
-					IPAttributeType Type);
-IPAttributeStruct *_AttrMallocNumAttribute(IPAttrNumType AttribNum, 
-					   IPAttributeType Type);
+IPAttributeStruct *_AttrMallocAttributeNameType(const char *Name,
+						IPAttributeType Type);
+IPAttributeStruct *_AttrMallocAttributeHashNum(IPAttrNumType AttribHashNum, 
+					       IPAttributeType Type);
+IPAttributeStruct *_AttrMallocAttributeIDType(IPAttrNumType AttribID, 
+					  IPAttributeType Type);
 void _AttrFreeAttributeData(IPAttributeStruct *Attr);
 
-const char **AttrCopyValidAttrList(const char **AttrNames);
+const char **AttrCopyValidAttrNameList(const char **AttrNames);
 IPAttributeStruct *AttrCopyAttributes(const IPAttributeStruct *Src);
+IPAttributeStruct *AttrCopyAttributes2(const IPAttributeStruct *Src,
+				       int AllAttrs);
 IPAttributeStruct *AttrCopyOneAttribute(const IPAttributeStruct *Src);
+IPAttributeStruct *AttrCopyOneAttribute2(const IPAttributeStruct *Src,
+					 int AllAttr);
 IPAttributeStruct *AttrMergeAttributes(IPAttributeStruct *Orig,
 				       const IPAttributeStruct *Src,
 				       int Replace);
+IPAttributeStruct *AttrGetLastAttr(IPAttributeStruct *AList);
+IPAttributeStruct *AttrGetPrevAttr(IPAttributeStruct *AList,
+				   const IPAttributeStruct *A);
 
 /* Functions in miscatt1.c */
+
 const char *AttrGetAttribName(const IPAttributeStruct *Attr);
-IPAttrNumType AttrGetAttribNumber(const char *AttribName);
-IPAttributeStruct *AttrFindNumAttribute(const IPAttributeStruct *Attrs, 
-					IPAttrNumType AttrNum);
+IPAttrNumType AttrGetAttribHashNumber(const char *AttribName);
+IPAttributeStruct *AttrFindAttributeHashNum(const IPAttributeStruct *Attrs, 
+				   	    IPAttrNumType AttrNum);
 void AttrInitHashTbl(void);
 
 #if defined(__cplusplus) || defined(c_plusplus)

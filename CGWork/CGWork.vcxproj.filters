@@ -45,9 +45,6 @@
     <ClCompile Include="StdAfx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CG_Object.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CGWork.rc">
@@ -159,9 +156,6 @@
     </ClInclude>
     <ClInclude Include="..\include\user_lib.h">
       <Filter>Header Files\irit</Filter>
-    </ClInclude>
-    <ClInclude Include="CG_Object.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -11,11 +11,11 @@
 #define IRIT_TRNG_LIB_H
 
 #include <stdio.h>
-#include "irit_sm.h"
-#include "miscattr.h"
-#include "misc_lib.h"
-#include "cagd_lib.h"
-#include "symb_lib.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/miscattr.h"
+#include "inc_irit/misc_lib.h"
+#include "inc_irit/cagd_lib.h"
+#include "inc_irit/symb_lib.h"
 
 typedef enum {
     TRNG_ERR_DIR_NOT_VALID,
@@ -177,10 +177,10 @@ CagdBBoxStruct *TrngTriSrfListBBox(const TrngTriangSrfStruct *TriSrfs,
 CagdPolylineStruct *TrngTriSrf2CtrlMesh(const TrngTriangSrfStruct *TriSrf);
 CagdBType TrngBspTriSrfHasOpenEC(const TrngTriangSrfStruct *TriSrf);
 TrngTriangSrfStruct *TrngBspTriSrfOpenEnd(const TrngTriangSrfStruct *TriSrf);
-CagdPolygonStruct *TrngTriSrf2Polygons(const TrngTriangSrfStruct *TriSrf,
-				       int FineNess,
-				       CagdBType ComputeNormals,
-				       CagdBType ComputeUV);
+struct IPPolygonStruct *TrngTriSrf2Polygons(const TrngTriangSrfStruct *TriSrf,
+				            int FineNess,
+				            CagdBType ComputeNormals,
+				            CagdBType ComputeUV);
 CagdPolylineStruct *TrngTriSrf2Polylines(const TrngTriangSrfStruct *TriSrf,
 					 int NumOfIsocurves[3],
 					 CagdRType TolSamples,

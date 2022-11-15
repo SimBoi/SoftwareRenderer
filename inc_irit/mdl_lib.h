@@ -10,8 +10,8 @@
 #ifndef IRIT_MDL_LIB_H
 #define IRIT_MDL_LIB_H
 
-#include "cagd_lib.h" 
-#include "trim_lib.h" 
+#include "inc_irit/cagd_lib.h" 
+#include "inc_irit/trim_lib.h" 
 
 typedef enum {
     MDL_BOOL_UNKNOWN = 6000,
@@ -19,7 +19,8 @@ typedef enum {
     MDL_BOOL_INTERSECTION,
     MDL_BOOL_SUBTRACTION,
     MDL_BOOL_CUT,
-    MDL_BOOL_INTER_CRVS
+    MDL_BOOL_INTER_CRVS,
+    MDL_BOOL_DTCT_INTER
 } MdlBooleanType;
 
 typedef enum {
@@ -65,16 +66,25 @@ typedef struct MdlIntersectionCBStruct {
     MdlPostIntersectionCBFunc PostInterCBFunc;
 } MdlIntersectionCBStruct;
 
-typedef struct MdlBopsParams {
+typedef struct MdlBoolTolStruct {
+    CagdRType SubdivTol;
+    CagdRType Numerictol;
+    CagdRType TraceTol;
+    CagdRType VerifyUVTol;
+    CagdRType VerifyEucTol;
+} MdlBoolTolStruct;
+
+typedef struct MdlBopsParamsStruct {
     CagdBType PertubrateSecondModel;
     CagdBType ExtendUVSrfResult;
     /* If IntersectedSurfacesAttrib != NULL then each surface in both models */
     /* will have an integer attribute named IntersectedSurfacesAttrib that   */
     /* will have value of 1 if the surface participated is trimmed           */
     /* (intersects) as result of the boolean operation.			     */
-    char *IntersectedSurfacesAttrib;
+    IPAttrIDType IntersectedSurfacesAttrID;
     MdlIntersectionCBStruct *SSICBData;
-} MdlBopsParams;
+    MdlBoolTolStruct Tolerances;
+} MdlBopsParamsStruct;
 
 typedef struct MdlTrimSegStruct {
     struct MdlTrimSegStruct *Pnext;
@@ -248,11 +258,15 @@ CagdBBoxStruct *MdlModelTSrfTCrvsBBox(const MdlTrimSrfStruct *TSrf,
 
 int MdlTwoTrimSegsSameEndPts(const MdlTrimSegStruct *TSeg1,
 			     const MdlTrimSegStruct *TSeg2,
+			     CagdBType BackProjTest,
 			     CagdRType Tol);
 CagdCrvStruct *MdlGetTrimmingCurves(const MdlTrimSrfStruct *TrimSrf,
+				    CagdBType MergeLoops,
 				    CagdBType ParamSpace,
 				    CagdBType EvalEuclid);
-int MdlStitchModel(MdlModelStruct *Mdl, CagdRType StitchTol);
+int MdlStitchModel(MdlModelStruct *Mdl,
+		   CagdBType BackProjTest,
+		   CagdRType StitchTol);
 MdlModelStruct *MdlPrimPlane(CagdRType MinX,
 			     CagdRType MinY,
 			     CagdRType MaxX,
@@ -265,7 +279,13 @@ MdlModelStruct *MdlPrimPlaneSrfOrderLen(CagdRType MinX,
 					CagdRType ZLevel,
 					int Order,
 					int Len);
-MdlModelStruct *MdlPrimListOfSrfs2Model(CagdSrfStruct *Srfs, int *n);
+MdlModelStruct *MdlPrimListOfSrfs2Model(CagdSrfStruct *Srfs,
+					int *n,
+					int StitchModel);
+MdlModelStruct *MdlPrimListOfSrfs2Model2(const CagdSrfStruct *InSrfs, 
+					 CagdCrvAdjCmpFuncType CrvCmpFuncPtr,
+				         int *Is2ManifoldP, 
+				         int *StitchedCrvsP);
 MdlModelStruct *MdlPrimBox(CagdRType MinX,
 			   CagdRType MinY,
 			   CagdRType MinZ,
@@ -305,30 +325,31 @@ int MdlCreateCubeSpherePrim(int CubeTopoSphere);
 CagdCrvStruct *MdlExtructReversUVCrv(const MdlTrimSrfStruct *MdlSrf, 
 				     const MdlTrimSegStruct *MdlSeg);
 
-void MdlBooleanSetTolerances(CagdRType SubdivTol,
-			     CagdRType NumerTol,
-			     CagdRType TraceTol);
+CagdRType MdlBooleanSetTolerances(CagdRType SubdivTol,
+			          CagdRType NumerTol,
+			          CagdRType TraceTol);
+CagdBType MdlBooleanSetClip2Trim(CagdBType Clip2Trim);
 
 struct IPObjectStruct *MdlBooleanUnion(
 				 const MdlModelStruct *Model1, 
 				 const MdlModelStruct *Model2,
 				 struct MvarSrfSrfInterCacheStruct *SSICache, 
-				 MdlBopsParams *BopsParams);
+				 MdlBopsParamsStruct *BopsParams);
 struct IPObjectStruct *MdlBooleanIntersection(
 				 const MdlModelStruct *Model1, 
 				 const MdlModelStruct *Model2,
 				 struct MvarSrfSrfInterCacheStruct *SSICache,
-				 MdlBopsParams *BopsParams);
+				 MdlBopsParamsStruct *BopsParams);
 struct IPObjectStruct *MdlBooleanSubtraction(
 				 const MdlModelStruct *Model1, 
 				 const MdlModelStruct *Model2,
 				 struct MvarSrfSrfInterCacheStruct *SSICache,
-				 MdlBopsParams *BopsParams);
+				 MdlBopsParamsStruct *BopsParams);
 struct IPObjectStruct *MdlBooleanCut(
 				 const MdlModelStruct *Model1,
 				 const MdlModelStruct *Model2,
 				 struct MvarSrfSrfInterCacheStruct *SSICache,
-				 MdlBopsParams *BopsParams);
+				 MdlBopsParamsStruct *BopsParams);
 struct IPObjectStruct *MdlBooleanMerge(const MdlModelStruct *Model1,
 				       const MdlModelStruct *Model2,
 				       CagdBType StitchBndries);
@@ -339,7 +360,13 @@ CagdCrvStruct *MdlBooleanInterCrv(const MdlModelStruct *Model1,
 				  const MdlModelStruct *Model2,
 				  int InterType,
 				  MdlModelStruct **InterModel,
-				  MdlBopsParams *BopsParams);
+				  MdlBopsParamsStruct *BopsParams);
+int MdlBooleanDtctModelSrfInter(MdlModelStruct *Model1,
+				const CagdSrfStruct *Srf2);
+CagdBType MdlBooleanDetectInter(const MdlModelStruct *Model1, 
+	  			const MdlModelStruct *Model2,
+				struct MvarSrfSrfInterCacheStruct *SSICache,
+				MdlBopsParamsStruct *BopsParams);
 int MdlBoolSetOutputInterCrv(int OutputInterCurve);
 int MdlBoolSetOutputInterCrvType(int OutputInterCurveType);
 int MdlBoolSetHandleInterDiscont(int HandleInterDiscont);
@@ -348,11 +375,18 @@ MdlModelStruct *MdlModelNegate(const MdlModelStruct *Model);
 int MdlBoolCleanRefsToTSrf(MdlModelStruct *Model, MdlTrimSrfStruct *TSrf);
 void MdlBoolResetAllTags(MdlModelStruct *Model);
 int MdlBoolCleanUnusedTrimCrvsSrfs(MdlModelStruct *Model);
+int MdlBoolCleanUnusedTrimCrvsSrfs2(MdlModelStruct *Model);
 void MdlBoolClipTSrfs2TrimDomain(MdlModelStruct *Model, 
 				 CagdBType ExtendSrfDomain);
 
 CagdCrvStruct *MdlInterSrfByPlane(const CagdSrfStruct *Trf,
 				  const IrtPlnType Pln);
+CagdCrvStruct *MdlInterModelByPlane(const MdlModelStruct *Mdl,
+				    const IrtPlnType Pln);
+CagdPtStruct *MdlInterModelByCurve(const MdlModelStruct *Mdl,
+				   const CagdCrvStruct *Crv,
+				   CagdRType Eps,
+				   int DtctInters);
 TrimSrfStruct *MdlClipSrfByPlane(const CagdSrfStruct *Srf,
 				 const IrtPlnType Pln);
 TrimSrfStruct *MdlClipTrimmedSrfByPlane(const TrimSrfStruct *TSrf,
@@ -361,14 +395,14 @@ MdlModelStruct *MdlClipModelByPlane(const MdlModelStruct *Mdl,
 				    const IrtPlnType Pln,
 				    MdlBooleanType BoolOp);
 
-struct MdlBopsParams *MdlBoolOpParamsAlloc(
+struct MdlBopsParamsStruct *MdlBoolOpParamsAlloc(
                                     CagdBType PertubrateSecondModel,
 				    CagdBType ExtendUVSrfResult,
-				    const char *IntersectedSurfacesAttrib,
+				    IPAttrIDType IntersectedSurfacesAttrID,
 				    MdlIntersectionCBFunc InterCBFunc,
 				    MdlPreIntersectionCBFunc PreInterCBFunc,
 				    MdlPostIntersectionCBFunc PostInterCBFunc);
-void MdlBoolOpParamsFree(struct MdlBopsParams *BopsParams);
+void MdlBoolOpParamsFree(struct MdlBopsParamsStruct *BopsParams);
 
 /******************************************************************************
 * Model maintenance routines.						      *
@@ -390,7 +424,7 @@ CagdBType MdlIsPointInsideTrimSrf(const MdlTrimSrfStruct *TSrf,
 int MdlIsPointInsideTrimLoop(const MdlTrimSrfStruct *TSrf,
 			     const MdlLoopStruct *Loop,
 			     CagdUVType UV);
-CagdBType MdlIsPointInsideModel(CagdPType Pnt, const MdlModelStruct *Mdl);
+CagdBType MdlIsPointInsideModel(const CagdPType Pnt, const MdlModelStruct *Mdl);
 int MdlIsLoopNested(const MdlLoopStruct *L, const MdlTrimSrfStruct *TSrf);
 int MdlGetUVLocationInLoop(const MdlLoopStruct *L,
 			   const MdlTrimSrfStruct *TSrf,
@@ -411,16 +445,25 @@ TrimSrfStruct *MdlCnvrtMdl2TrimmedSrfs(const MdlModelStruct *Model,
 				       CagdRType TrimCrvStitchTol);
 TrimSrfStruct *MdlCnvrtMdls2TrimmedSrfs(const MdlModelStruct *Models,
 					CagdRType TrimCrvStitchTol);
-MdlModelStruct *MdlCnvrtSrfs2Mdls(const CagdSrfStruct *Srfs);
-MdlModelStruct *MdlCnvrtSrf2Mdl(const CagdSrfStruct *Srf);
-MdlModelStruct *MdlCnvrtTrimmedSrfs2Mdls(const TrimSrfStruct *TSrfs);
-MdlModelStruct *MdlCnvrtTrimmedSrf2Mdl(const TrimSrfStruct *TSrf);
+MdlModelStruct *MdlCnvrtSrfs2Mdls(const CagdSrfStruct *Srfs, int StitchModel);
+MdlModelStruct *MdlCnvrtSrf2Mdl(const CagdSrfStruct *Srf, int StitchModel);
+MdlModelStruct *MdlCnvrtTrimmedSrfs2Mdls(const TrimSrfStruct *TSrfs,
+					 int MergeTCrvsIntoLoops);
+MdlModelStruct *MdlCnvrtTrimmedSrf2Mdl(const TrimSrfStruct *TSrf,
+				       int MergeTCrvsIntoLoops);
+MdlModelStruct *MdlCnvrtTrimmedSrfs2Mdl(const TrimSrfStruct *TSrfs,
+					int MergeTCrvsIntoLoops,
+					int StitchMdl);
 MdlModelStruct *MdlAddSrf2Mdl(const MdlModelStruct *Mdl,
-			      const CagdSrfStruct *Srf);
+			      const CagdSrfStruct *Srf,
+			      int StitchModel);
 MdlModelStruct *MdlAddTrimmedSrf2Mdl(const MdlModelStruct *Mdl,
-				     const TrimSrfStruct *TSrf);
+				     const TrimSrfStruct *TSrf,
+				     int MergeTCrvsIntoLoops,
+				     int StitchModel);
 CagdCrvStruct *MdlExtractUVCrv(const MdlTrimSrfStruct *Srf,
 			       const MdlTrimSegStruct *Seg);
+void MdlRemovEucTrimCrvs(MdlModelStruct *Mdl);
 MdlModelStruct *MdlSplitDisjointComponents(const MdlModelStruct *Mdl);
 
 /******************************************************************************
@@ -434,6 +477,7 @@ const char *MdlDescribeError(MdlFatalErrorType ErrID);
 void MdlDbg(void *Obj);
 
 #ifdef DEBUG
+
 void MdlDbg2(void *Obj);
 void MdlDbgDsp(void *Obj, CagdRType Trans, int Clear);
 void MdlDbgDsp2(void *Obj, CagdRType Trans, int Clear);
@@ -468,8 +512,25 @@ int MdlDebugWriteTrimSegs(const MdlTrimSegStruct *TSegs,
 			  const CagdPType Trans);
 
 int MdlDebugVerifyTrimSeg(const MdlTrimSegStruct *TSeg, int VerifyBackPtrs);
+int MdlDebugVerifyTrimSegEps(const MdlTrimSegStruct *TSeg,
+			     int VerifyBackPtrs,
+			     CagdRType TCrvTol);
 int MdlDebugVerifyTrimSegsArcLen(const MdlTrimSegStruct *TSegs);
+int MdlDebugVerifyTrimSrf(const MdlTrimSrfStruct *MdlTrimSrf,
+			  int Complete,
+			  int TestLoops);
+int MdlDebugVerifyTrimSrfEps(const MdlTrimSrfStruct *MdlTrimSrf,
+			     int Complete,
+			     int TestLoops,
+			     CagdRType TCrvTol,
+			     CagdRType UVTol);
 int MdlDebugVerify(const MdlModelStruct *Model, int Complete, int TestLoops);
+int MdlDebugVerifyEps(const MdlModelStruct *Model,
+		      int Complete,
+		      int TestLoops,
+		      CagdRType TCrvTol,
+		      CagdRType TCrvEndPtTol,
+		      CagdRType VertexTol);
 struct IPObjectStruct *MdlDebugVisual(const MdlModelStruct *Model,
 		  		      CagdBType TCrvs,
 				      CagdBType TSrfs,

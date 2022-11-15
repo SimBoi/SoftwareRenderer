@@ -9,11 +9,11 @@
 #ifndef	IRIT_ALLOCATE_GH
 #define	IRIT_ALLOCATE_GH
 
-#include "iritprsr.h"
-#include "obj_dpnd.h"
-#include "cagd_lib.h"
-#include "trim_lib.h"
-#include "triv_lib.h"
+#include "inc_irit/iritprsr.h"
+#include "inc_irit/obj_dpnd.h"
+#include "inc_irit/cagd_lib.h"
+#include "inc_irit/trim_lib.h"
+#include "inc_irit/triv_lib.h"
 
 #define IP_SET_OBJ_NAME2(PObj, Name) { \
     const char *_p = (Name); \
@@ -75,9 +75,6 @@ IPPolyVrtxArrayStruct *IPPolyVrtxArrayNew(int NumVrtcs, int NumPlys);
 IPPolyVrtxArrayStruct *IPPolyVrtxArrayNew2(IPObjectStruct *PObj);
 void IPPolyVrtxArrayFree(IPPolyVrtxArrayStruct *PVIdx);
 
-int IPIsFreeObject(IPObjectStruct *PObj);
-int IPIsConsistentFreeObjList(void);
-
 int IPListObjectLength(const IPObjectStruct *PObj);
 int IPListObjectFind(const IPObjectStruct *PObjList,
 		     const IPObjectStruct *PObj);
@@ -88,7 +85,10 @@ void IPListObjectInsert2(IPObjectStruct *PObj,
 			 int Index,
 			 IPObjectStruct *PObjItem);
 void IPListObjectAppend(IPObjectStruct *PObjList, IPObjectStruct *PObjItem);
-void IPListObjectDelete(IPObjectStruct *PObj, int Index, int FreeItem);
+void IPListObjectAppendList(IPObjectStruct *PObj, IPObjectStruct *PObjNew);
+IPObjectStruct *IPListObjectDelete(IPObjectStruct *PObj, 
+				   int Index,
+				   int FreeItem);
 void IPListObjectDelete2(IPObjectStruct *PObj,
 			 IPObjectStruct *PObjToDel,
 			 int FreeItem);
@@ -138,6 +138,10 @@ IPObjectStruct *IPGenVModelObject(const char *Name,
 				  VMdlVModelStruct *VModel,
 				  IPObjectStruct *Pnext);
 IPObjectStruct *IPGenVMODELObject(VMdlVModelStruct *VModel);
+IPObjectStruct *IPGenVxlVMdlObject(const char *Name,
+				   VMdlVoxelVModelStruct *VxlVModel,
+				   IPObjectStruct *Pnext);
+IPObjectStruct *IPGenVXLVMDLObject(VMdlVoxelVModelStruct *VxlVModel);
 IPObjectStruct *IPGenMultiVarObject(const char *Name,
 				    MvarMVStruct *MultiVar,
 				    IPObjectStruct *Pnext);
@@ -201,9 +205,14 @@ void IPCopyObjectAuxInfo(IPObjectStruct *Dest, const IPObjectStruct *Src);
 IPObjectStruct *IPCopyObject(IPObjectStruct *Dest,
 			     const IPObjectStruct *Src,
 			     int CopyAll);
+IPObjectStruct *IPCopyObject2(IPObjectStruct *Dest,
+			      const IPObjectStruct *Src,
+			      int CopyNext,
+			      int CopyName);
 IPObjectStruct *IPCopyObjectGeomData(IPObjectStruct *Dest,
 				     const IPObjectStruct *Src,
-				     int CopyAll);
+				     int CopyNext,
+				     int CopyName);
 int IPSetCopyObjectReferenceCount(int RefCount);
 
 IPObjectStruct *IPCopyObjectList(const IPObjectStruct *PObjs, int CopyAll);

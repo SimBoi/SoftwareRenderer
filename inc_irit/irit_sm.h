@@ -11,6 +11,14 @@
 #ifndef	IRIT_SM_H
 #define	IRIT_SM_H
 
+#if _MSC_VER >= 1700 || defined(LINUX386)          /* Visual 2012 or better */
+#define IRIT_OPEN_MP            /* The currently supported parallelization. */
+#endif /* _MSC_VER */
+
+#ifdef IRIT_OPEN_MP
+#define IRIT_COMPILE_PARALLEL   /* Must be defined if parallel code active. */
+#endif /* IRIT_OPEN_MP */
+
 #ifdef HAVE_CONFIG_H
 #include <autoconfig.h>
 #endif
@@ -18,20 +26,16 @@
 /* Note program version should also be updated in *.c modules, in few        */
 /* places, as some system can not chain strings in the pre-processor level.  */
 #ifdef DEBUG
-    #define  IRIT_VERSION	"Ver. 11D"		 /* Program version. */
+    #define  IRIT_VERSION	"Ver. 12D"		 /* Program version. */
 #else
-    #define  IRIT_VERSION	"Ver. 11"		 /* Program version. */
+    #define  IRIT_VERSION	"Ver. 12"		 /* Program version. */
 #endif
-#define  IRIT_COPYRIGHT	"(C) Copyright 1989-2018 Gershon Elber, Technion"
+#define  IRIT_COPYRIGHT	"(C) Copyright 1989-2021 Gershon Elber, Technion"
 
 #include <math.h>
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-
-#ifdef IRIT_OPEN_MP
-#include <omp.h>
-#endif /* IRIT_OPEN_MP */
 
 #ifndef	NULL
 #define	NULL	0
@@ -52,6 +56,8 @@
 #define VoidPtr		void *
 #endif /* NO_VOID_PTR */
 
+/* #undef DEBUG_IRIT_MALLOC // to disable debugging of malloc/free in DEBUG. */
+
 #if !defined(IRIT_FLOAT) && !defined(IRIT_DOUBLE)
 #if defined(__MSDOS__) || defined(MAKE_REAL_IRIT_FLOAT)
 #define IRIT_FLOAT
@@ -64,15 +70,10 @@ typedef double          IrtRType;
 #endif /* __MSDOS__ || MAKE_REAL_IRIT_FLOAT */
 #endif /* !IRIT_FLOAT && !IRIT_DOUBLE */
 
-/* No support for dynamic memory testing in 64 bits. */
-#if defined(_WIN64) && defined(DEBUG_IRIT_MALLOC)
-#   undef DEBUG_IRIT_MALLOC
-#endif /* _WIN64 && DEBUG_IRIT_MALLOC */
-
-#ifdef DEBUG_IRIT_MALLOC
-#define DEBUG_IP_MALLOC
-#define DEBUG_ATTR_MALLOC
-#endif /* DEBUG_IRIT_MALLOC */
+/* No support for dynamic memory testing in 64 bits or parallel computations. */
+#if (defined(_WIN64) || defined(IRIT_OPEN_MP)) && defined(DEBUG_IRIT_MALLOC)
+/* #pragma message("DEBUG_IRIT_MALLOC is defined along with parallel computation.") */
+#endif /* (_WIN64 || IRIT_OPEN_MP) && DEBUG_IRIT_MALLOC */
 
 typedef	unsigned char	IrtBType;
 
@@ -130,6 +131,11 @@ typedef long int	IritIntPtrSizeType;
 #define IRIT_LINE_LEN		256
 #define IRIT_LINE_LEN_SHORT	31
 
+#define IRIT_QUERY_CHAR_PROP	(0)
+#define IRIT_QUERY_INT_PROP	(-IRIT_MAX_INT)
+#define IRIT_QUERY_REAL_PROP	(-IRIT_INFNTY)
+#define IRIT_QUERY_PTR_PROP	((void *) ((IritIntPtrSizeType) (0xffffff1)))
+
 /* Follows by general purpose helpful macros: */
 #define IRIT_MIN(x, y)		((x) > (y) ? (y) : (x))
 #define IRIT_MAX(x, y)		((x) > (y) ? (x) : (y))
@@ -178,6 +184,7 @@ typedef long int	IritIntPtrSizeType;
 #    define IRIT_WARNING_MSG(Str)		IritWarningMsg(Str)
 #    define IRIT_WARNING_MSG_PRINTF		IritWarningMsgPrintf
 #    define IRIT_INFO_MSG(Str)			IritInformationMsg(Str)
+#    define IRIT_INFO_WMSG(Str)			IritInformationWMsg(Str)
 #    define IRIT_INFO_MSG_PRINTF		IritInformationMsgPrintf
 #    define _IRIT_PT_NORMALIZE_MSG_ZERO(Size) \
 	if (Size < IRIT_PT_NORMALIZE_ZERO) { \
@@ -289,18 +296,22 @@ typedef long int	IritIntPtrSizeType;
 #define IRIT_PT_NORMALIZE_ZERO	1e-30
 
 #define IRIT_PT_NORMALIZE(Pt) { \
-				     IrtRType Size = IRIT_PT_LENGTH((Pt)); \
-				     _IRIT_PT_NORMALIZE_MSG_ZERO(Size) \
+				     IrtRType _Size = IRIT_PT_LENGTH((Pt)); \
+				     _IRIT_PT_NORMALIZE_MSG_ZERO(_Size) \
 				     { \
-					 Size = 1.0 / Size; \
-				         IRIT_PT_SCALE(Pt, Size); \
+					 _Size = 1.0 / _Size; \
+				         IRIT_PT_SCALE(Pt, _Size); \
 				     } \
 				}
+
+#define IRIT_PT_COPY_AND_NORMALIZE(DstPt, SrcPt) \
+					IRIT_PT_COPY(DstPt, SrcPt); \
+					IRIT_PT_NORMALIZE(DstPt);
 #define IRIT_PT_SAFE_NORMALIZE(Pt) { \
-				     IrtRType Size = IRIT_PT_LENGTH((Pt)); \
-				     if (Size > IRIT_PT_NORMALIZE_ZERO) { \
-					 Size = 1.0 / Size; \
-				         IRIT_PT_SCALE(Pt, Size); \
+				     IrtRType _Size = IRIT_PT_LENGTH((Pt)); \
+				     if (_Size > IRIT_PT_NORMALIZE_ZERO) { \
+					 _Size = 1.0 / _Size; \
+				         IRIT_PT_SCALE(Pt, _Size); \
 				     } \
 				}
 #define IRIT_PT_CLEAN_NORMALIZE(Pt) { \
@@ -331,9 +342,9 @@ typedef long int	IritIntPtrSizeType;
 			}
 
 #define IRIT_PT_BLEND(Res, Pt1, Pt2, t) \
-			{ (Res)[0] = (Pt1)[0] * t + (Pt2)[0] * (1 - t); \
-			  (Res)[1] = (Pt1)[1] * t + (Pt2)[1] * (1 - t); \
-			  (Res)[2] = (Pt1)[2] * t + (Pt2)[2] * (1 - t); \
+			{ (Res)[0] = (Pt1)[0] * (t) + (Pt2)[0] * (1 - (t)); \
+			  (Res)[1] = (Pt1)[1] * (t) + (Pt2)[1] * (1 - (t)); \
+			  (Res)[2] = (Pt1)[2] * (t) + (Pt2)[2] * (1 - (t)); \
 			}
 
 #define IRIT_PT_BLEND_BARYCENTRIC(Res, Pt1, Pt2, Pt3, W) { \
@@ -345,6 +356,12 @@ typedef long int	IritIntPtrSizeType;
 				     (Res)[1] = (Pt1)[1] + (Pt2)[1]; \
 				     (Res)[2] = (Pt1)[2] + (Pt2)[2]; \
 			           }
+
+#define IRIT_PT_ADD3(Res, Pt1, Pt2, Pt3) { \
+                                (Res)[0] = (Pt1)[0] + (Pt2)[0] + (Pt3)[0]; \
+			        (Res)[1] = (Pt1)[1] + (Pt2)[1] + (Pt3)[1]; \
+				(Res)[2] = (Pt1)[2] + (Pt2)[2] + (Pt3)[2]; \
+			    }
 
 #define IRIT_PT_SUB(Res, Pt1, Pt2) { (Res)[0] = (Pt1)[0] - (Pt2)[0]; \
 				     (Res)[1] = (Pt1)[1] - (Pt2)[1]; \
@@ -409,13 +426,13 @@ typedef long int	IritIntPtrSizeType;
 			        }
 
 #define IRIT_PT2D_SCALE_AND_ADD(Res, Pt1, Pt2, t) \
-			{ (Res)[0] = (Pt1)[0] + (Pt2)[0] * t; \
-			  (Res)[1] = (Pt1)[1] + (Pt2)[1] * t; \
+			{ (Res)[0] = (Pt1)[0] + (Pt2)[0] * (t); \
+			  (Res)[1] = (Pt1)[1] + (Pt2)[1] * (t); \
 			}
 
 #define IRIT_PT2D_BLEND(Res, Pt1, Pt2, t) \
-			{ (Res)[0] = (Pt1)[0] * t + (Pt2)[0] * (1 - t); \
-			  (Res)[1] = (Pt1)[1] * t + (Pt2)[1] * (1 - t); \
+			{ (Res)[0] = (Pt1)[0] * (t) + (Pt2)[0] * (1 - (t)); \
+			  (Res)[1] = (Pt1)[1] * (t) + (Pt2)[1] * (1 - (t)); \
 			}
 
 #define IRIT_PT2D_ADD(Res, Pt1, Pt2) { (Res)[0] = (Pt1)[0] + (Pt2)[0]; \
@@ -445,8 +462,11 @@ typedef long int	IritIntPtrSizeType;
 #define	IRIT_VEC_SET(V, V1, V2, V3)     IRIT_PT_SET(V, V1, V2, V3)
 #define IRIT_VEC_BLEND(VRes, V1, V2, t) IRIT_PT_BLEND(VRes, V1, V2, t)
 #define IRIT_VEC_ADD(VRes, V1, V2)	IRIT_PT_ADD(VRes, V1, V2)
+#define IRIT_VEC_ADD3(VRes, V1, V2, V3)	IRIT_PT_ADD3(VRes,V1, V2, V3)
 #define IRIT_VEC_SUB(VRes, V1, V2)	IRIT_PT_SUB(VRes, V1, V2)
 #define IRIT_VEC_SWAP(V1, V2)	        IRIT_PT_SWAP(V1, V2)
+#define IRIT_VEC_COPY_AND_NORMALIZE(DstVec, SrcVec) \
+				   IRIT_PT_COPY_AND_NORMALIZE(DstVec, SrcVec);
 
 /* Now the same thing but for 2D vectors. */
 
@@ -489,6 +509,58 @@ typedef long int	IritIntPtrSizeType;
 #define IRIT_CROSS_PROD_2D(Pt1, Pt2) ((Pt1)[0] * (Pt2)[1] - \
 				      (Pt1)[1] * (Pt2)[0])
 
+/* Processing of vectors of arbitrary length Len: */
+
+#define IRIT_VEC_SQR_LENGTH_LEN(Pt, Len) GMVecDotProdLen(Pt, Pt, Len)
+#define IRIT_VEC_LENGTH_LEN(Pt, Len)     sqrt(IRIT_VEC_SQR_LENGTH(Pt, Len))
+
+#define IRIT_VEC_RESET_LEN(Pt, Len)  IRIT_ZAP_MEM((Pt), Len * sizeof(IrtRType))
+
+#define IRIT_VEC_BLEND_LEN(Res, Pt1, Pt2, t, Len) { \
+    int _i; \
+    for (_i = 0; _i < Len; _i++) \
+        (Res)[_i] = (Pt1)[_i] * t + (Pt2)[_i] * (1 - t); }
+
+#define IRIT_VEC_BLEND_BARYCENTRIC_LEN(Res, Pt1, Pt2, Pt3, W, Len) { \
+    int _i; \
+    for (_i = 0; _i < Len; _i++) \
+	Res[_i] = Pt1[_i] * W[0] + Pt2[_i] * W[1] + Pt3[_i] * W[2]; } \
+
+#define IRIT_VEC_ADD_LEN(Res, Pt1, Pt2, Len) { \
+    int _i; \
+    for (_i = 0; _i < Len; _i++) \
+        (Res)[_i] = (Pt1)[_i] + (Pt2)[_i]; }
+
+#define IRIT_VEC_SUB_LEN(Res, Pt1, Pt2, Len) { \
+    int _i; \
+    for (_i = 0; _i < Len; _i++) \
+        (Res)[_i] = (Pt1)[_i] - (Pt2)[_i]; }
+
+#define IRIT_VEC_SWAP_LEN(Pt1, Pt2, Len) { \
+    int _i; \
+    for (_i = 0; _i < Len; _i++) \
+        IRIT_SWAP(IrtRType, (Pt1)[_i] - (Pt2)[_i]); }
+
+#define IRIT_VEC_PT_DIST_SQR_LEN(Pt1, Pt2, Len, DistSqr) { \
+    int _i; \
+    DistSqr = 0.0; \
+    for (_i = 0; _i < Len; _i++) \
+        (DistSqr += (Pt1)[_i] - (Pt2)[_i]; }
+#define IRIT_VEC_PT_DIST_LEN(Pt1, Pt2, Len, Dist) { \
+    IrtRtype _DIstSqr; \
+    IRIT_VEC_PT_DIST_SQR(Pt1, Pt2, Len, _DistSqr) \
+    Dist = sqrt(_DistSqr); }
+
+#define IRIT_VEC_SCALE_LEN(Pt, Scalar, Len) { \
+    int _i; \
+    for (_i = 0; _i < Len; _i++) \
+        (Pt)[_i] *= Scalar; }
+#define IRIT_VEC_SCALE2_LEN(Res, Pt, Scalar, Len) {	\
+    int _i; \
+    for (_i = 0; _i < Len; _i++) \
+	(Res)[_i] = (Pt)[_i] * (Scalar); }
+
+
 #define IRIT_LIST_PUSH(New, List) { (New) -> Pnext = (List); (List) = (New); }
 #define IRIT_LIST_POP(Head, List) { (Head) = (List); \
 				     (List) = (List) -> Pnext; \
@@ -508,27 +580,31 @@ typedef long int	IritIntPtrSizeType;
 
 #if defined(__WINNT__)
 #   define IRIT_STATIC_DATA static
-#   define IRIT_STATIC_CACHE_DATA static
-#   define IRIT_STATIC_STATE_DATA static
-#   define IRIT_STATIC_DEBUG_DATA static
 #   define IRIT_STATIC_ATTR_DATA static
+#   define IRIT_STATIC_CACHE_DATA static
+#   define IRIT_STATIC_DEBUG_DATA static
+#   define IRIT_STATIC_MUTEX_DATA static
+#   define IRIT_STATIC_STATE_DATA static
 #   define IRIT_GLOBAL_DATA 
-#   define IRIT_GLOBAL_CACHE_DATA 
-#   define IRIT_GLOBAL_STATE_DATA 
-#   define IRIT_GLOBAL_DEBUG_DATA 
+#   define IRIT_GLOBAL_CACHE_DATA
+#   define IRIT_GLOBAL_DEBUG_DATA
+#   define IRIT_GLOBAL_MUTEX_DATA
+#   define IRIT_GLOBAL_STATE_DATA
 #   define IRIT_GLOBAL_DATA_HEADER extern
 #define IRIT_TRACE_POSITION() \
     fprintf(stderr, "Location: File \"%s\", line %d\n", __FILE__, __LINE__);
 #else
 #   define IRIT_STATIC_DATA static
-#   define IRIT_STATIC_CACHE_DATA static
-#   define IRIT_STATIC_STATE_DATA static
-#   define IRIT_STATIC_DEBUG_DATA static
 #   define IRIT_STATIC_ATTR_DATA static
+#   define IRIT_STATIC_DEBUG_DATA static
+#   define IRIT_STATIC_CACHE_DATA static
+#   define IRIT_STATIC_MUTEX_DATA static
+#   define IRIT_STATIC_STATE_DATA static
 #   define IRIT_GLOBAL_DATA
-#   define IRIT_GLOBAL_CACHE_DATA 
-#   define IRIT_GLOBAL_STATE_DATA 
+#   define IRIT_GLOBAL_CACHE_DATA
 #   define IRIT_GLOBAL_DEBUG_DATA 
+#   define IRIT_GLOBAL_MUTEX_DATA
+#   define IRIT_GLOBAL_STATE_DATA 
 #   define IRIT_GLOBAL_DATA_HEADER extern
 #define IRIT_TRACE_POSITION() \
     fprintf(stderr, "Location: File \"%s\", line %d\n", __FILE__, __LINE__);
@@ -544,31 +620,32 @@ typedef long int	IritIntPtrSizeType;
         if (DbgPrm)
 #endif /* DEBUG */
 
+#define IRIT_DEBUG_COUNT_VISITS(n) \
+    { \
+        static int _ICount = 0; \
+        fprintf(stderr, "Entered %s:%d, Count = %d (break at %d)\n", \
+		__FILE__, __LINE__, ++_ICount, n); \
+	if (_ICount == n) { \
+	    fprintf(stderr, "IRIT_DEBUG_COUNT_VISITS done. Hit 'Enter' to continue:"); \
+	    getchar(); \
+	} \
+    }
+
 #if defined(__WINNT__) && _MSC_VER >= 1400 /* VC++ 2005 */
 /* Under windows we can compute a-priori the length of the expected string. */
+/* The strings is allocated dynamically and returned.			    */
 #define IRIT_VSPRINTF(p, Format, ArgPtr) { \
-    IRIT_STATIC_DATA char \
-	*_Line = NULL; \
-    IRIT_STATIC_DATA int \
-	_LineLen = 0; \
-    int ThisLen; \
-\
-    if (_Line == NULL) \
-      _Line = (char *) IritMalloc(_LineLen = IRIT_LINE_LEN); \
-    if ((ThisLen = _vscprintf(Format, ArgPtr) + 2) >= _LineLen) { \
-	IritFree(_Line); \
-	_Line = (char *) IritMalloc(_LineLen = ThisLen); \
-    } \
-    vsprintf_s(p = _Line, _LineLen, Format, ArgPtr); \
+    int _Len = _vscprintf(Format, ArgPtr) + 2; \
+    char \
+        *_Line = (char *) malloc(_Len); \
+    vsprintf_s(p = _Line, _Len, Format, ArgPtr); \
 }
 #else
 #define IRIT_INPUT_LINE_LEN	10000
+/* The strings is allocated dynamically and returned.			    */
 #define IRIT_VSPRINTF(p, Format, ArgPtr) { \
-    IRIT_STATIC_DATA char \
-	*_Line = NULL; \
-\
-    if (_Line == NULL) \
-	_Line = (char *) IritMalloc(IRIT_INPUT_LINE_LEN); \
+    char \
+        *_Line = (char *) malloc(IRIT_INPUT_LINE_LEN); \
     vsprintf(p = _Line, Format, ArgPtr); \
 }
 #endif /* __WINNT__ && _MSC_VER */
@@ -576,7 +653,7 @@ typedef long int	IritIntPtrSizeType;
 #if defined(_AIX) || defined(sgi) || defined(SUN4) || defined(DJGCC) || defined(OS2GCC) || defined(__WINNT__) || defined(__WINCE__) || defined(AMIGA) || defined(_INCLUDE_HPUX_SOURCE) || defined(OSF1DEC) || defined(__FreeBSD__) || defined(__osf__) || defined(_AlphaLinux) || defined(LINUX386) || defined(__CYGWIN__) || defined(__MACOSX__) || defined(__ANDROID__)
 #    include <stdlib.h>
 
-#    if defined(OSF1DEC) || defined(sgi) || defined(SUN4) || defined(OS2GCC) || defined(__FreeBSD__)
+#    if defined(OSF1DEC) || defined(sgi) || defined(SUN4) || defined(OS2GCC) || defined(__FreeBSD__) || defined(__MACOSX__)
 #	ifdef OSF1DEC
 #	   ifdef _XOPEN_SOURCE
 #	       undef _XOPEN_SOURCE /* For usleep */
@@ -621,5 +698,7 @@ typedef long int	IritIntPtrSizeType;
 #else
 #   include <signal.h>
 #endif /* __WINCE__ */
+
+#include "inc_irit/irit_prll.h"
 
 #endif	/* IRIT_SM_H */

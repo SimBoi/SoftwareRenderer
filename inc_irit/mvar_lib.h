@@ -11,12 +11,12 @@
 #define IRIT_MVAR_LIB_H
 
 #include <stdio.h>
-#include "irit_sm.h"
-#include "geom_lib.h"
-#include "cagd_lib.h"
-#include "trim_lib.h"
-#include "triv_lib.h"
-#include "mdl_lib.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/geom_lib.h"
+#include "inc_irit/cagd_lib.h"
+#include "inc_irit/trim_lib.h"
+#include "inc_irit/triv_lib.h"
+#include "inc_irit/mdl_lib.h"
 
 typedef enum {
     MVAR_ERR_DIR_NOT_VALID,
@@ -90,6 +90,8 @@ typedef enum {
     MVAR_ERR_INVALID_INPUT,
     MVAR_ERR_INV_PROJ_FAILED,
     MVAR_ERR_INVALID_COMPOSE_INPUT,
+    MVAR_ERR_EXPECTED_CLOSED_SRF,
+    MVAR_ERR_DIV_BY_ZERO,
     MVAR_ERR_UNDEFINE_ERR
 } MvarFatalErrorType;
 
@@ -104,7 +106,9 @@ typedef enum {
     MVAR_CNSTRNT_ZERO = 1320,
     MVAR_CNSTRNT_ZERO_SUBDIV,    /* Examine zeros during subdiv. stage only. */
     MVAR_CNSTRNT_POSITIVE,  /* Examine positivity during subdiv. stage only. */
-    MVAR_CNSTRNT_NEGATIVE   /* Examine negativity during subdiv. stage only. */
+    MVAR_CNSTRNT_POSITIVE_PARTIAL,/* Partial positivity in subdiv.stage only.*/
+    MVAR_CNSTRNT_NEGATIVE,  /* Examine negativity during subdiv. stage only. */
+    MVAR_CNSTRNT_NEGATIVE_PARTIAL /* Partial negativity on subdiv.stage only.*/
 } MvarConstraintType;
 
 /* This flag determines what to do with domain's center upon reaching subdiv */
@@ -234,6 +238,88 @@ typedef struct MvarComposedTrivStruct
     } U;
 } MvarComposedTrivStruct;
 
+/* This struct will hold the result of the constructed surface based        */
+/* kernel. The struct variables described as follows:                       */
+/*  ResStatus          0 - Faild to construct a valid surface.              */
+/*  		       1 - Successed to construct a valid surface without   */
+/*                         add more dofs to the input curves.               */
+/*		       2 - Successed to construct a valid surface with add  */
+/*                         more dofs to the input curves.		    */
+/*  DegRaisItrNum:     Hold the number of degree raising iteration needed   */
+/*                     to construct a surface with a valid parameterization.*/
+/*                     -1, if not succeeded.                                */
+/*  KnotInsItrNum:     Hold the number of knot insertion iteration needed   */
+/*                     to construct a surface with a valid parameterization.*/
+/*                     -1, if not succeeded.                                */
+/*  KrnlSrf:           The kernel surface constructed upon the given input  */
+/*                     curves, without add more dofs.                       */
+/*  RegularSrf:        The regular surface constructed by using the regular */
+/*                     operator on the given input curves.                  */
+/*  InitCpStateSrf:    Holds the kernel surface initial state. i.e. before  */
+/*		       moving the inner control points toward the kernel    */
+/*                     point. The inner control points will be ordered in a */
+/*                     unifrom gride. The surface construcetd upon the      */
+/*                     given input curves.                                  */
+/*  DegRaisSrf:        The kernel surface constructed by using the kernel   */
+/*                     operator variation, while adding more dofs by        */
+/*                     raising the degree of the input curves.              */
+/*  DegRaisRglrSrf:    The regular surface constructed by using the regular */
+/*                     operator, while adding more dofs by raising the      */
+/*                     degree of the input curves.                          */
+/*  DegRaisInitSrf:    Holds the kernel surface initial state. i.e. before  */
+/*		       moving the inner control points toward the kernel    */
+/*                     point. The inner control points will be ordered in a */
+/*                     unifrom gride. The surface construcetd upon the      */
+/*                     degree raised input curves.                          */
+/*  KnotInsSrf:        The kernel surface constructed by using the kernel   */
+/*                     operator variation, while adding more dofs by        */
+/*                     inserting unifrom knots into the input curves.       */
+/*  KnotInsRglrSrf:    The regular surface constructed by using the regular */
+/*                     operator, while adding more dofs by inserting        */
+/*                     unifrom knots into the input curves.                 */
+/*  KnotInsInitSrf:    Holds the kernel surface initial state. i.e. before  */
+/*		       moving the inner control points toward the kernel    */
+/*                     point. The inner control points will be ordered in a */
+/*                     unifrom gride. The surface construcetd upon the      */
+/*                     refined input curves.                                */
+/*  CnvxHull:          The convex hull of the evaluated kernel points. NULL */
+/*                     If there is no kernel points or the convex hull      */
+/*                     provided by the user and not computed.               */
+typedef struct MvarPlnrKrnlSrfRes 
+{
+    int ResStatus;
+    int DegRaisItrNum;
+    int KnotInsItrNum;
+    CagdSrfStruct *KrnlSrf;
+    CagdSrfStruct *RegularSrf;
+    CagdSrfStruct *InitCpStateSrf;
+    CagdSrfStruct *DegRaisSrf;
+    CagdSrfStruct *DegRaisRglrSrf;
+    CagdSrfStruct *DegRaisInitSrf;
+    CagdSrfStruct *KnotInsSrf;
+    CagdSrfStruct *KnotInsRglrSrf;
+    CagdSrfStruct *KnotInsInitSrf;
+    struct IPObjectStruct *CnvxHull;
+} MvarPlnrKrnlSrfRes;
+
+typedef struct MvarKrnlTVRes 
+{
+    int ResStatus;
+    int DegRaisItrNum;
+    int KnotInsItrNum;
+    TrivTVStruct *KrnlTV;
+    TrivTVStruct *RegularTV;
+    TrivTVStruct *InitCpStateTV;
+    TrivTVStruct *DegRaisTV;
+    TrivTVStruct *DegRaisRglrTV;
+    TrivTVStruct *DegRaisInitTV;
+    TrivTVStruct *KnotInsTV;
+    TrivTVStruct *KnotInsRglrTV;
+    TrivTVStruct *KnotInsInitTV;
+    struct IPObjectStruct *KrnlPts;
+    IrtPtType KrnlPt;
+} MvarKrnlTVRes;
+
 #define MVAR_HF_DIST_MAX_PARAM		3
 
 #define MVAR_IS_RATIONAL_PT(PType)  ((int) ((PType) & 0x01))
@@ -267,19 +353,19 @@ typedef struct MvarComposedTrivStruct
 #define MVAR_MV_EVAL_E2(Mv, Params, PtE2) \
 		{ CagdRType _R[MVAR_MAX_PT_SIZE], *PR = _R; \
 		  MvarMVEvalToData((Mv), (Params), _R); \
-		  CagdCoerceToE2(PtE2, &PR, -1, (Mv) -> PType); }
+		  CagdCoerceToE2(PtE2, &PR, -1, (CagdPointType) ((Mv) -> PType)); }
 #define MVAR_MV_EVAL_E3(Mv, Params, PtE3) \
 		{ CagdRType _R[MVAR_MAX_PT_SIZE], *PR = _R; \
 		  MvarMVEvalToData((Mv), (Params), _R); \
-		  CagdCoerceToE3(PtE3, &PR, -1, (Mv) -> PType); }
+		  CagdCoerceToE3(PtE3, &PR, -1, (CagdPointType) ((Mv) -> PType)); }
 #define MVAR_MV_EVAL_P2(Mv, Params, PtP2) \
 		{ CagdRType _R[MVAR_MAX_PT_SIZE], *PR = _R; \
 		  MvarMVEvalToData((Mv), (Params), _R); \
-		  CagdCoerceToP2(PtP2, &PR, -1, (Mv) -> PType); }
+		  CagdCoerceToP2(PtP2, &PR, -1, (CagdPointType) ((Mv) -> PType)); }
 #define MVAR_MV_EVAL_P3(Mv, Params, PtP3) \
 		{ CagdRType _R[MVAR_MAX_PT_SIZE], *PR = _R; \
 		  MvarMVEvalToData((Mv), (Params), _R); \
-		  CagdCoerceToP3(PtP3, &PR, -1, (Mv) -> PType); }
+		  CagdCoerceToP3(PtP3, &PR, -1, (CagdPointType) ((Mv) -> PType)); }
 
 #define MVAR_MVS_ZERO_INIT_PROBLEM_SPEC(ZeroProblemSpec, Multivars, \
 				        Cnstrs, NumMVs, \
@@ -304,7 +390,6 @@ typedef struct MvarComposedTrivStruct
     ZeroProblemSpec.NumericTol = NumTol; \
     ZeroProblemSpec.StepTol = StpTol; \
 }
-
 
 typedef struct MvarPtStruct {
     struct MvarPtStruct *Pnext;
@@ -360,8 +445,8 @@ typedef struct MvarMVStruct {
     int Dim;		      /* Number of dimensions in this multi variate. */
     int *Lengths;               /* Dimensions of mesh size in multi-variate. */
     int *SubSpaces;	   /* SubSpaces[i] = Prod(i = 0, i-1) of Lengths[i]. */
-    int *Orders;                  /* Orders of multi variate (Bspline only). */
-    CagdBType *Periodic;            /* Periodicity - valid only for Bspline. */
+    int *Orders;                 /* Orders of multi variate (B-spline only). */
+    CagdBType *Periodic;           /* Periodicity - valid only for B-spline. */
     CagdRType *Points[MVAR_MAX_PT_SIZE];     /* Pointer on each axis vector. */
     CagdRType **KnotVectors;
     MvarMinMaxType *AuxDomain;		      /* Optional to hold MV domain. */
@@ -428,7 +513,8 @@ typedef struct MvarZeroPrblmStruct {
     CagdRType SubdivTol;
     CagdRType NumericTol;
     CagdRType StepTol;
-    CagdBType OnlyDtctSol;
+    CagdBType OnlyDtctSol;   /* TRUE to only detect existence of a solution. */
+    int *NoSubdivDirs;/* Optional vector of disabled subdivision directions. */
     struct MvarMVZR1DAuxStruct *AS;
     struct MvarZeroPrblmIntrnlStruct *_Internal;
 } MvarZeroPrblmStruct;
@@ -503,8 +589,7 @@ typedef struct MvarMatlabEqStruct {
 } MvarMatlabEqStruct;
 
 /* Data structures for Srf-Srf intersection cache. */
-typedef struct MvarSrfSrfInterCacheDataStruct
-{
+typedef struct MvarSrfSrfInterCacheDataStruct {
     struct MvarSrfSrfInterCacheDataStruct *Pnext;
     int Id1;
     int Id2;
@@ -513,12 +598,9 @@ typedef struct MvarSrfSrfInterCacheDataStruct
     MvarPolylineStruct *InterRes;
 } MvarSrfSrfInterCacheDataStruct;
 
-typedef char MvarSrfSrfInterCacheAttribName[IRIT_LINE_LEN];
-
-typedef struct MvarSrfSrfInterCacheStruct
-{
+typedef struct MvarSrfSrfInterCacheStruct {
     MvarSrfSrfInterCacheDataStruct *CacheData;
-    MvarSrfSrfInterCacheAttribName IdAttribName;
+    IPAttrIDType AttribID;
     int NextId;
 } MvarSrfSrfInterCacheStruct;
 
@@ -529,7 +611,8 @@ typedef int (*MvarMVsZerosMVsCBFuncType)(MvarMVStruct **MVs,
 					 void *AuxData);
 typedef int (*MvarMVsZerosSubdivCBFuncType)(MvarZeroPrblmStruct *p,
 					    int i,
-					    void *AuxData);
+					    void *AuxData,
+					    int *IsTopoGuarantee);
 typedef int (*MvarMVsZerosVerifyOneSolPtCBFuncType)(MvarPtStruct *Pt,
 						    void *AuxData);
 typedef int (*MvarMVsZerosVerifyAllSolsCBFuncType)(MvarPolylineStruct **MVPls,
@@ -543,21 +626,28 @@ typedef CagdRType *(*MvarMapPrm2EucCBFuncType)(
 /* Possible external call backs exposed to end users in the zeros solver. */
 typedef struct MvarZeroPrblmExternalCBStruct {
     /* All possible call back functions/data. */
-    MvarSetErrorFuncType SetErrorFunc;
-    void *SetErrorData;
-    MvarExprTreePrintFuncType ExprTreePrintFunc;
+    MvarSetErrorFuncType SetErrorFunc;           /* Not used at this time. */
+    void *SetErrorData1;
+    MvarExprTreePrintFuncType ExprTreePrintFunc; /* Not used at this time. */
     void *ZerosSubdivCBData;
+    /* Alternative termination function for the subdivision process. */
     MvarMVsZerosSubdivCBFuncType MVsZerosSubdivFunc;
     void *MVsZerosSubdivData;
+    /* Optional verification/filtering of solution points. */
     MvarMVsZerosVerifyOneSolPtCBFuncType MVsZerosVerifyOneSolPtFunc;
     void *MVsZerosVerifyOneSolPtData;
+    /* Optional verification/filtering of general solutions. */
     MvarMVsZerosVerifyAllSolsCBFuncType MVsZerosVerifyAllSolsFunc;
     void *MVsZerosVerifyAllSolsData;
+    /* Allows in-place mapping of solutions from MV solver parametric space */
+    /* to actual solution space, typically Euclidean.			    */
     MvarMapPrm2EucCBFuncType MapPtParamSpace2EuclidSpace;
     void *MapPtParamSpace2EuclidData;
+    /* Allows in-place mapping of solution normals from MV solver           */
+    /* parametric space to actual solution space, typically Euclidean.      */
     MvarMapPrm2EucCBFuncType MapPtParamSpace2EuclidNormal;
     void *MapPtParamSpace2EuclidNormalData;
-    MvarMVsZerosMVsCBFuncType CnvrtETs2MVsFunc;
+    MvarMVsZerosMVsCBFuncType CnvrtETs2MVsFunc;   /* Not used at this time. */
     void *CnvrtETs2MVsData;
 } MvarZeroPrblmExternalCBStruct;
 
@@ -869,7 +959,7 @@ MvarPtStruct *MvarCnvrtCagdPtsToMVPts(const CagdPtStruct *Pts);
 MvarPtStruct *MvarCnvrtMVPolysToMVPts(const MvarPolylineStruct *MVPlls);
 struct IPObjectStruct *MvarCnvrtMVPolysToCtlPts(const MvarPolylineStruct
 						                     *MVPlls);
-CagdPtStruct *MvarCnvrtMVPtsToPts(const MvarPtStruct *MVPts);
+CagdPtStruct *MvarCnvrtMVPtsToCagdPts(const MvarPtStruct *MVPts);
 struct IPObjectStruct *MvarCnvrtMVPtsToCtlPts(const MvarPtStruct *MVPts,
 					      IrtRType MergeTol);
 struct IPObjectStruct *MvarCnvrtMVPtsToPolys(const MvarPtStruct *MVPts,
@@ -1069,6 +1159,10 @@ void MvarMVMinMax(const MvarMVStruct *MV,
 		  int Axis,
 		  CagdRType *Min,
 		  CagdRType *Max);
+void MvarMVCornersMinMax(const MvarMVStruct *MV,
+			 int Coord,
+			 CagdRType *Min,
+			 CagdRType *Max);
 MvarBBoxStruct *MvarMVBBox(const MvarMVStruct *MV, MvarBBoxStruct *BBox);
 void MvarMVListBBox(const MvarMVStruct *MVs, MvarBBoxStruct *BBox);
 void MvarMergeBBox(MvarBBoxStruct *DestBBox, const MvarBBoxStruct *SrcBBox);
@@ -1191,6 +1285,7 @@ MvarMVStruct *MvarMergeMVMV2(const MvarMVStruct *MV1,
 			     const MvarMVStruct *MV2,
 			     MvarMVDirType Dir,
 			     CagdBType Discont);
+CagdRType MvarMVAvgArcLenMesh(const MvarMVStruct *MV, MvarMVDirType Dir);
 
 CagdBType MvarBspMVHasOpenECInDir(const MvarMVStruct *MV, MvarMVDirType Dir);
 CagdBType MvarBspMVHasOpenEC(const MvarMVStruct *MV);
@@ -1231,7 +1326,26 @@ CagdBType MvarMVMeshC1Continuous(const MvarMVStruct *MV,
 CagdBType MvarMVIsMeshC1DiscontAt(const MvarMVStruct *MV,
 				  int Dir,
 				  CagdRType t);
-
+MvarKrnlTVRes *MvarKrnlTVResNew();
+void MvarKrnlTVResFree(MvarKrnlTVRes *Res);
+MvarKrnlTVRes *MvarKrnlBooleanSumTV(const CagdSrfStruct *Srf1,
+				const CagdSrfStruct *Srf2,
+				const CagdSrfStruct *Srf3,
+				const CagdSrfStruct *Srf4,
+				const CagdSrfStruct *Srf5,
+				const CagdSrfStruct *Srf6,
+				IrtRType DistRatio,
+				int DegreeRaiseLimit,
+				int KnotInsertionLimit,
+				int IsSingular,
+				struct IPObjectStruct *PKrnlPts);
+MvarKrnlTVRes *MvarKrnRuledSumTV(const CagdSrfStruct *Srf1,
+					 const CagdSrfStruct *Srf2,
+					IrtRType DistRatio,
+					int DegreeRaiseLimit,
+					int KnotInsertionLimit,
+					int IsSingular,
+					struct IPObjectStruct *PKrnlPts);
 /******************************************************************************
 * Fitting and interpolation						      *
 ******************************************************************************/
@@ -1260,6 +1374,8 @@ MvarMVStruct *MvarMVSub(const MvarMVStruct *MV1, const MvarMVStruct *MV2);
 MvarMVStruct *MvarMVMult(const MvarMVStruct *MV1, const MvarMVStruct *MV2);
 MvarMVStruct *MvarMVInvert(const MvarMVStruct *MV);
 MvarMVStruct *MvarMVScalarScale(const MvarMVStruct *MV, CagdRType Scale);
+MvarMVStruct *MvarMVScalarScale2(const MvarMVStruct *CMV,
+				 const CagdRType *Scale);
 MvarMVStruct *MvarMVMultScalar(const MvarMVStruct *MV1,
 			       const MvarMVStruct *MV2);
 MvarMVStruct *MvarMVDotProd(const MvarMVStruct *MV1, const MvarMVStruct *MV2);
@@ -1285,6 +1401,13 @@ MvarMVStruct *MvarMVMergeScalar(MvarMVStruct * const *ScalarMVs);
 
 int MvarBspMultComputationMethod(int BspMultUsingInter);
 
+void MVarBzrMVDivide(const MvarMVStruct *MV1,
+		     const MvarMVStruct *MV2,
+		     MvarMVStruct **Q,
+		     MvarMVStruct **R);
+MvarMVStruct *MvarBzrMultBrnBasis(const MvarMVStruct *MV,
+			          int *MulOrders,
+				  int *MulIndices);
 MvarMVStruct *MvarBzrMVMult(const MvarMVStruct *MV1, const MvarMVStruct *MV2);
 MvarMVStruct *MvarBspMVMult(const MvarMVStruct *MV1, const MvarMVStruct *MV2);
 
@@ -1358,6 +1481,10 @@ MvarMVStruct *MvarBlendConvexMVMV(const MvarMVStruct *MV1,
 				  const MvarMVStruct *MV2,
 				  const MvarMVStruct *MVT);
 
+MvarMVStruct *MvarSrfCalcAsympDirsVolume(const CagdSrfStruct *Srf);
+int MvarSrfCalcAsympDirsCones(const CagdSrfStruct *Srf,
+			      SymbNormalConeStruct *DirsCones);
+
 /******************************************************************************
 * Routines to compute zeros of MVs constraints.				      *
 ******************************************************************************/
@@ -1375,12 +1502,14 @@ MvarPtStruct *MvarMVsZeros0D(MvarZeroPrblmSpecStruct *ZeroProblemSpec);
 MvarPtStruct *MvarMVsZeros0DNumeric(MvarMVStruct * const *MVs,
 				    int NumOfMVs,
 				    CagdRType NumericTol,
+				    int SuccessOnDmnErr,
 				    MvarPtStruct *ZeroPt);
 MvarPtStruct *MvarZero0DNumeric(MvarPtStruct *ZeroPt,
 				const MvarExprTreeEqnsStruct *Eqns,
 				MvarMVStruct const * const *MVs,
 				int NumMVs,
 				CagdRType NumericTol,
+				int SuccessOnDmnErr,
 				const CagdRType *InputMinDmn,
 				const CagdRType *InputMaxDmn);
 MvarPtStruct *MvarMVsZeros2DBy0D(MvarZeroPrblmSpecStruct *ZeroProblemSpec);
@@ -1443,6 +1572,9 @@ MvarPolylineStruct *MvarSrfSrfInterDisc(const CagdSrfStruct *Srf1,
 					CagdRType Step,
 					CagdRType SubdivTol,
 					CagdRType NumericTol);
+CagdRType MvarSrfSrfInterNormalizeDomain(CagdRType NewValue);
+IrtBType MvarSrfSrfInterExamineBBoxes(const CagdSrfStruct *Srf1,
+				      const CagdSrfStruct *Srf2);
 MvarPolylineStruct *MvarMVsZeros1D(MvarZeroPrblmSpecStruct *ZeroProblemSpec);
 MvarPolylineStruct *MvarMVsZeros1DTrace2Pts(MvarMVStruct * const *MVs,
 				            MvarConstraintType *Constraints,
@@ -1472,8 +1604,8 @@ CagdBType MvarSrfSrfTestInter(const CagdSrfStruct *Srf1,
 * Routines to manage Srf-Srf intersection results cache.		      *
 ******************************************************************************/
 MvarSrfSrfInterCacheStruct *MvarSrfSrfInterCacheAlloc(
-			      const MvarSrfSrfInterCacheAttribName AttribName,
-			      CagdBType ShouldAssignIds);
+						    IPAttrIDType AttribID,
+						    CagdBType ShouldAssignIds);
 int MvarSrfSrfInterCacheGetSrfId(const MvarSrfSrfInterCacheStruct *SSICache, 
 				 const CagdSrfStruct *Srf);
 MvarSrfSrfInterCacheDataStruct *MvarSrfSrfInterCacheGetData(
@@ -1534,6 +1666,11 @@ MvarPtStruct *MvarSCvrBiNormals(const CagdCrvStruct *Crv1,
 				CagdRType RadiusLB,
 				CagdRType SubdivTol,
 				CagdRType NumericTol);
+CagdSrfStruct *MvarSCvrUMinusVSrf(const CagdRType *TMin, const CagdRType *TMax);
+CagdSrfStruct *MvarSCvrPromoteCrvToSrfWithOtherCrv(
+						const CagdCrvStruct *Crv,
+						CagdSrfDirType Dir,
+						const CagdCrvStruct *OtherCrv);
 
 /******************************************************************************
 * Circle packing related routines.				              *
@@ -1854,6 +1991,19 @@ MvarPolylineStruct *MvarSrfSelfInterNrmlDev(const CagdSrfStruct *Srf,
 					    CagdRType SubdivTol,
 					    CagdRType NumericTol,
 					    CagdRType MinNrmlDeviation);
+MvarPtStruct *MvarFindSrfMiterPointsPartial(const CagdSrfStruct *Srf, 
+					    const CagdSrfStruct *NrmlSrf,
+					    int Axis1, 
+					    int Axis2,
+					    CagdRType SubdivTol,
+					    CagdRType NumericTol,
+					    CagdRType UVDiffTol,
+					    CagdBType Euclidean);
+MvarPtStruct *MvarFindSrfMiterPoints(const CagdSrfStruct *Srf,
+				     int Axis,
+				     CagdRType SubdivTol,
+				     CagdRType NumericTol,
+				     CagdBType Euclidean);
 MvarPtStruct *MvarCntctTangentialCrvCrvC1(const CagdCrvStruct *Crv1,
 					  const CagdCrvStruct *Crv2,
 					  CagdRType Epsilon);
@@ -1885,8 +2035,8 @@ VoidPtr MvarSrfSrfBisectorApprox2(const MvarMVStruct *MV1,
 				  int OutputType,
 				  CagdRType SubdivTol,
 				  CagdRType NumericTol);
-CagdCrvStruct *MvarCrvCrvBisector2D(CagdCrvStruct *Crv1,
-				    CagdCrvStruct *Crv2, 
+CagdCrvStruct *MvarCrvCrvBisector2D(const CagdCrvStruct *Crv1,
+				    const CagdCrvStruct *Crv2, 
 				    CagdRType Step, 
 				    CagdRType SubdivTol,
 				    CagdRType NumericTol, 
@@ -1969,6 +2119,11 @@ CagdCrvStruct *MvarMVTriTangentLine(const CagdSrfStruct *Srf1,
 				    CagdRType SubdivTol,
 				    CagdRType NumericTol,
 				    int Euclidean);
+
+CagdCrvStruct *MvarRoundChamferCrvAtC1DiscontArc(CagdCrvStruct **TCrv1,
+						 CagdCrvStruct **TCrv2,
+						 CagdCrvCornerType CornerType,
+						 CagdRType Radius);
 CagdCrvStruct *MvarRoundChamferCrvAtC1Discont(const CagdCrvStruct *Crv,
 					      CagdCrvCornerType CornerType,
 				              CagdRType Radius);
@@ -1988,6 +2143,109 @@ MvarPolylineStruct *MvarCrvKernelSilhouette(const CagdCrvStruct *Crv,
 struct IPObjectStruct *MvarCrvDiameter(const CagdCrvStruct *Crv,
 				       CagdRType SubEps,
 				       CagdRType NumEps);
+struct IPObjectStruct *MvarCrvKernelPoint(const CagdCrvStruct *Crvs,
+					  CagdRType SubEps,
+					  int OneKernelPoint,
+					  IrtRType PreciseBBoundTol,
+					  CagdRType Gamma, 
+					  int NumTanSamples,
+					  CagdBType CnvxHull);
+struct IPObjectStruct *MvarCrvArtGalleryPoint(const CagdCrvStruct *Crv,
+					      CagdRType SubEps,
+					      int NumGuards,
+					      int BBoxSubdivDepth);
+
+/******************************************************************************
+ * Kernel and related analysis and construction of surfaces.		      *
+******************************************************************************/
+struct IPObjectStruct *MvarSrfKernelPointIneql(const CagdSrfStruct *Srfs,
+					       CagdRType SubEps,
+					       CagdRType ZeroEps,
+					       CagdRType BoxScale,
+					       CagdRType Gamma,
+					       int NumTanSamples,
+					       CagdBType DmnBoxOutput);
+struct IPObjectStruct *MvarEvalCnvxHullRegion4Curves(
+						   const CagdCrvStruct *Left,
+						   const CagdCrvStruct *Right,
+						   const CagdCrvStruct *Top,
+						   const CagdCrvStruct *Bottom,
+						   int PreciseCnvxHull);
+void MvarPlnrKrnlSrfResFree(MvarPlnrKrnlSrfRes *Res);
+MvarPlnrKrnlSrfRes *MvarPlnrKrnlBooleanSumSrf(
+                                             const CagdCrvStruct *CrvLeft,
+					     const CagdCrvStruct *CrvRight,
+					     const CagdCrvStruct *CrvTop,
+					     const CagdCrvStruct *CrvBottom,
+					     IrtRType DistRatio,
+					     int DegreeRaiseLimit,
+					     int KnotInsertionLimit,
+					     int PreciseCnvxHull,
+					     int IsSingular,
+					     struct IPObjectStruct *PCnvxHull);
+CagdSrfStruct *MvarPlnrKrnlBSumSrfUsingDegreeRaising(
+					         const CagdCrvStruct *Left,
+						 const CagdCrvStruct *Right,
+						 const CagdCrvStruct *Top,
+						 const CagdCrvStruct *Bottom,
+						 IrtRType DistRatio,
+						 int DegreeRaiseLimit,
+						 int PreciseCnvxHull,
+						 int IsSingular);
+CagdSrfStruct *MvarPlnrKrnlBSumSrfUsingKnotInsertion(
+						 const CagdCrvStruct *Left,
+						 const CagdCrvStruct *Right,
+						 const CagdCrvStruct *Top,
+						 const CagdCrvStruct *Bottom,
+						 IrtRType DistRatio,
+						 int KnotInsertionLimit,
+						 int PreciseCnvxHull,
+						 int IsSingular);
+MvarPlnrKrnlSrfRes *MvarPlnrKrnlRuledSrf(const CagdCrvStruct *CrvLeft,
+					 const CagdCrvStruct *CrvRight,
+					 IrtRType DistRatio,
+					 int DegreeRaiseLimit,
+					 int KnotInsertionLimit,
+					 int PreciseCnvxHull,
+					 int IsSingular,
+					 struct IPObjectStruct *CnvxHullP);
+CagdSrfStruct *MvarPlnrKrnlRuledSrfUsingDegreeRaising(
+					         const CagdCrvStruct *Left,
+						 const CagdCrvStruct *Right,
+						 IrtRType DistRatio,
+						 int DegreeRaiseLimit,
+						 int PreciseCnvxHull,
+						 int IsSingular);
+CagdSrfStruct *MvarPlnrKrnlRuledSrfUsingKnotInsertion(
+						 const CagdCrvStruct *Left,
+						 const CagdCrvStruct *Right,
+						 IrtRType DistRatio,
+						 int KnotInsertionLimit,
+						 int PreciseCnvxHull,
+						 int IsSingular);
+MvarPlnrKrnlSrfRes *MvarPlnrKrnlOneSidedBSumSrf(
+					     const CagdCrvStruct *CrvLeft,
+					     const CagdCrvStruct *CrvTop,
+					     IrtRType DistRatio,
+					     int DegreeRaiseLimit,
+					     int KnotInsertionLimit,
+					     int PreciseCnvxHull,
+					     int IsSingular,
+					     struct IPObjectStruct *CnvxHullP);
+CagdSrfStruct *MvarPlnrKrnlOSBSumSrfUsingDegreeRaising(
+						 const CagdCrvStruct *Left,
+						 const CagdCrvStruct *Top,
+						 IrtRType DistRatio,
+						 int DegreeRaiseLimit,
+						 int PreciseCnvxHull,
+						 int IsSingular);
+CagdSrfStruct *MvarPlnrKrnlOSBSumSrfUsingKnotInsertion(
+						 const CagdCrvStruct *Left,
+						 const CagdCrvStruct *Top,
+						 IrtRType DistRatio,
+						 int KnotInsertionLimit,
+						 int PreciseCnvxHull,
+						 int IsSingular);
 
 /******************************************************************************
 * Distances between manifolds as multivariates.				      *
@@ -1995,18 +2253,19 @@ struct IPObjectStruct *MvarCrvDiameter(const CagdCrvStruct *Crv,
 CagdRType *MvarDistSrfPoint(const CagdSrfStruct *Srf,
 			    void *SrfPtPrepHandle,
 			    const CagdPType Pt,
-			    MvarPtStruct *InitialSol,
+			    MvarPtStruct **InitialSol,
 			    CagdBType MinDist,
 			    CagdRType SubdivTol,
 			    CagdRType NumericTol,
 			    MvarPtStruct **ExtremePts,
-			    CagdRType *ExtremeDistUV);
+			    CagdRType *ExtremeDistUV,
+			    CagdPointType DistSpace);
 void *MvarDistSrfPointPrep(const CagdSrfStruct *CSrf);
 void MvarDistSrfPointFree(void *SrfPtPrepHandle);
 MvarPtStruct *MvarLclDistSrfPoint(const CagdSrfStruct *Srf,
 				  void *SrfPtPrepHandle,
 				  const CagdPType Pt,
-				  MvarPtStruct *InitialSol,
+				  MvarPtStruct **InitialSol,
 				  CagdRType SubdivTol,
 				  CagdRType NumericTol);
 CagdRType *MvarDistSrfLine(const CagdSrfStruct *Srf,
@@ -2034,19 +2293,27 @@ CagdCrvStruct *MvarInverseCrvOnSrfProj(const CagdCrvStruct *E3Crv,
 				       const CagdSrfStruct *Srf,
 				       void *SrfPrepHandle,
 				       CagdRType ApproxTol,
-				       const CagdRType *PrevUVPt);
-CagdCrvStruct *MvarIsCrvOnSrf(const CagdCrvStruct *Crv,
-			      const CagdSrfStruct *Srf,
-			      CagdRType Step, 
-			      CagdRType SubdivTol,
-			      CagdRType NumericTol,
-			      void *SrfPrepHandle,
-			      CagdBType GenUVCrv);
-MvarPolylineStruct *MvarIsCrvOnSrf2(const CagdCrvStruct *Crv1,
-				    const CagdSrfStruct *Srf2,
-				    CagdRType Step, 
-				    CagdRType SubdivTol,
-				    CagdRType NumericTol);
+				       const CagdRType *PrevUVPt,
+				       int *RedundantSol,
+				       int IncrSol);
+CagdCrvStruct *MvarProjCrvOnSrf(const CagdCrvStruct *Crv,
+				const CagdSrfStruct *Srf,
+				CagdRType Step, 
+				CagdRType SubdivTol,
+				CagdRType NumericTol,
+				void *SrfPrepHandle,
+				CagdBType GenUVCrv);
+MvarPolylineStruct *MvarProjCrvOnSrf1(const CagdCrvStruct *Crv1,
+				      const CagdSrfStruct *Srf2,
+				      int Axes,
+				      CagdRType Step, 
+				      CagdRType SubdivTol,
+				      CagdRType NumericTol);
+MvarPolylineStruct *MvarProjCrvOnSrf2(const CagdCrvStruct *Crv1,
+				      const CagdSrfStruct *Srf2,
+				      CagdRType Step, 
+				      CagdRType SubdivTol,
+				      CagdRType NumericTol);
 
 int MvarNumericImporveSharedPoints(const CagdSrfStruct *Srf1,
 				   void *DistSrfPointPreps1,
@@ -2054,14 +2321,32 @@ int MvarNumericImporveSharedPoints(const CagdSrfStruct *Srf1,
 				   const CagdSrfStruct *Srf2,
 				   void *DistSrfPointPreps2,
 				   CagdRType *UV2);
-CagdCrvStruct *MvarProjUVCrvOnE3CrvSameSpeed(const CagdCrvStruct *UVLinCrv1,
-					     const CagdSrfStruct *Srf1,
-					     const CagdCrvStruct *UVCrv2,
-					     const CagdSrfStruct *Srf2);
-int MvarMakeCrvsOnSrfsSimilarSpeed(const CagdSrfStruct *Srf1,
-				   const CagdSrfStruct *Srf2,
-				   CagdCrvStruct **UVCrv1,
-				   CagdCrvStruct **UVCrv2);
+CagdCrvStruct *MvarProjUVCrvOnE3CrvMatchSpeed(const CagdCrvStruct *UVLinCrv1,
+					      const CagdSrfStruct *Srf1,
+					      const CagdCrvStruct *UVCrv2,
+					      const CagdSrfStruct *Srf2);
+CagdCrvStruct *MvarEucCrvOffsetOnSrf(const CagdCrvStruct *Crv,
+				     const CagdSrfStruct *Srf,
+				     CagdRType Dist,
+				     CagdRType Step,
+				     CagdRType SubdivTol,
+				     CagdRType NumerTol,
+				     int Orient,
+				     int LstSqrFit);
+CagdCrvStruct *MvarSpiralCrvOnSrf(const CagdSrfStruct *Srf,
+				  CagdSrfDirType Dir,
+				  CagdRType Pitch,
+				  CagdRType Step,
+				  CagdRType SubdivTol,
+				  CagdRType NumerTol,
+				  int OutputType);
+CagdCrvStruct *MvarDistCrvOfPtFromSrf(const CagdRType *Pt,
+                                      const CagdSrfStruct *Srf,
+                                      CagdRType Dist,
+                                      CagdRType Step,
+                                      CagdRType SubdivTol,
+                                      CagdRType NumerTol,
+                                      int LstSqrFit);
 
 /******************************************************************************
 * Metamorphosis of multivariates.					      *
@@ -2252,6 +2537,22 @@ CagdCrvStruct *MvarCrvTrimGlblOffsetSelfInter(CagdCrvStruct *Crv,
 					      CagdRType TrimAmount,
 					      CagdRType SubdivTol,
 					      CagdRType NumericTol);
+CagdCrvStruct *MvarCrvTrimGlblOffsetSelfInter2(const CagdCrvStruct *Crv,
+					       CagdRType OffsetDist,
+					       int Operation,
+					       CagdRType SubdivTol,
+					       CagdRType NumericTol);
+
+MvarPtStruct *MvarCrvDtctSelfInterLocations(const CagdCrvStruct *Crv,
+					    CagdRType OffsetDist,
+					    CagdRType SubdivTol,
+					    CagdRType NumericTol);
+CagdCrvStruct *MvarCrvTrimSelfInterLocations(const CagdCrvStruct *Crv,
+					     CagdRType OffsetDist,
+					     CagdRType SubdivTol,
+					     CagdRType NumericTol,
+					     CagdBType PurgeSelfInters);
+
 struct IPObjectStruct *MvarSrfTrimGlblOffsetSelfInter(
 						   CagdSrfStruct *Srf,
 						   const CagdSrfStruct *OffSrf,
@@ -2268,6 +2569,11 @@ struct IPObjectStruct *MvarSrfTrimGlblOffsetSelfInterNI(
 						CagdRType NumerTol,
 						int Euclidean,
 						CagdRType SameUVTol);
+struct IPObjectStruct *MvarSrfFindOffsetSelfInter(const CagdSrfStruct *Srf,
+					          CagdRType OffsetDist,
+					          CagdRType SubdivTol,
+					          CagdRType NumericTol, 
+					          int OutputType);
 
 /******************************************************************************
 * Routines to handle Hausdorff/minimal/maximal distances between freeforms.   *
@@ -2469,6 +2775,22 @@ TrivTVStruct *MvarTrivarBoolSum3(const CagdSrfStruct *Srf1,
 				 const CagdSrfStruct *Srf4,
 				 const CagdSrfStruct *Srf5,
 				 const CagdSrfStruct *Srf6);
+TrivTVStruct *MvarTrivarBoolSumRtnl(const CagdSrfStruct *Srf1,
+				    const CagdSrfStruct *Srf2,
+				    const CagdSrfStruct *Srf3,
+				    const CagdSrfStruct *Srf4,
+				    const CagdSrfStruct *Srf5,
+				    const CagdSrfStruct *Srf6);
+TrivTVStruct *MvarTrivarHalfBoolSum(const CagdSrfStruct *Srf1,
+                                    const CagdSrfStruct *Srf2);
+int MvarGetSrfsCommonCrvs(const CagdSrfStruct *Srf1, 
+			  const CagdSrfStruct *Srf2, 
+			  CagdCrvStruct **CommonCrv);
+TrivTVStruct *MvarTrivarOneSidedBoolSum2Srfs(const CagdSrfStruct *Srf1,
+				             const CagdSrfStruct *Srf2);
+TrivTVStruct *MvarTrivarOneSidedBoolSum3Srfs(const CagdSrfStruct *Srf1,
+					     const CagdSrfStruct *Srf2,
+					     const CagdSrfStruct *Srf3);
 TrivTVStruct *MvarTrivarCubicTVFit(const TrivTVStruct *TV);
 TrivTVStruct *MvarTrivarQuadraticTVFit(const TrivTVStruct *TV);
 MvarPtStruct *MvarCalculateExtremePoints(const MvarMVStruct *MV);
@@ -2481,6 +2803,8 @@ TrivTVStruct *MvarMergeTVList(const TrivTVStruct *TVList,
 			     int Dir,
 			     IrtRType Tolerance,
 			     int InterpDiscont);
+int MvarTVRglrIsNegJacobian(const TrivTVStruct *TV);
+TrivTVStruct *MvarTVsRglrCorrectJacobian(TrivTVStruct *TVs);
 
 /******************************************************************************
 * Routines to handle multivariate compositions.				      *
@@ -2490,11 +2814,14 @@ MvarMVStruct *MvarMVCompose(const MvarMVStruct *TargetMV,
 			    const int *DimMapping,
 			    CagdBType DoMerge);
 struct IPObjectStruct *MvarMVCompose2(const MvarMVStruct *MVMapping,
-				      const MvarMVStruct *MVToCompose);
+				      const MvarMVStruct *MVToCompose,
+				      int HandleCrossKVLines);
 struct IPObjectStruct *MvarMVCompose3(const struct IPObjectStruct
 				                             *MappingFunction,
-				      const struct IPObjectStruct *Obj);
+				      const struct IPObjectStruct *Obj,
+				      int HandleCrossKVLines);
 CagdBType MvarMVSetCompositionCheckDomains(CagdBType NewValue);
+CagdBType MvarMVSetCompositionPropagateHigherDims(CagdBType NewValue);
 
 MvarComposedSrfStruct *MvarTrimComposeMVSrf(const MvarMVStruct *MV,
 					    const CagdSrfStruct *Srfs);
@@ -2527,6 +2854,17 @@ void MvarComposedTrivFreeList(MvarComposedTrivStruct *TVPs);
 MvarComposedTrivStruct *MvarComposedTrivCopy(const MvarComposedTrivStruct *TVP);
 MvarComposedTrivStruct *MvarComposedTrivCopyList(
 					    const MvarComposedTrivStruct *TVP);
+
+/******************************************************************************
+* Hyperbolic analysis  of tangent line accessibility.			      *
+******************************************************************************/
+CagdBType MvarSrfHyperbolicLocallyAccessibleDirs(
+					const CagdSrfStruct *Srf,
+					const CagdVType SrfVAxis,
+					SymbNormalConeStruct *AccessibleCones);
+CagdBType MvarSrfHyperbolicLocallyAccessibleDirs2(
+					const CagdSrfStruct *Srf,
+					SymbNormalConeStruct *AccessibleCones);
 
 /******************************************************************************
 * Error handling.							      *

@@ -11,11 +11,11 @@
 #define IRIT_TRIM_LIB_H
 
 #include <stdio.h>
-#include "irit_sm.h"
-#include "miscattr.h"
-#include "misc_lib.h"
-#include "cagd_lib.h"
-#include "symb_lib.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/miscattr.h"
+#include "inc_irit/misc_lib.h"
+#include "inc_irit/cagd_lib.h"
+#include "inc_irit/symb_lib.h"
 
 typedef enum {
     TRIM_ERR_TRIM_CRV_E2 = 2000,
@@ -156,15 +156,26 @@ void TrimSrfFreeList(TrimSrfStruct *TrimSrfList);
 #endif /* DEBUG */
 
 void TrimSrfTransform(TrimSrfStruct *TrimSrf,
-		      CagdRType *Translate,
+		      const CagdRType *Translate,
 		      CagdRType Scale);
-void TrimSrfMatTransform(TrimSrfStruct *TrimSrf, CagdMType Mat);
+void TrimSrfMatTransform2(TrimSrfStruct *TrimSrf, CagdMType Mat);
+TrimSrfStruct *TrimSrfMatTransform(const TrimSrfStruct *TrimSrf,
+				   CagdMType Mat);
+TrimSrfStruct *TrimSrfListMatTransform(const TrimSrfStruct *TrimSrf,
+				       CagdMType Mat);
 CagdBType TrimSrfsSame(const TrimSrfStruct *TSrf1,
 		       const TrimSrfStruct *TSrf2,
 		       CagdRType Eps);
 TrimSrfStruct *TrimGetLargestTrimmedSrf(TrimSrfStruct **TSrfs, int Extract);
 const TrimCrvSegStruct *TrimGetOuterTrimCrv(const TrimSrfStruct *TSrf);
 const TrimCrvSegStruct *TrimGetFullDomainTrimCrv(const TrimSrfStruct *TSrf);
+CagdRType TrimFindClosestTrimCurve2UV(TrimCrvStruct *TCrvs,
+				      const CagdUVType UV,
+				      TrimCrvSegStruct **ClosestTSeg);
+CagdCrvStruct *TrimExtendTrimmingDomain(const CagdSrfStruct *Srf,
+					CagdCrvStruct *TrimCrvs,
+					CagdRType Extnt,
+					CagdBType MergeCrvs);
 CagdCrvStruct *TrimGetTrimmingCurves(const TrimSrfStruct *TrimSrf,
 				     CagdBType ParamSpace,
 				     CagdBType EvalEuclid);
@@ -172,9 +183,9 @@ CagdCrvStruct *TrimGetTrimmingCurves2(const TrimCrvStruct *TrimCrvList,
 				      const TrimSrfStruct *TrimSrf,
 				      CagdBType ParamSpace,
 				      CagdBType EvalEuclid);
-TrimSrfStruct *TrimManageTrimmingCurves(TrimSrfStruct *TrimSrf,
-					int FitOrder,
-					CagdBType EvalEuclid);
+TrimSrfStruct *TrimManageTrimmingCurvesDegrees(TrimSrfStruct *TrimSrf,
+					       int FitOrder,
+					       CagdBType EvalEuclid);
 
 TrimCrvStruct *TrimLinkTrimmingCurves2Loops(const TrimCrvStruct *TCrvs,
 					    CagdRType MaxTol,
@@ -192,7 +203,7 @@ CagdBType TrimVerifyClosedTrimLoop(TrimCrvStruct *TCrv,
 				   CagdBType CoerceIdentical);
 int TrimCoerceTrimUVCrv2Plane(TrimCrvSegStruct *TSeg);
 
-TrimCrvStruct *TrimMergeTrimmingCurves2Loops(TrimCrvStruct *TrimCrvs);
+TrimCrvStruct *TrimMergeTrimmingCurves2Loops(const TrimCrvStruct *TrimCrvs);
 CagdCrvStruct *TrimMergeTrimmingCurves2Loops2(CagdCrvStruct *UVCrvs,
 					      CagdRType Tol);
 
@@ -226,6 +237,7 @@ CagdCrvStruct *TrimEvalTrimCrvToEuclid2(const CagdSrfStruct *Srf,
 void TrimSrfFreeEuclideanTrimCrvs(TrimSrfStruct *TrimSrf);
 int TrimSetEuclidLinearFromUV(int EuclidLinearFromUV);
 int TrimSetEuclidComposedFromUV(int EuclidComposedFromUV);
+void TrimRemovEucTrimCrvs(TrimSrfStruct *TSrf);
 CagdRType *TrimPointInsideTrimmedCrvsToData(TrimCrvStruct *TrimCrvList,
 					    const TrimSrfStruct *TSrf,
 					    CagdUVType UVRetVal);
@@ -239,7 +251,7 @@ TrimSrfStruct *TrimClipSrfToTrimCrvs(TrimSrfStruct *TrimSrf);
 TrimSrfStruct *TrimSrfDegreeRaise(const TrimSrfStruct *TrimSrf,
 				  CagdSrfDirType Dir);
 int TrimSrfSetStateTrimCrvsManagement(int TrimmingFitOrder);
-TrimSrfStruct *TrimSrfSubdivAtParam(TrimSrfStruct *TrimSrf,
+TrimSrfStruct *TrimSrfSubdivAtParam(const TrimSrfStruct *TrimSrf,
 				    CagdRType t,
 				    CagdSrfDirType Dir);
 TrimSrfStruct *TrimSrfSubdivAtInnerLoops(TrimSrfStruct *TSrf);
@@ -247,9 +259,9 @@ TrimCrvStruct *TrimSrfSubdivTrimCrvsAtInnerLoops(const TrimCrvStruct *TCrvs);
 CagdSrfDirType TrimSrfSubdivValAtInnerLoop(const TrimCrvStruct *TCrvs,
 					   CagdRType *SubdivVal);
 
-TrimSrfStruct *TrimCnvrtBsp2BzrSrf(TrimSrfStruct *TrimSrf);
-TrimSrfStruct *TrimSrfCnvrt2BzrTrimSrf(TrimSrfStruct *TrimSrf);
-CagdSrfStruct *TrimSrfCnvrt2BzrRglrSrf(TrimSrfStruct *TrimSrf);
+TrimSrfStruct *TrimCnvrtBsp2BzrSrf(const TrimSrfStruct *TrimSrf);
+TrimSrfStruct *TrimSrfCnvrt2BzrTrimSrf(const TrimSrfStruct *TrimSrf);
+CagdSrfStruct *TrimSrfCnvrt2BzrRglrSrf(const TrimSrfStruct *TrimSrf);
 CagdSrfStruct *TrimSrfCnvrt2BzrRglrSrf2(const TrimSrfStruct *TSrf,
 					int ComposeE3,
 					int OnlyBzrSrfs,
@@ -327,34 +339,37 @@ TrimIsoInterStruct **TrimIntersectCrvsIsoVals(const CagdCrvStruct *UVCrvs,
 CagdCrvStruct *TrimCrvAgainstTrimCrvs(CagdCrvStruct *UVCrv,
 				      const TrimSrfStruct *TrimSrf,
 				      CagdRType Eps);
+CagdCrvStruct *TrimSrf2KnotCurves(TrimSrfStruct *TrimSrf);
 CagdPolylineStruct *TrimSrf2Polylines(TrimSrfStruct *TrimSrf,
 				      int NumOfIsocurves[2],
 				      CagdRType TolSamples,
-				      SymbCrvApproxMethodType Method);
-CagdPolygonStruct *TrimSrfAdap2Polygons(const TrimSrfStruct *TrimSrf,
-					CagdRType Tolerance,
-					CagdBType ComputeNormals,
-					CagdBType ComputeUV);
+				      SymbCrvApproxMethodType Method,
+				      CagdSrf2PlsInfoStrct *TessInfo);
+struct IPPolygonStruct *TrimSrfAdap2Polygons(const TrimSrfStruct *TrimSrf,
+				             CagdSrf2PlsInfoStrct *TessInfo);
 struct IPPolygonStruct *TrimCrvsHierarchy2Polys(TrimCrvStruct *TrimLoops);
-void TrimMake2ndCrvSameLengthAs1stCrv(const CagdCrvStruct *Crv1,
-				      CagdCrvStruct **Crv2);
+void TrimMatch2ndCrvLenSpeedAs1stCrv(CagdCrvStruct **Crv1,
+				     CagdCrvStruct **Crv2,
+				     const CagdSrfStruct *Srf1,
+				     const CagdSrfStruct *Srf2);
 void TrimCrvSegReverse(TrimCrvSegStruct *TSeg);
 TrimCrvSegStruct *TrimCrvSegListReverse(TrimCrvSegStruct *TSegs);
 TrimCrvSegStruct *TrimOrderTrimCrvSegsInLoop(TrimCrvSegStruct *TSegs);
+int TrimEnsureNoSingleTrimCrvLoops(TrimCrvStruct **TrimLoops);
+CagdBType TrimOrientTrimingCrvs(TrimSrfStruct *TSrf);
 CagdBType TrimClassifyTrimmingLoops(TrimCrvStruct **TrimLoops);
 CagdBType TrimClassifyTrimLoopOrient(const TrimCrvSegStruct *TSegs);
 void TrimCrvFreeListWithSubTrims(TrimCrvStruct *TrimCrv);
 void TrimCrvFreeWithSubTrims(TrimCrvStruct *TrimCrv);
 CagdBType TrimClassifyTrimCurveOrient(const CagdCrvStruct *UVCrv);
-CagdPolygonStruct *TrimSrf2Polygons2(const TrimSrfStruct *Srf,
-				     int FineNess, 
-				     CagdBType ComputeNormals,
-				     CagdBType ComputeUV);
+struct IPPolygonStruct *TrimSrf2Polygons2(const TrimSrfStruct *Srf,
+				          CagdSrf2PlsInfoStrct *TessInfo);
 int TrimSetNumTrimVrtcsInCell(int NumTrimVrtcsInCell);
 SymbCrvApproxMethodType TrimSetTrimCrvLinearApprox(CagdRType UVTolSamples,
 					   SymbCrvApproxMethodType UVMethod);
 CagdRType TrimGetTrimCrvLinearApprox(void);
 
+TrimSrfStruct *TrimSrfFromSrf(CagdSrfStruct *Srf, int SingleTCrv);
 TrimSrfStruct *TrimSrfsFromContours(const CagdSrfStruct *Srf,
 				    const struct IPPolygonStruct *Cntrs);
 TrimSrfStruct *TrimSrfsFromContours2(const CagdSrfStruct *Srf,
@@ -386,16 +401,22 @@ CagdBType TrimIsPointInsideTrimSrf(const TrimSrfStruct *TrimSrf,
 				   CagdUVType UV);
 CagdBType TrimIsPointInsideTrimCrvs(const TrimCrvStruct *TrimCrvs,
 				    CagdUVType UV);
-int TrimIsPointInsideTrimUVCrv(const CagdCrvStruct *UVCrv,
-			       CagdUVType UV);
+int TrimIsPointInsideTrimUVCrvs(const CagdCrvStruct *UVCrvs, CagdUVType UV);
+int TrimIsPointInsideTrimUVCrv(const CagdCrvStruct *UVCrv, CagdUVType UV);
 
 TrimSetErrorFuncType TrimSetFatalErrorFunc(TrimSetErrorFuncType ErrorFunc);
 const char *TrimDescribeError(TrimFatalErrorType ErrorNum);
 void TrimFatalError(TrimFatalErrorType ErrID);
 
+#ifdef DEBUG
+
 void TrimDbg(const void *Obj);
 void TrimDbgTCrvs(const TrimCrvStruct *TrimCrv);
 void TrimDbgTCrvSegs(const TrimCrvSegStruct *TrimSegs);
+int TrimDbgVerifyTSeg(const TrimCrvSegStruct *TrimSeg);
+int TrimDbgVerifyUVCrv(const CagdCrvStruct *TrimCrv);
+
+#endif /* DEBUG */
 
 /******************************************************************************
 * Routines to handle layout (prisa) of trimmed surfaces.		      *
@@ -418,7 +439,7 @@ TrimSrfStruct *TrimPrisaRuledSrf(const TrimSrfStruct *TSrf,
 /******************************************************************************
 * Untrimming trimmed surfaces.                                                *
 ******************************************************************************/
-TrimUntrimResultStruct *TrimUntrimTrimSrf(TrimSrfStruct *TSrf,
+TrimUntrimResultStruct *TrimUntrimTrimSrf(const TrimSrfStruct *TSrf,
 					  CagdQuadSrfWeightFuncType WeightFunc,
 					  CagdBType Compose,
 					  int ApproxOrder);

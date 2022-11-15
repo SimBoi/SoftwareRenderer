@@ -12,9 +12,10 @@
 
 #include <stdio.h>
 
-#include "irit_sm.h"
-#include "miscattr.h"
-#include "misc_lib.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/miscattr.h"
+#include "inc_irit/misc_lib.h"
+#include "inc_irit/geom_lib.h"
 
 typedef int CagdBType;
 typedef IrtRType CagdRType;
@@ -24,7 +25,7 @@ typedef IrtPtType CagdPType;
 typedef IrtVecType CagdVType;
 typedef IrtHmgnMatType CagdMType;
 typedef IrtLnType CagdLType;
-typedef struct GMBBBboxStruct CagdBBoxStruct;
+typedef GMBBBboxStruct CagdBBoxStruct;
 
 typedef enum {
     CAGD_ERR_180_ARC = 1000,
@@ -96,10 +97,12 @@ typedef enum {
     CAGD_ERR_NO_TOL_TEST_FUNC,
     CAGD_ERR_NO_KV_FOUND,
     CAGD_ERR_WRONG_SIZE,
+    CAGD_ERR_INVALID_KV,
     CAGD_ERR_INVALID_CRV,
     CAGD_ERR_INVALID_SRF,
     CAGD_ERR_C0_KV_DETECTED,
     CAGD_ERR_NO_EXTRA_KNOTS,
+    CAGD_ERR_INTER_SAME_GEOM,
 
     CAGD_ERR_UNDEFINE_ERR
 } CagdFatalErrorType;
@@ -215,6 +218,32 @@ typedef enum {
     CAGD_BSP_BASIS_FUNC_EVAL_MULT_DER3RD
 } CagdBspBasisFuncMultEvalType;
 
+typedef enum {
+    CAGD_CRV_INC_CNSTRCT_INIT,
+    CAGD_CRV_INC_CNSTRCT_XY,
+    CAGD_CRV_INC_CNSTRCT_X,
+    CAGD_CRV_INC_CNSTRCT_Y,
+    CAGD_CRV_INC_CNSTRCT_DELTA_XY,
+    CAGD_CRV_INC_CNSTRCT_DELTA_X,
+    CAGD_CRV_INC_CNSTRCT_DELTA_Y,
+    CAGD_CRV_INC_CNSTRCT_DELTA_X_AND_Y,
+    CAGD_CRV_INC_CNSTRCT_DELTA_Y_AND_X,
+    CAGD_CRV_INC_CNSTRCT_DIST_ALPHA,
+    CAGD_CRV_INC_CNSTRCT_DIST_DELTA_ALPHA,
+    CAGD_CRV_INC_CNSTRCT_DELTA_X_DELTA_ALPHA,
+    CAGD_CRV_INC_CNSTRCT_DELTA_Y_DELTA_ALPHA,
+    CAGD_CRV_INC_CNSTRCT_ALPHA_LINE,
+    CAGD_CRV_INC_CNSTRCT_ARC,
+    CAGD_CRV_INC_CNSTRCT_ADD_INTERMEDIATE,
+    CAGD_CRV_INC_CNSTRCT_ROUND_LAST,
+    CAGD_CRV_INC_CNSTRCT_CHAMFER_LAST,
+    CAGD_CRV_INC_CNSTRCT_CURVE_PARAMS,
+    CAGD_CRV_INC_CNSTRCT_CLOSE,
+
+    CAGD_CRV_INC_CNSTRCT_BUILD,                          /* Used internally. */
+    CAGD_CRV_INC_CNSTRCT_DEBUG                           /* Used internally. */
+} CagdCrvIncCnstrctType;
+
 #define CAGD_MALLOC_STRUCT_ONCE     /* Faster allocation of CAGD structures. */
 
 #define CAGD_IS_RATIONAL_PT(PType)  ((int) ((PType) & 0x01))
@@ -265,15 +294,14 @@ typedef enum {
     BBox.Max[0] = BBox.Max[1] = BBox.Max[2] = -IRIT_INFNTY; }
 
 #define CAGD_DEL_GEOM_TYPE(Obj) \
-			    AttrFreeOneAttribute(&(Obj) -> Attr, "GeomType")
+         AttrIDFreeOneAttribute(&(Obj) -> Attr, IRIT_ATTR_CREATE_ID(GeomType))
 #define CAGD_SET_GEOM_TYPE(Obj, Geom) \
-			    AttrSetIntAttrib(&(Obj) -> Attr, "GeomType", Geom)
+       AttrIDSetIntAttrib(&(Obj) -> Attr, IRIT_ATTR_CREATE_ID(GeomType), Geom)
 #define CAGD_PROPAGATE_ATTR(NewObj, Obj) { \
 		  IP_ATTR_FREE_ATTRS((NewObj) -> Attr); \
                   if ((Obj) -> Attr != NULL) { \
 		      (NewObj) -> Attr = AttrCopyAttributes((Obj) -> Attr); } }
 
-#define CAGD_QUERY_VALUE		-1030603010
 #define CAGD_EPS_ROUND_KNOT		1e-12
 #define CAGD_MESH_CONT_ANGULAR_EPS	0.99999
 #define CAGD_MESH_CONT_LENRATIO_EPS	IRIT_EPS
@@ -308,12 +336,17 @@ typedef enum {
 } CagdSrfDirType;
 
 typedef enum {
-    CAGD_NO_BNDRY = 1400,
-    CAGD_U_MIN_BNDRY = CAGD_NO_BNDRY + 1,
-    CAGD_U_MAX_BNDRY = CAGD_NO_BNDRY + 2,
-    CAGD_V_MIN_BNDRY = CAGD_NO_BNDRY + 4,
-    CAGD_V_MAX_BNDRY = CAGD_NO_BNDRY + 8
+    CAGD_UV_BNDRY_MASK = 0x600,                       /* 8 lower bits are 0. */
+    CAGD_NO_BNDRY = CAGD_UV_BNDRY_MASK,
+    CAGD_U_MIN_BNDRY = CAGD_UV_BNDRY_MASK + 1,
+    CAGD_U_MAX_BNDRY = CAGD_UV_BNDRY_MASK + 2,
+    CAGD_V_MIN_BNDRY = CAGD_UV_BNDRY_MASK + 4,
+    CAGD_V_MAX_BNDRY = CAGD_UV_BNDRY_MASK + 8,
+    CAGD_U_MINMAX_BNDRY = CAGD_U_MIN_BNDRY | CAGD_U_MAX_BNDRY,
+    CAGD_V_MINMAX_BNDRY = CAGD_V_MIN_BNDRY | CAGD_V_MAX_BNDRY
 } CagdSrfBndryType;
+
+#define CAGD_SRF_BNDRY_FILTER_MASK(B) ((B) & ~CAGD_UV_BNDRY_MASK)
 
 #define CAGD_OTHER_DIR(Dir) ((Dir) == CAGD_CONST_U_DIR ? CAGD_CONST_V_DIR \
 						       : CAGD_CONST_U_DIR)
@@ -358,7 +391,7 @@ typedef struct CagdUVStruct {
 typedef struct CagdPtStruct {
     struct CagdPtStruct *Pnext;
     struct IPAttributeStruct *Attr;
-    CagdPType Pt;
+    CagdRType Pt[CAGD_MAX_PT_SIZE];
 } CagdPtStruct;
 
 typedef struct CagdSrfPtStruct {
@@ -387,10 +420,27 @@ typedef struct CagdCtlPtStruct {
     int align8;
 } CagdCtlPtStruct;
 
+typedef struct CagdSrfAdjInfoStruct {
+    /* Pointers to the surfaces that neighbor (the boundary curves) of a    */
+    /* surface.  If no neighboring surface, slot will be set to NULL.       */
+    /* The pointers are stored in the order: UMin, UMax, VMin, VMax.        */
+    struct CagdSrfStruct *AdjSrfs[4];
+    /* Indicator which boundary curve in the neighbor surfaces is similar   */
+    /* our corresponding boundary curve.		                    */
+    /* These values are interpreted according to this template:             */
+    /* CagdSrfBndryType + 0x600 +                                           */
+    /*        (The Curves are the same but flipped) * 0x1000, otherwise 0.  */
+    /* Stored in  order: UMin, UMax, VMin, VMax.			    */
+    int Flag[4];
+    /* Unique Id of the Srf, It's determined according to its order in the  */
+    /* surfaces list.							    */
+    int Id;
+} CagdSrfAdjInfoStruct;
+
 typedef struct CagdVecStruct {
     struct CagdVecStruct *Pnext;
     struct IPAttributeStruct *Attr;
-    CagdVType Vec;
+    CagdRType Vec[CAGD_MAX_PT_SIZE];
 } CagdVecStruct;
 
 typedef struct CagdPlaneStruct {
@@ -421,8 +471,6 @@ typedef struct CagdSrfStruct {
     CagdBType UPeriodic, VPeriodic;    /* Valid only for B-spline surfaces. */
     CagdRType *Points[CAGD_MAX_PT_SIZE];    /* Pointer on each axis vector. */
     CagdRType *UKnotVector, *VKnotVector;
-
-    VoidPtr PAux;                        /* Used internally - do not touch. */
 } CagdSrfStruct;
 
 typedef struct CagdPolygonStruct {
@@ -448,15 +496,16 @@ typedef struct CagdPolygonStruct {
     } U;
 } CagdPolygonStruct;
 
+#define CAGD_MAX_POLYLINE_PT_SIZE 6
 typedef struct CagdPolylnStruct {
-    CagdPType Pt;
+    CagdRType Pt[CAGD_MAX_POLYLINE_PT_SIZE];
 } CagdPolylnStruct;
 
 typedef struct CagdPolylineStruct {
     struct CagdPolylineStruct *Pnext;
     struct IPAttributeStruct *Attr;
     CagdPolylnStruct *Polyline; /* Polyline length is defined using Length. */
-    int Length;
+    int Length, PtDim;
 } CagdPolylineStruct;
 
 typedef struct BspKnotAlphaCoeffStruct {
@@ -486,6 +535,11 @@ typedef struct CagdBspBasisFuncEvalStruct {
     int FirstBasisFuncIndex;
     CagdRType *BasisFuncsVals;
 } CagdBspBasisFuncEvalStruct;
+
+typedef struct CagdCrvIncCnstrctInputStruct {
+    CagdCrvIncCnstrctType Op;
+    CagdRType Params[4];
+} CagdCrvIncCnstrctInputStruct;
 
 /* Partition of a curve to quads: */
 typedef enum {
@@ -522,43 +576,38 @@ typedef int (*CagdSrfAdapAuxDataFuncType)(const CagdSrfStruct *Srf,
 					  VoidPtr *AuxSrf1Data,
 					  CagdSrfStruct *Srf2,
 					  VoidPtr *AuxSrf2Data);
-typedef CagdPolygonStruct *(*CagdSrfAdapPolyGenFuncType)(
-					  const CagdSrfStruct *Srf,
-					  CagdSrfPtStruct *SrfPtList,
-					  const CagdSrfAdapRectStruct *Rect,
-					  void *EvalNrmlCache,
-					  CagdBType ComputeNrmls,
-					  CagdBType ComputeUVs);
-
-typedef CagdPolygonStruct *(*CagdSrfMakeTriFuncType)(CagdBType ComputeNrmls,
-						     void *EvalNrmlCache,
-						     CagdBType ComputeUVs,
-						     const CagdRType *Pt1,
-						     const CagdRType *Pt2,
-						     const CagdRType *Pt3,
-						     const CagdRType *Nl1,
-						     const CagdRType *Nl2,
-						     const CagdRType *Nl3,
-						     const CagdRType *UV1,
-						     const CagdRType *UV2,
-						     const CagdRType *UV3,
-						     CagdBType *GenPoly);
-typedef CagdPolygonStruct *(*CagdSrfMakeRectFuncType)(CagdBType ComputeNrmls,
-						      void *EvalNrmlCache,
-						      CagdBType ComputeUVs,
-						      const CagdRType *Pt1,
-						      const CagdRType *Pt2,
-						      const CagdRType *Pt3,
-						      const CagdRType *Pt4,
-						      const CagdRType *Nl1,
-						      const CagdRType *Nl2,
-						      const CagdRType *Nl3,
-						      const CagdRType *Nl4,
-						      const CagdRType *UV1,
-						      const CagdRType *UV2,
-						      const CagdRType *UV3,
-						      const CagdRType *UV4,
-						      CagdBType *GenPoly);
+typedef int (*CagdCrvAdjCmpFuncType)(const CagdCrvStruct *Crv1,
+				     const CagdCrvStruct *Crv2,
+				     CagdRType Eps,
+				     CagdBType *Reversed);
+typedef struct CagdSrf2PlsInfoStrct *CagdSrf2PlsInfoStrctPtr;
+typedef struct IPPolygonStruct *(*CagdSrfMakeTriFuncType)(
+				   CagdSrf2PlsInfoStrctPtr TessInfo,
+				   const CagdRType *Pt1,
+				   const CagdRType *Pt2,
+				   const CagdRType *Pt3,
+				   const CagdRType *Nl1,
+				   const CagdRType *Nl2,
+				   const CagdRType *Nl3,
+				   const CagdRType *UV1,
+				   const CagdRType *UV2,
+				   const CagdRType *UV3,
+				   CagdBType *GenPoly);
+typedef struct IPPolygonStruct *(*CagdSrfMakeRectFuncType)(
+				   CagdSrf2PlsInfoStrctPtr TessInfo,
+				   const CagdRType *Pt1,
+				   const CagdRType *Pt2,
+				   const CagdRType *Pt3,
+				   const CagdRType *Pt4,
+				   const CagdRType *Nl1,
+				   const CagdRType *Nl2,
+				   const CagdRType *Nl3,
+				   const CagdRType *Nl4,
+				   const CagdRType *UV1,
+				   const CagdRType *UV2,
+				   const CagdRType *UV3,
+				   const CagdRType *UV4,
+				   CagdBType *GenPoly);
 typedef CagdRType (*CagdPlgErrorFuncType)(const CagdPType P1,
 					  const CagdPType P2,
 					  const CagdPType P3);
@@ -566,8 +615,27 @@ typedef CagdRType (*CagdPlgErrorFuncType)(const CagdPType P1,
 typedef CagdBType (*CagdCrvTestingFuncType)(const CagdCrvStruct *Crv,
 					    CagdRType *t);
 typedef CagdBType(*CagdSrfTestingFuncType)(const CagdSrfStruct *Srf,
-    CagdSrfDirType Dir,
-    CagdRType *t);
+					   CagdSrfDirType Dir,
+					   CagdRType *t);
+
+typedef struct IPPolygonStruct *(*CagdSrfAdapPolyGenFuncType)(
+				      const CagdSrfStruct *Srf,
+				      CagdSrfPtStruct *SrfPtList,
+				      const CagdSrfAdapRectStruct *Rect,
+				      struct CagdSrf2PlsInfoStrct *TessInfo);
+typedef struct CagdSrf2PlsInfoStrct { 
+    int FourPerFlat;
+    IrtRType FineNess;
+    int ComputeUV;
+    int ComputeNrml;
+    int Optimal;
+    void *EvalNrmlCache;
+
+    CagdSrfMakeRectFuncType MakeRectFunc;
+    CagdSrfMakeTriFuncType MakeTriFunc;
+    CagdSrfAdapPolyGenFuncType AdapPolyGenFunc;
+    CagdSrfAdapAuxDataFuncType AdapAuxDataFunc;
+} CagdSrf2PlsInfoStrct;
 
 #define CAGD_IS_BEZIER_CRV(Crv)		((Crv) -> GType == CAGD_CBEZIER_TYPE)
 #define CAGD_IS_BEZIER_SRF(Srf)		((Srf) -> GType == CAGD_SBEZIER_TYPE)
@@ -661,7 +729,7 @@ typedef CagdBType(*CagdSrfTestingFuncType)(const CagdSrfStruct *Srf,
 #define CAGD_CRV_EVAL_SCALAR(Crv, t, PtE1) \
 	     { CagdRType _R[CAGD_MAX_PT_SIZE]; \
 	       CagdCrvEvalToData((Crv), (t), _R); \
-	       *PtE1 = CAGD_IS_RATIONAL_CRV((Crv)) ? _R[1] / _R[0] : _R[1]; }
+	       PtE1 = CAGD_IS_RATIONAL_CRV((Crv)) ? _R[1] / _R[0] : _R[1]; }
 #define CAGD_CRV_EVAL_E2(Crv, t, PtE2) \
 		{ CagdRType _R[CAGD_MAX_PT_SIZE], *PR = _R; \
 		  CagdCrvEvalToData((Crv), (t), _R); \
@@ -678,6 +746,14 @@ typedef CagdBType(*CagdSrfTestingFuncType)(const CagdSrfStruct *Srf,
 		{ CagdRType _R[CAGD_MAX_PT_SIZE], *PR = _R; \
 		  CagdCrvEvalToData((Crv), (t), _R); \
 		  CagdCoerceToP3(PtP3, &PR, -1, (Crv) -> PType); }
+#define CAGD_CRV_EVAL_EUC(Crv, t, PtE) /* Coerce to same dim as Crv dim. */ \
+    { CagdPointType \
+	  _NewPType = CAGD_MAKE_PT_TYPE(FALSE, \
+		                        CAGD_NUM_OF_PT_COORD(Crv -> PType)); \
+      CagdRType _PtTmp[CAGD_MAX_PT_SIZE], \
+          *_R = _PtTmp; \
+      CagdCrvEvalToData(Crv, t, _PtTmp); \
+      CagdCoercePointTo(PtE, _NewPType, &_R, -1, Crv -> PType); }
 
 #define CAGD_SRF_EVAL_SCALAR(Srf, u, v, PtE1) \
 	     { CagdRType _R[CAGD_MAX_PT_SIZE]; \
@@ -699,6 +775,14 @@ typedef CagdBType(*CagdSrfTestingFuncType)(const CagdSrfStruct *Srf,
 		{ CagdRType _R[CAGD_MAX_PT_SIZE], *PR = _R; \
 		  CagdSrfEvalToData((Srf), (u), (v), _R); \
 		  CagdCoerceToP3(PtP3, &PR, -1, (Srf) -> PType); }
+#define CAGD_SRF_EVAL_EUC(Srf, u, v, PtE)/* Coerce to same dim as Srf dim.*/ \
+    { CagdPointType \
+	  _NewPType = CAGD_MAKE_PT_TYPE(FALSE, \
+		                        CAGD_NUM_OF_PT_COORD(Srf -> PType)); \
+      CagdRType _PtTmp[CAGD_MAX_PT_SIZE], \
+          *_R = _PtTmp; \
+      CagdSrfEvalToData(Srf, u, v, _PtTmp); \
+      CagdCoercePointTo(PtE, _NewPType, &_R, -1, Srf -> PType); }
 
 /******************************************************************************
 * This macro is called when the library has detected an unrecoverable error.  *
@@ -1042,9 +1126,9 @@ IRIT_GLOBAL_DATA_HEADER const CagdRType
 * Cagd    - General routines such as dynamic memory handlers etc.	      *
 * BzrCrv  - Bezier curves routines.					      *
 * BzrSrf  - Bezier surface routines.					      *
-* BspKnot - Bspline knot vector routines.				      *
-* BspCrv  - Bspline curves routines.					      *
-* BspSrf  - Bspline surface routines.					      *
+* BspKnot - B-spline knot vector routines.				      *
+* BspCrv  - B-spline curves routines.					      *
+* BspSrf  - B-spline surface routines.					      *
 * CagdCnvrt   - Conversion routines such as Bezier to Power basis.	      *
 ******************************************************************************/
 
@@ -1080,7 +1164,7 @@ CagdSrfStruct *CagdPeriodicSrfNew(CagdGeomType GType,
 				  CagdBType VPeriodic);
 CagdPolygonStruct *CagdPolygonNew(int Len);
 CagdPolygonStruct *CagdPolygonStripNew(int Len);
-CagdPolylineStruct *CagdPolylineNew(int Length);
+CagdPolylineStruct *CagdPolylineNew(int Length, int PtDim);
 
 CagdUVStruct *CagdUVArrayNew(int Size);
 CagdPtStruct *CagdPtArrayNew(int Size);
@@ -1118,7 +1202,6 @@ void CagdCrvFree(CagdCrvStruct *Crv);
 void CagdCrvFreeList(CagdCrvStruct *CrvList);
 void CagdSrfFree(CagdSrfStruct *Srf);
 void CagdSrfFreeList(CagdSrfStruct *SrfList);
-void CagdSrfFreeCache(CagdSrfStruct *Srf);
 void CagdUVFree(CagdUVStruct *UV);
 void CagdUVFreeList(CagdUVStruct *UVList);
 void CagdUVArrayFree(CagdUVStruct *UVArray, int Size);
@@ -1204,7 +1287,6 @@ VoidPtr CagdListPrev(const VoidPtr List, const VoidPtr Item);
 IrtBType CagdListFind(const VoidPtr List, const VoidPtr Elem);
 VoidPtr CagdListNth(const VoidPtr List, int n);
 VoidPtr CagdListSort(VoidPtr List,
-		     const char *AttribName,
 		     CagdBType Ascending,
 		     CagdCompFuncType SortCmprFunc);
 void CagdCoerceToE2(CagdRType *E2Point,
@@ -1225,7 +1307,7 @@ void CagdCoerceToP3(CagdRType *P3Point,
 		    CagdPointType PType);
 void CagdCoercePointTo(CagdRType *NewPoint,
 		       CagdPointType NewPType,
-		       CagdRType const * const *Points,
+		       CagdRType * const *Points,
 		       int Index,
 		       CagdPointType OldPType);
 void CagdCoercePointsTo(CagdRType *Points[],
@@ -1239,12 +1321,12 @@ VoidPtr CagdStructOnceCoercePointsTo(CagdRType * const OldPoints[],
 				     int PtsLen,
 				     CagdPointType OldPType,
 				     CagdPointType NewPType);
-CagdRType CagdDistTwoCtlPt(CagdRType const **Pt1,
+CagdRType CagdDistTwoCtlPt(CagdRType * const *Pt1,
 			   int Index1,
-			   CagdRType const **Pt2,
+			   CagdRType * const *Pt2,
 			   int Index2,
 			   CagdPointType PType);
-CagdRType CagdDistTwoCtlPt2(CagdRType const * const *Pts,
+CagdRType CagdDistTwoCtlPt2(CagdRType * const *Pts,
 			    int Index1,
 			    int Index2,
 			    CagdPointType PType);
@@ -1297,6 +1379,7 @@ void CagdPointsBBox(CagdRType * const *Points,
 		    CagdRType *BBoxMin,
 		    CagdRType *BBoxMax);
 CagdRType CagdIChooseK(int i, int k);
+CagdRType CagdIcKJcMIJcKM(int i, int j, int k, int m);
 void CagdTransform(CagdRType **Points,
 		   int Len,
 		   int MaxCoord,
@@ -1313,51 +1396,36 @@ void CagdScale(CagdRType **Points,
 	       int Len,
 	       int MaxCoord,
 	       const CagdRType *Scale);
+void CagdScaleCenter(CagdRType **Points,
+		     int Len,
+		     int MaxCoord,
+		     const CagdRType *Scale);
 void CagdMatTransform(CagdRType **Points,
 		      int Len,
 		      int MaxCoord,
 		      CagdBType IsNotRational,
 		      CagdMType Mat);
-CagdBType CagdPointsHasPoles(CagdRType * const *Points, int Len);
+void CagdMatTransform2(CagdRType **NewPoints,
+		       const CagdRType **OldPoints,
+		       int Len,
+		       int MaxCoord,
+		       CagdBType IsNotRational,
+		       CagdMType Mat);
+CagdBType CagdPointsHasPoles(CagdRType * const *Points, int Len, int *Sign);
 CagdBType CagdAllWeightsNegative(CagdRType * const *Points,
 				 CagdPointType PType,
 				 int Len,
 				 CagdBType Flip);
+CagdBType CagdScaleWeights(CagdRType * const *Points,
+			   CagdPointType PType,
+			   int Len,
+			   CagdRType WScale);
 CagdBType CagdAllWeightsSame(CagdRType * const *Points, int Len);
 CagdPlgErrorFuncType CagdPolygonSetErrFunc(CagdPlgErrorFuncType Func);
 CagdSrfMakeTriFuncType CagdSrfSetMakeTriFunc(CagdSrfMakeTriFuncType Func);
 CagdSrfMakeRectFuncType CagdSrfSetMakeRectFunc(CagdSrfMakeRectFuncType Func);
 CagdBType CagdSrfSetMakeOnlyTri(CagdBType OnlyTri);
-CagdPolygonStruct *CagdMakeTriangle(CagdBType ComputeNrmls,
-				    void *EvalNrmLCache,
-				    CagdBType ComputeUVs,
-				    const CagdRType *Pt1,
-				    const CagdRType *Pt2,
-				    const CagdRType *Pt3,
-				    const CagdRType *Nl1,
-				    const CagdRType *Nl2,
-				    const CagdRType *Nl3,
-				    const CagdRType *UV1,
-				    const CagdRType *UV2,
-				    const CagdRType *UV3,
-				    CagdBType *GenPoly);
-CagdPolygonStruct *CagdMakeRectangle(CagdBType ComputeNrmls,
-				     void *EvalNrmLCache,
-				     CagdBType ComputeUVs,
-				     const CagdRType *Pt1,
-				     const CagdRType *Pt2,
-				     const CagdRType *Pt3,
-				     const CagdRType *Pt4,
-				     const CagdRType *Nl1,
-				     const CagdRType *Nl2,
-				     const CagdRType *Nl3,
-				     const CagdRType *Nl4,
-				     const CagdRType *UV1,
-				     const CagdRType *UV2,
-				     const CagdRType *UV3,
-				     const CagdRType *UV4,
-				     CagdBType *GenPoly);
-CagdPolylineStruct *CagdPtPolyline2E3Polyline(
+CagdPolylineStruct *CagdPtPolyline2EkPolyline(
 				CagdRType * const Polyline[CAGD_MAX_PT_SIZE],
 				int n,
 				int MaxCoord,
@@ -1459,7 +1527,7 @@ CagdBlsmAlphaCoeffStruct *CagdBlossomDegreeRaiseNMat(const CagdRType *KV,
 ******************************************************************************/
 CagdRType CagdFitPlaneThruCtlPts(CagdPlaneStruct *Plane,
 				 CagdPointType PType,
-			         CagdRType const **Points,
+			         CagdRType * const *Points,
 			         int Index1,
 				 int Index2,
 				 int Index3,
@@ -1481,10 +1549,12 @@ CagdSrfStruct *CagdSrfMatTransform(const CagdSrfStruct *Srf,
 CagdSrfStruct *CagdSrfListMatTransform(const CagdSrfStruct *Srfs,
 				       CagdMType Mat);
 void CagdCrvScale(CagdCrvStruct *Crv, const CagdRType *Scale);
+void CagdCrvScaleCenter(CagdCrvStruct *Crv, const CagdRType *Scale);
 void CagdCrvTransform(CagdCrvStruct *Crv,
 		      const CagdRType *Translate,
 		      CagdRType Scale);
 void CagdSrfScale(CagdSrfStruct *Srf, const CagdRType *Scale);
+void CagdSrfScaleCenter(CagdSrfStruct *Srf, const CagdRType *Scale);
 void CagdSrfTransform(CagdSrfStruct *Srf,
 		      const CagdRType *Translate,
 		      CagdRType Scale);
@@ -1492,10 +1562,22 @@ CagdCrvStruct *CagdCrvUnitMaxCoef(CagdCrvStruct *Crv);
 CagdSrfStruct *CagdSrfUnitMaxCoef(CagdSrfStruct *Srf);
 CagdCrvStruct *CagdCrvRotateToXY(const CagdCrvStruct *Crv);
 CagdBType CagdCrvRotateToXYMat(const CagdCrvStruct *Crv, IrtHmgnMatType Mat);
+void CagdSrfTransInnerCtlPts2Pt(CagdSrfStruct *Srf,
+				const IrtPtType Pt, 
+				IrtRType Ratio);
 
 /******************************************************************************
 * Routines to handle curves generically.				      *
 ******************************************************************************/
+typedef struct CagdCrvIncCnstrctStruct *CagdCrvIncCnstrctStructPtr;
+void CagdCrvIncCnstrctPrint(CagdCrvIncCnstrctStructPtr CrvIncCnstrct);
+int CagdCrvIncCnstrctSize(CagdCrvIncCnstrctStructPtr CrvIncCnstrct);
+CagdCrvStruct *CagdCrvIncCnstrct(CagdCrvIncCnstrctType Op,
+			         CagdRType *Params,
+				 CagdCrvIncCnstrctStructPtr *CrvIncCnstrct);
+const char *CagdCrvIncCnstrctError(CagdCrvIncCnstrctStructPtr CrvIncCnstrct);
+CagdCrvStruct *CagdCrvIncCnstrctList(CagdCrvIncCnstrctInputStruct *CrvIncInput,
+				     char **ErrorStr);
 CagdRType *CagdCrvNodes(const CagdCrvStruct *Crv);
 CagdRType CagdEstimateCrvCollinearity(const CagdCrvStruct *Crv);
 void CagdCrvDomain(const CagdCrvStruct *Crv, CagdRType *TMin, CagdRType *TMax);
@@ -1504,6 +1586,9 @@ CagdCrvStruct *CagdCrvSetDomain(CagdCrvStruct *Crv,
 				CagdRType TMax);
 void CagdCrvEvalToData(const CagdCrvStruct *Crv, CagdRType t, CagdRType *R);
 CagdRType *CagdCrvEvalMalloc(const CagdCrvStruct *Crv, CagdRType t);
+void CagdCrvEvalEndPtsE3(const CagdCrvStruct *Crv,
+			 CagdPType Start,
+			 CagdPType End);
 CagdCrvStruct *CagdCrvDerive(const CagdCrvStruct *Crv);
 CagdCrvStruct *CagdCrvDeriveScalar(const CagdCrvStruct *Crv);
 void CagdCrvScalarCrvSlopeBounds(const CagdCrvStruct *Crv,
@@ -1517,11 +1602,19 @@ CagdCrvStruct *CagdCrvSubdivAtParam(const CagdCrvStruct *Crv, CagdRType t);
 CagdCrvStruct *CagdCrvSubdivAtParams(const CagdCrvStruct *Crv,
 				     const CagdPtStruct *Pts,
 				     CagdRType Eps,
+				     CagdBType PurgeTooSmallSegs,
 				     int *Proximity);
 CagdCrvStruct *CagdCrvSubdivAtParams2(const CagdCrvStruct *CCrv,
 				      const CagdPtStruct *Pts,
 				      int Idx,
 				      CagdRType Eps,
+				      CagdBType PurgeTooSmallSegs,
+				      int *Proximity);
+CagdCrvStruct *CagdCrvSubdivAtParams3(const CagdCrvStruct *CCrv,
+				      CagdRType *Prms,
+				      int PrmsLen,
+				      CagdRType Eps,
+				      CagdBType PurgeTooSmallSegs,
 				      int *Proximity);
 CagdCrvStruct *CagdCrvRegionFromCrv(const CagdCrvStruct *Crv,
 				    CagdRType t1,
@@ -1565,6 +1658,9 @@ CagdCrvStruct *CagdCrvReverseUV(const CagdCrvStruct *Crv);
 CagdCrvStruct *CagdCrvSubdivAtAllC0Discont(const CagdCrvStruct *Crv,
 					   IrtBType EuclideanC1Discont,
 					   IrtRType Tolerance);
+CagdPtStruct *BspCrvAllEuclideanC1Discont(const CagdCrvStruct *Crv,
+					  IrtBType EuclideanC1Discont,
+					  IrtRType Tolerance);
 CagdCrvStruct *CagdCrvSubdivAtAllC1Discont(const CagdCrvStruct *Crv,
 					   IrtBType EuclideanC1Discont,
 					   IrtRType Tolerance);
@@ -1668,20 +1764,38 @@ CagdSrfStruct *CagdCreateQuadricSrf(CagdRType A,
 				    CagdRType J);
 CagdCrvStruct *CagdMergeCrvCrv(const CagdCrvStruct *Crv1,
 			       const CagdCrvStruct *Crv2,
-			       CagdBType InterpDiscont);
+			       CagdBType InterpDiscont,
+			       CagdRType MergeEps);
 CagdCrvStruct *CagdMergeCrvList(const CagdCrvStruct *CrvList,
-				CagdBType InterpDiscont);
+				CagdBType InterpDiscont,
+				CagdRType MergeEps);
 CagdCrvStruct *CagdMergeCrvList2(CagdCrvStruct *CrvList,
 				 IrtRType Tolerance,
 				 CagdBType InterpDiscont);
 CagdCrvStruct *CagdMergeCrvList3(CagdCrvStruct *CrvList,
 				 IrtRType Tolerance,
 				 CagdBType InterpDiscont);
+void CagdCrvCrvMakeJoinMatch(CagdCrvStruct **Crv1,
+			     CagdCrvStruct **Crv2,
+			     IrtRType Tolerance,
+			     CagdBType G1Continuity,
+			     CagdBType ClosedLoop);
+CagdCrvStruct *CagdCrvListMakeJoinMatch(const CagdCrvStruct *CrvList,
+					IrtRType Tolerance,
+					CagdBType G1Continuity,
+					CagdBType ClosedLoop);
 CagdCrvStruct *CagdMergeCrvPt(const CagdCrvStruct *Crv,
 			      const CagdPtStruct *Pt);
 CagdCrvStruct *CagdMergePtCrv(const CagdPtStruct *Pt,
 			      const CagdCrvStruct *Crv);
+CagdCrvStruct *CagdMergeCrvCtlPt(const CagdCrvStruct *Crv,
+				 const CagdCtlPtStruct *CtlPt);
+CagdCrvStruct *CagdMergeCtlPtCrv(const CagdCtlPtStruct *CtlPt,
+				 const CagdCrvStruct *Crv);
 CagdCrvStruct *CagdMergePtPt(const CagdPtStruct *Pt1, const CagdPtStruct *Pt2);
+CagdCrvStruct *CagdMergePtPtLen(const CagdPtStruct *Pt1,
+				const CagdPtStruct *Pt2,
+				int Len);
 CagdCrvStruct *CagdMergePtPt2(const CagdPType Pt1, const CagdPType Pt2);
 CagdCrvStruct *CagdMergeUvUv(const CagdUVType UV1, const CagdUVType UV2);
 CagdCrvStruct *CagdMergeCtlPtCtlPt(const CagdCtlPtStruct *Pt1,
@@ -1691,7 +1805,7 @@ CagdRType CagdCrvAreaPoly(const CagdCrvStruct *Crv);
 CagdRType CagdCrvArcLenPoly(const CagdCrvStruct *Crv);
 CagdCrvStruct *CagdLimitCrvArcLen(const CagdCrvStruct *Crv, CagdRType MaxLen);
 CagdPolylineStruct *CagdCrv2CtrlPoly(const CagdCrvStruct *Crv);
-CagdCrvStruct *CagdEditSingleCrvPt(CagdCrvStruct *Crv,
+CagdCrvStruct *CagdEditSingleCrvPt(const CagdCrvStruct *Crv,
 				   CagdCtlPtStruct *CtlPt,
 				   int Index,
 				   CagdBType Write);
@@ -1737,6 +1851,11 @@ CagdCrvStruct *CagdCubicHermiteCrv(const CagdPType Pt1,
 				   const CagdPType Pt2,
 				   const CagdVType Dir1,
 				   const CagdVType Dir2);
+CagdCrvStruct *CagdCubicHermiteCrv2(const CagdRType *Pt1,
+				    const CagdRType *Pt2,
+				    const CagdRType *Dir1,
+				    const CagdRType *Dir2,
+				    int Dim);
 CagdCrvStruct *CagdCubicCrvFit(const CagdCrvStruct *Crv);
 CagdCrvStruct *CagdQuadraticCrvFit(const CagdCrvStruct *Crv);
 CagdSrfStruct *CagdQuinticHermiteSrf(const CagdCrvStruct *CPos1Crv,
@@ -1790,6 +1909,7 @@ CagdCrvStruct *CagdMatchingTwoCurves(const CagdCrvStruct *Crv1,
 				     CagdMatchNormFuncType MatchNormFunc);
 CagdBType CagdCrvTwoCrvsOrient(CagdCrvStruct *Crv1, CagdCrvStruct *Crv2, int n);
 CagdBType CagdIsClosedCrv(const CagdCrvStruct *Crv);
+void CagdForceClosedCrv(CagdCrvStruct *Crv);
 CagdBType CagdAreClosedCrvs(const CagdCrvStruct *Crvs,
 			    const CagdSrfStruct *Srf);
 CagdBType CagdIsZeroLenCrv(const CagdCrvStruct *Crv, CagdRType Eps);
@@ -1820,6 +1940,25 @@ CagdBType CagdCrvsSame3(const CagdCrvStruct *Crv1,
 			const CagdCrvStruct *Crv2,
 			CagdRType Eps,
 			CagdBType *Reversed);
+int CagdCrvsRelation(const CagdCrvStruct *Crv1,
+		     const CagdCrvStruct *Crv2,
+		     CagdRType ParialOverlapRatio,
+		     int *Crv1StartOn2,
+		     int *Crv1EndOn2,
+		     int *Crv2StartOn1,
+		     int *Crv2EndOn1,
+		     CagdRType *t1Start2,
+		     CagdRType *t1End2,
+		     CagdRType *t2Start1,
+		     CagdRType *t2End1,
+		     CagdRType *RelOverlap,
+		     CagdRType Eps);
+int CagdSrfsAddAdjAttributes(CagdSrfStruct *Srfs, 
+			     CagdCrvAdjCmpFuncType CrvCmpFuncPtr, 
+			     CagdRType Eps);
+void CagdSrfsFreeAdjAttributes(CagdSrfStruct *Srfs);
+CagdCrvStruct *CagdOrientCrvAsCrv2EndPts(const CagdCrvStruct *OrntCrv,
+					 const CagdCrvStruct *Crv);
 CagdBType CagdCrvsSameUptoRigidScl2D(const CagdCrvStruct *Crv1,
 				     const CagdCrvStruct *Crv2,
 				     IrtPtType Trans,
@@ -1836,6 +1975,17 @@ CagdPtStruct *CagdCrvZeroSetC0(const CagdCrvStruct *Crv,
 			       int NRInit,
 			       CagdRType NumericTol,
 			       CagdRType SubdivTol);
+CagdBType CagdCrvZeroNumericStep(const CagdCrvStruct *Crv,
+				 CagdCrvStruct *DCrv,
+				 CagdRType Seed,
+				 CagdBType LeftOut, 
+				 CagdBType RightOut,
+				 CagdBType CheckEndPts,
+				 CagdRType *Solution,
+				 CagdRType NumericTol);
+
+CagdSrfStruct *CagdSrfExtensionDup(const CagdSrfStruct *Srf,
+				   CagdSrfBndryType Bndry);
 
 /******************************************************************************
 * Routines to handle surfaces generically.				      *
@@ -1856,21 +2006,20 @@ void CagdSrfEvalToData(const CagdSrfStruct *Srf,
 		      CagdRType u,
 		      CagdRType v,
 		      CagdRType *R);
-CagdRType *CagdSrfEvalMalloc(const CagdSrfStruct *Srf, CagdRType u, CagdRType v);
+CagdRType *CagdSrfEvalMalloc(const CagdSrfStruct *Srf,
+			     CagdRType u,
+			     CagdRType v);
 void CagdSrfEstimateCurveness(const CagdSrfStruct *Srf,
 			      CagdRType *UCurveness,
 			      CagdRType *VCurveness);
-CagdPolygonStruct *CagdSrf2Polygons(const CagdSrfStruct *Srf,
-				    int FineNess,
-				    CagdBType ComputeNrmls,
-				    CagdBType FourPerFlat,
-				    CagdBType ComputeUVs);
-CagdPolygonStruct *CagdSrf2PolygonsN(const CagdSrfStruct *Srf,
-				     int Nu,
-				     int Nv,
-				     CagdBType ComputeNrmls,
-				     CagdBType FourPerFlat,
-				     CagdBType ComputeUVs);
+struct IPPolygonStruct *CagdSrf2Polygons(const CagdSrfStruct *Srf,
+				         CagdSrf2PlsInfoStrct *TessInfo);
+struct IPPolygonStruct *CagdSrf2PolygonsN(const CagdSrfStruct *Srf,
+				          int Nu,
+				          int Nv,
+				          CagdBType ComputeNrmls,
+				          CagdBType FourPerFlat,
+				          CagdBType ComputeUVs);
 CagdSrfErrorFuncType CagdSrf2PolyAdapSetErrFunc(CagdSrfErrorFuncType Func,
 						void *Data);
 CagdSrfAdapAuxDataFuncType
@@ -1886,26 +2035,21 @@ CagdRType CagdSrfIsLinearCtlMeshOneRowCol(const CagdSrfStruct *Srf,
 CagdRType CagdSrfIsLinearCtlMesh(const CagdSrfStruct *Srf, CagdBType Interior);
 CagdRType CagdSrfIsLinearBndryCtlMesh(const CagdSrfStruct *Srf);
 CagdRType CagdSrfIsCoplanarCtlMesh(const CagdSrfStruct *Srf);
-CagdPolygonStruct *CagdSrfAdap2Polygons(const CagdSrfStruct *Srf,
-					CagdRType Tolerance,
-					CagdBType ComputeNrmls,
-					CagdBType FourPerFlat,
-					CagdBType ComputeUVs,
-					VoidPtr AuxSrfData);
-CagdPolygonStruct *CagdSrf2PolygonsGenPolys(const CagdSrfStruct *Srf,
-					    CagdBType FourPerFlat,
-					    CagdRType *PtWeights,
-					    CagdPtStruct *PtMesh,
-					    CagdVecStruct *PtNrml,
-					    CagdUVStruct *UVMesh,
-					    int FineNessU,
-					    int FineNessV);
-CagdPolygonStruct *CagdSrfAdapRectPolyGen(const CagdSrfStruct *Srf,
-					  CagdSrfPtStruct *SrfPtList,
-					  const CagdSrfAdapRectStruct *Rect,
-					  void *NrmlEvalCache,
-					  CagdBType ComputeNrmls,
-					  CagdBType ComputeUVs);
+struct IPPolygonStruct *CagdSrfAdap2Polygons(const CagdSrfStruct *Srf,
+					     VoidPtr AuxSrfData,
+					     CagdSrf2PlsInfoStrct *TessInfo);
+struct IPPolygonStruct *CagdSrf2PolygonsGenPolys(const CagdSrfStruct *Srf,
+					         CagdRType *PtWeights,
+					         CagdPtStruct *PtMesh,
+					         CagdVecStruct *PtNrml,
+					         CagdUVStruct *UVMesh,
+					         int FineNessU,
+						 int FineNessV, 
+					         CagdSrf2PlsInfoStrct *TessInfo);
+struct IPPolygonStruct *CagdSrfAdapRectPolyGen(const CagdSrfStruct *Srf,
+					       CagdSrfPtStruct *SrfPtList,
+					       const CagdSrfAdapRectStruct *Rect,
+					       CagdSrf2PlsInfoStrct *TessInfo);
 CagdRType *CagdSrfAdap2PolyEvalNrmlBlendedUV(const CagdRType *UV1,
 					     const CagdRType *UV2,
 					     const CagdRType *UV3,
@@ -1920,6 +2064,9 @@ CagdPolylineStruct *CagdSrf2Polylines(const CagdSrfStruct *Srf,
 				      int SamplesPerCurve);
 CagdCrvStruct *CagdSrf2Curves(const CagdSrfStruct *Srf,
 			      int NumOfIsocurves[2]);
+CagdPolylineStruct *CagdSrf2KnotPolylines(const CagdSrfStruct *Srf,
+					  int SamplesPerCurve,
+					  BspKnotAlphaCoeffStruct *A);
 void CagdEvaluateSurfaceVecField(CagdVType Vec,
 				 CagdSrfStruct *VecFieldSrf,
 				 CagdRType U,
@@ -1928,6 +2075,8 @@ CagdSrfStruct *CagdSrfDerive(const CagdSrfStruct *Srf, CagdSrfDirType Dir);
 CagdSrfStruct *CagdSrfDeriveScalar(const CagdSrfStruct *Srf,
 				   CagdSrfDirType Dir);
 CagdSrfStruct *CagdSrfIntegrate(const CagdSrfStruct *Srf, CagdSrfDirType Dir);
+CagdBType CagdSrfIsSingular(const CagdSrfStruct *Srf);
+CagdSrfStruct *CagdSrfsFilterSingular(CagdSrfStruct *Srfs);
 CagdSrfStruct *CagdSrfMoebiusTransform(const CagdSrfStruct *Srf,
 				       CagdRType c,
 				       CagdSrfDirType Dir);
@@ -1941,6 +2090,8 @@ CagdCrvStruct **CagdBndryCrvsFromSrf(const CagdSrfStruct *Srf,
 				     CagdCrvStruct *Crvs[4]);
 CagdCrvStruct *CagdBndryCrvFromSrf(const CagdSrfStruct *Srf,
 				   CagdSrfBndryType Bndry);
+CagdCrvStruct *CagdBndryAsOneCrvFromSrf(const CagdSrfStruct *Srf);
+
 void CagdCrvToMesh(const CagdCrvStruct *Crv,
 		   int Index,
 		   CagdSrfDirType Dir,
@@ -1948,11 +2099,15 @@ void CagdCrvToMesh(const CagdCrvStruct *Crv,
 CagdSrfStruct *CagdSrfSubdivAtParam(const CagdSrfStruct *Srf,
 				    CagdRType t,
 				    CagdSrfDirType Dir);
+CagdSrfStruct *CagdSrfSubdivAtAllC0Discont(const CagdSrfStruct *Srf);
 CagdSrfStruct *CagdSrfsSubdivAtAllC0Discont(const CagdSrfStruct *Srfs);
+CagdSrfStruct *CagdSrfSubdivAtAllC1Discont(const CagdSrfStruct *Srf);
 CagdSrfStruct *CagdSrfsSubdivAtAllC1Discont(const CagdSrfStruct *Srfs);
+CagdSrfStruct *CagdSrfSubdivAtAllCnDiscont(const CagdSrfStruct *Srf, int n);
 CagdSrfStruct *BspSrfsSubdivAtAllDetectedLocations(const CagdSrfStruct *Srf,
 						   CagdSrfTestingFuncType
 						                 SrfTestFunc);
+CagdSrfStruct *CagdSrfSubdivAtPoles(const CagdSrfStruct *Srf, CagdRType Tol);
 CagdSrfStruct *CagdSrfRegionFromSrf(const CagdSrfStruct *Srf,
 				    CagdRType t1,
 				    CagdRType t2,
@@ -2001,7 +2156,9 @@ CagdSrfStruct *CagdSrfMakeBoundryIndexUMin(const CagdSrfStruct *Srf,
 					   int BndryIdx);
 CagdPolylineStruct *CagdSrf2CtrlMesh(const CagdSrfStruct *Srf);
 CagdPolylineStruct *CagdSrf2KnotLines(const CagdSrfStruct *Srf);
-CagdCrvStruct *CagdSrf2KnotCurves(const CagdSrfStruct *Srf);
+int CagdSrf2KnotCurves(const CagdSrfStruct *Srf,
+		       CagdCrvStruct **UKnotLines,
+		       CagdCrvStruct **VKnotLines);
 CagdSrfStruct *CagdMergeSrfSrf(const CagdSrfStruct *CSrf1,
 			       const CagdSrfStruct *CSrf2,
 			       CagdSrfDirType Dir,
@@ -2021,6 +2178,11 @@ CagdSrfStruct *CagdMergeSrfList3U(CagdSrfStruct *SrfList,
 CagdSrfStruct *CagdMergeSrfList3V(CagdSrfStruct *SrfList,
 				  IrtRType Tolerance,
 				  CagdBType InterpDiscont);
+CagdBType CagdSrfSrfMakeJoinMatch(CagdSrfStruct **Srf1,
+                                  CagdSrfStruct **Srf2,
+                                  CagdSrfDirType Dir,
+                                  CagdRType Tolerance,
+                                  CagdBType PreserveOrientation);
 CagdRType CagdSrfAvgArgLenMesh(const CagdSrfStruct *Srf,
 			       CagdRType *AvgULen,
 			       CagdRType *AvgVLen);
@@ -2043,7 +2205,7 @@ CagdSrfStruct *CagdSurfaceRev2Axis(const CagdCrvStruct *Crv,
 				   CagdRType EndAngle,
 				   const CagdVType Axis);
 CagdSrfStruct *CagdSurfaceRevPolynomialApprox(const CagdCrvStruct *Crv);
-CagdBType CagdCrvOrientationFrame(CagdCrvStruct *Crv,
+CagdBType CagdCrvOrientationFrame(const CagdCrvStruct *Crv,
 				  CagdRType CrntT,
 				  CagdVecStruct *Tangent,
 				  CagdVecStruct *Normal,
@@ -2055,14 +2217,36 @@ CagdSrfStruct *CagdSweepSrf(const CagdCrvStruct *CrossSection,
 			    const CagdCrvStruct *ScalingCrv,
 			    CagdRType Scale,
 			    const VoidPtr Frame,
-			    int FrameOption);
+			    int FrameOption,
+			    CagdRType *LastBiNormal);
+CagdBType CagdSweepComputeNormalOrientation(const CagdCrvStruct *Axis,
+					    const CagdVType FrameVec,
+					    CagdCrvStruct *FrameCrv,
+					    CagdRType *PrevT,
+					    CagdRType CrntT,
+					    const CagdVecStruct *Tangent,
+					    CagdVecStruct *Normal,
+					    CagdBType FirstTime);
+CagdRType CagdSweepCosineHalfAngle(CagdRType **Points, int Index);
+void CagdSweepGenTransformMatrix(CagdMType Mat,
+			         CagdRType *Trans,
+			         CagdVecStruct *Normal,
+			         CagdVecStruct *Tangent,
+			         CagdRType Scale,
+			         CagdRType NormalScale);
+CagdBType CagdSweepSrfC1AdjSrfsInterDmn(const CagdSrfStruct *PrevSrf,
+					const CagdSrfStruct *NextSrf,
+					CagdRType C1DiscontCropTol,
+					CagdRType *PrevSrfVMax,
+					CagdRType *NextSrfVMin);
 CagdSrfStruct *CagdSweepSrfC1(const CagdCrvStruct *CrossSection,
 			      const CagdCrvStruct *Axis,
 			      const CagdCrvStruct *ScalingCrv,
 			      CagdRType Scale,
 			      const VoidPtr Frame,
 			      CagdBType FrameIsCrv,
-			      CagdCrvCornerType CornerType);
+			      CagdCrvCornerType CornerType,
+			      CagdRType C1DiscontCropTol);
 CagdCrvStruct *CagdSweepAxisRefine(const CagdCrvStruct *Axis,
 				   const CagdCrvStruct *ScalingCrv,
 				   int RefLevel);
@@ -2075,7 +2259,16 @@ CagdSrfStruct *CagdBoolSumSrf(const CagdCrvStruct *CrvLeft,
 			      const CagdCrvStruct *CrvRight,
 			      const CagdCrvStruct *CrvTop,
 			      const CagdCrvStruct *CrvBottom);
+CagdSrfStruct *CagdBoolSumSrfRtnl(const CagdCrvStruct *CrvLeft,
+			          const CagdCrvStruct *CrvRight,
+			          const CagdCrvStruct *CrvTop,
+			          const CagdCrvStruct *CrvBottom);
 CagdSrfStruct *CagdOneBoolSumSrf(const CagdCrvStruct *BndryCrv);
+int CagdGetCrvsCommonPt(const CagdCrvStruct *Crv1,
+		        const CagdCrvStruct *Crv2, 
+		        CagdPType P);
+CagdSrfStruct *CagdOneSidedBoolSumSrf(const CagdCrvStruct *CCrvLeft,
+				      const CagdCrvStruct *CCrvBottom);
 CagdCrvStruct *CagdReorderCurvesInLoop(CagdCrvStruct *UVCrvs);
 CagdSrfStruct *CagdSrfFromNBndryCrvs(const CagdCrvStruct *Crvs,
 				     CagdBType MinimizeSize);
@@ -2086,7 +2279,8 @@ CagdSrfStruct *CagdRuledSrf(const CagdCrvStruct *Crv1,
 CagdSrfStruct *CagdBilinearSrf(const CagdPtStruct *Pt00,
 			       const CagdPtStruct *Pt01,
 			       const CagdPtStruct *Pt10,
-			       const CagdPtStruct *Pt11);
+			       const CagdPtStruct *Pt11,
+			       CagdPointType PType);
 CagdSrfStruct *CagdCnvrtCrvToSrf(const CagdCrvStruct *Crv,
 				   CagdSrfDirType Dir);
 CagdSrfStruct *CagdSrfFromCrvs(const CagdCrvStruct *CrvList,
@@ -2111,13 +2305,14 @@ CagdBType CagdMakeSrfsCompatible2(CagdSrfStruct **Srf1,
 				  CagdBType SameVOrder,
 				  CagdBType SameUKV,
 				  CagdBType SameVKV);
-CagdSrfStruct *CagdEditSingleSrfPt(CagdSrfStruct *Srf,
+CagdSrfStruct *CagdEditSingleSrfPt(const CagdSrfStruct *Srf,
 				   CagdCtlPtStruct *CtlPt,
 				   int UIndex,
 				   int VIndex,
 				   CagdBType Write);
 CagdBBoxStruct *CagdSrfBBox(const CagdSrfStruct *Srf, CagdBBoxStruct *BBox);
 CagdBBoxStruct *CagdSrfListBBox(const CagdSrfStruct *Srfs, CagdBBoxStruct *BBox);
+CagdBType CagdSrfBelowPlane(const CagdSrfStruct* Srf, const CagdRType Pln[4]);
 CagdBType CagdSrfIsConstant(const CagdSrfStruct *Srf, IrtRType Eps);
 void CagdSrfMinMax(const CagdSrfStruct *Srf,
 		   int Axis,
@@ -2159,6 +2354,18 @@ CagdBType CagdSrfsSame3(const CagdSrfStruct *Srf1,
 			const CagdSrfStruct *Srf2,
 			CagdRType Eps,
 			int *Modified);
+CagdBType CagdSrfsSame4(const CagdSrfStruct *Srf1,
+			const CagdSrfStruct *Srf2,
+			CagdRType Eps,
+			int *Modified);
+CagdSrfStruct *CagdSrfsFilterDuplicated(CagdSrfStruct *Srfs, CagdRType Eps);
+void CagdSrfEval4Corners(const CagdSrfStruct *Srf,
+			 CagdPType P00,
+			 CagdPType P01, 
+			 CagdPType P10,
+			 CagdPType P11);
+CagdSrfStruct *CagdOrientSrfAsSrf4Corners(const CagdSrfStruct *OrntSrf,
+					  const CagdSrfStruct *Srf);
 CagdCrvStruct *CagdCrvUpdateLength(CagdCrvStruct *Crv, int NewLength);
 CagdSrfStruct *CagdSrfUpdateLength(CagdSrfStruct *Srf,
 				   int NewLength,
@@ -2278,7 +2485,7 @@ CagdSrfStruct *BzrSrfNew(int ULength, int VLength, CagdPointType PType);
 void BzrSrfEvalAtParamToData(const CagdSrfStruct *Srf,
 			     CagdRType u,
 			     CagdRType v,
-			     CagdRType* R);
+			     CagdRType *R);
 CagdRType *BzrSrfEvalAtParamMalloc(const CagdSrfStruct *Srf,
 				   CagdRType u,
 				   CagdRType v);
@@ -2349,17 +2556,14 @@ CagdBType BzrSrf2PolygonsSamplesNuNv(const CagdSrfStruct *Srf,
 				     CagdPtStruct **PtMesh,
 				     CagdVecStruct **PtNrml,
 				     CagdUVStruct **UVMesh);
-CagdPolygonStruct *BzrSrf2Polygons(const CagdSrfStruct *Srf,
-				   int FineNess,
-				   CagdBType ComputeNrmls,
-				   CagdBType FourPerFlat,
-				   CagdBType ComputeUVs);
-CagdPolygonStruct *BzrSrf2PolygonsN(const CagdSrfStruct *Srf,
-				    int Nu,
-				    int Nv,
-				    CagdBType ComputeNrmls,
-				    CagdBType FourPerFlat,
-				    CagdBType ComputeUVs);
+struct IPPolygonStruct *BzrSrf2Polygons(const CagdSrfStruct *Srf,
+				        CagdSrf2PlsInfoStrct *TessInfo);
+struct IPPolygonStruct *BzrSrf2PolygonsN(const CagdSrfStruct *Srf,
+				         int Nu,
+				         int Nv,
+				         CagdBType ComputeNrmls,
+				         CagdBType FourPerFlat,
+				         CagdBType ComputeUVs);
 CagdPolylineStruct *BzrSrf2Polylines(const CagdSrfStruct *Srf,
 				     int NumOfIsocurves[2],
 				     int SamplesPerCurve);
@@ -2380,9 +2584,18 @@ CagdBType BspKnotParamInDomain(const CagdRType *KnotVector,
 			       int Order,
 			       CagdBType Periodic,
 			       CagdRType t);
-int BspKnotLastIndexLE(const CagdRType *KnotVector, int Len, CagdRType t);
-int BspKnotLastIndexL(const CagdRType *KnotVector, int Len, CagdRType t);
-int BspKnotFirstIndexG(const CagdRType *KnotVector, int Len, CagdRType t);
+int BspKnotLastIndexLE(const CagdRType *KnotVector,
+		       int Len,
+		       CagdRType t,
+		       CagdRType Tol);
+int BspKnotLastIndexL(const CagdRType *KnotVector,
+		      int Len,
+		      CagdRType t,
+		      CagdRType Tol);
+int BspKnotFirstIndexG(const CagdRType *KnotVector,
+		       int Len,
+		       CagdRType t,
+		       CagdRType Tol);
 int BspKnotMultiplicity(const CagdRType *KnotVector, int Len, int Idx);
 CagdRType *BspKnotUniformPeriodic(int Len, int Order, CagdRType *KnotVector);
 CagdRType *BspKnotUniformFloat(int Len, int Order, CagdRType *KnotVector);
@@ -2437,7 +2650,12 @@ CagdRType *BspSrfMaxCoefParamToData(const CagdSrfStruct *Srf,
 CagdRType *BspSrfMaxCoefParamMalloc(const CagdSrfStruct *Srf,
 				    int Axis,
 				    CagdRType *MaxVal);
-CagdRType *BspKnotPrepEquallySpaced(int n, CagdRType Tmin, CagdRType Tmax);
+CagdRType *BspKnotPrepEquallySpaced(const CagdRType *KV,
+				    int KVLen,
+				    int KVOrder,
+				    int *n,
+				    CagdRType Tmin,
+				    CagdRType Tmax);
 CagdRType *BspKnotReverse(const CagdRType *KnotVector, int Len);
 void BspKnotScale(CagdRType *KnotVector, int Len, CagdRType Scale);
 void BspKnotTranslate(CagdRType *KnotVector, int Len, CagdRType Trans);
@@ -2512,6 +2730,11 @@ int BspKnotsMultiplicityVector(const CagdRType *KnotVector,
 			       CagdRType *KnotValues,
 			       int *KnotMultiplicities,
 			       CagdRType Eps);
+int BspKnotMinDmnBzrIdx(const CagdRType *KnotVector,
+			int Len,
+			int Order,
+			CagdRType MinDmn,
+			CagdRType Eps);
 void BspKnotsGetIntervals(const CagdRType *KV,
 			  int KVLen,
 			  CagdRType **KnotIntervals,
@@ -2527,6 +2750,11 @@ CagdBType BspKnotC1Discont(const CagdRType *KnotVector,
 CagdBType BspKnotC2Discont(const CagdRType *KnotVector,
 			   int Order,
 			   int Length,
+			   CagdRType *t);
+CagdBType BspKnotCnDiscont(const CagdRType *KnotVector,
+			   int Order,
+			   int Length,
+			   int n,
 			   CagdRType *t);
 CagdRType *BspKnotAllC0Discont(const CagdRType *KnotVector,
 			       int Order,
@@ -2559,7 +2787,7 @@ CagdCrvStruct *BspGenKnotsGeometryAsCurves(int Order,
 					   CagdRType SizeOfKnot);
 
 /******************************************************************************
-* Routines to handle Bspline curves.					      *
+* Routines to handle B-spline curves.					      *
 ******************************************************************************/
 CagdCrvStruct *BspCrvNew(int Length, int Order, CagdPointType PType);
 CagdCrvStruct *BspPeriodicCrvNew(int Length,
@@ -2572,6 +2800,10 @@ void BspCrvDomain(const CagdCrvStruct *Crv, CagdRType *TMin, CagdRType *TMax);
 	BspCrvCoxDeBoorBasis(KnotVector, Order, Len, Periodic, t, IndexFirst, \
 			     (CagdRType *) IritAlloca(Order * \
 						           sizeof(CagdRType)))
+#define BSP_CRV_COX_DB_BASIS_ALLOC(KnotVector, Order, Len, Periodic, t, \
+			           IndexFirst, Data) \
+	BspCrvCoxDeBoorBasis(KnotVector, Order, Len, Periodic, t, IndexFirst, \
+			     Data)
 CagdRType *BspCrvCoxDeBoorBasis(const CagdRType *KnotVector,
 				int Order,
 				int Len,
@@ -2667,6 +2899,7 @@ CagdBType BspCrvMeshC0Continuous(const CagdCrvStruct *Crv,
 CagdBType BspCrvMeshC1Continuous(const CagdCrvStruct *Crv,
 				 int Idx,
 				 CagdRType *CosAngle);
+CagdBType BspCrvIsC1DiscontAt(const CagdCrvStruct *Crv, CagdRType t);
 CagdCrvStruct *BspCrvDegreeRaise(const CagdCrvStruct *Crv);
 CagdCrvStruct *BspCrvDegreeRaiseN(const CagdCrvStruct *Crv, int NewOrder);
 CagdCrvStruct *BspCrvDerive(const CagdCrvStruct *Crv, CagdBType DeriveScalar);
@@ -2772,6 +3005,7 @@ void BspReparameterizeCrv(CagdCrvStruct *Crv,
 CagdCrvStruct *BspCrvExtensionOneSide(const CagdCrvStruct *OrigCrv,
 				      CagdBType MinDmn,
 				      CagdRType Epsilon,
+				      CagdRType ExtntScl,
 				      CagdBType RemoveExtraKnots);
 CagdCrvStruct *BspCrvExtension(const CagdCrvStruct *OrigCrv,
 			       const CagdBType *ExtDirs,
@@ -2803,10 +3037,11 @@ void BspSrfDomain(const CagdSrfStruct *Srf,
 void BspSrfEvalAtParamToData(const CagdSrfStruct *Srf,
 			     CagdRType u,
 			     CagdRType v,
-			     CagdRType* R);
+			     CagdRType *R);
 CagdRType *BspSrfEvalAtParamMalloc(const CagdSrfStruct *Srf,
 				   CagdRType u,
-				   CagdRType v);
+				   CagdRType v,
+				   void **Cache);
 CagdCrvStruct *BspSrfCrvFromSrf(const CagdSrfStruct *Srf,
 				CagdRType t,
 				CagdSrfDirType Dir);
@@ -2875,17 +3110,14 @@ CagdVecStruct *BspSrfMeshNormals(const CagdSrfStruct *Srf,
 				 int VFineNess);
 CagdSrfErrorFuncType BspSrf2PolygonSetErrFunc(CagdSrfErrorFuncType Func,
 					      void *Data);
-CagdPolygonStruct *BspSrf2Polygons(const CagdSrfStruct *Srf,
-				   int FineNess,
-				   CagdBType ComputeNrmls,
-				   CagdBType FourPerFlat,
-				   CagdBType ComputeUVs);
-CagdPolygonStruct *BspSrf2PolygonsN(const CagdSrfStruct *Srf,
-				    int Nu,
-				    int Nv,
-				    CagdBType ComputeNrmsals,
-				    CagdBType FourPerFlat,
-				    CagdBType ComputeUVs);
+struct IPPolygonStruct *BspSrf2Polygons(const CagdSrfStruct *Srf,
+				        CagdSrf2PlsInfoStrct *TessInfo);
+struct IPPolygonStruct *BspSrf2PolygonsN(const CagdSrfStruct *Srf,
+				         int Nu,
+				         int Nv,
+				         CagdBType ComputeNrmsals,
+				         CagdBType FourPerFlat,
+				         CagdBType ComputeUVs);
 CagdBType BspSrf2PolygonsSamplesNuNv(const CagdSrfStruct *Srf,
 				     int Nu,
 				     int Nv,
@@ -2970,11 +3202,11 @@ CagdCrvStruct *CagdPrimRectangleCrv(CagdRType MinX,
 				    CagdRType MaxX,
 				    CagdRType MaxY,
 				    CagdRType ZLevel);
-CagdCrvStruct *CagdPrimCrvFrom4Pts(const CagdPType P1,
-				   const CagdPType P2,
-				   const CagdPType P3,
-				   const CagdPType P4,
-				   CagdBType Closed);
+CagdCrvStruct *CagdPrimLinCrvFrom4Pts(const CagdPType P1,
+				      const CagdPType P2,
+				      const CagdPType P3,
+				      const CagdPType P4,
+			   	      CagdBType Closed);
 CagdSrfStruct *CagdPrimPlaneSrf(CagdRType MinX,
 				CagdRType MinY,
 				CagdRType MaxX,
@@ -3123,7 +3355,7 @@ CagdCrvStruct *CagdBsplineCrvFitting(CagdPType *PtList,	      /* Pts cloud. */
 * Curve untrimming: converting closed curves into tensor product surfaces.    *
 ******************************************************************************/
 
-/* Functions from a freeform curve to tensor-product surfaecs. */
+/* Functions from a freeform curve to tensor-product surfaces. */
 typedef IrtRType (*CagdQuadSrfWeightFuncType)(const CagdSrfStruct *QuadSrf, 
 					      const CagdCrvStruct *BoundaryCrv,
 					      const CagdPolylineStruct 
@@ -3138,6 +3370,11 @@ CagdSrfStruct *CagdQuadCurveListWeightedQuadrangulation(
 					 const CagdCrvStruct *CrvList,
 					 CagdQuadSrfWeightFuncType WeightFunc,
 					 int ApproxOrder);
+void CagdQuadGetPlnrSrfJacobianMinMax(const CagdSrfStruct *Srf, 
+				      CagdRType *JMin,
+				      CagdRType *JMax, 
+				      int ComputePrecisely);
+struct MvarMVStruct *CagdGetPlnrSrfJacobian(const CagdSrfStruct *Srf);
 
 /* Proposed weight functions */
 IrtRType CagdQuadSrfJacobianWeight(const CagdSrfStruct *QuadSrf, 

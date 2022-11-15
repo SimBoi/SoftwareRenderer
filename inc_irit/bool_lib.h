@@ -91,25 +91,25 @@ Bool2DInterStruct *Boolean2DComputeInters(struct IPPolygonStruct *Pl1,
 int BoolFilterCollinearities(struct IPPolygonStruct *Pl);
 
 /* Prototype of the global functions in the Boolean operations module: */
-struct IPObjectStruct *BooleanOR(struct IPObjectStruct *PObj1,
-				 struct IPObjectStruct *PObj2);
-struct IPObjectStruct *BooleanAND(struct IPObjectStruct *PObj1,
-				  struct IPObjectStruct *PObj2);
-struct IPObjectStruct *BooleanSUB(struct IPObjectStruct *PObj1,
-				  struct IPObjectStruct *PObj2);
-struct IPObjectStruct *BooleanNEG(struct IPObjectStruct *PObj);
-struct IPObjectStruct *BooleanCUT(struct IPObjectStruct *PObj1,
-				  struct IPObjectStruct *PObj2);
-struct IPObjectStruct *BooleanMERGE(struct IPObjectStruct *PObj1,
-				    struct IPObjectStruct *PObj2);
-struct IPObjectStruct *BooleanSELF(struct IPObjectStruct *PObj);
-struct IPObjectStruct *BooleanCONTOUR(struct IPObjectStruct *PObj,
+struct IPObjectStruct *BooleanOR(const struct IPObjectStruct *PObj1,
+				 const struct IPObjectStruct *PObj2);
+struct IPObjectStruct *BooleanAND(const struct IPObjectStruct *PObj1,
+				  const struct IPObjectStruct *PObj2);
+struct IPObjectStruct *BooleanSUB(const struct IPObjectStruct *PObj1,
+				  const struct IPObjectStruct *PObj2);
+struct IPObjectStruct *BooleanNEG(const struct IPObjectStruct *PObj);
+struct IPObjectStruct *BooleanCUT(const struct IPObjectStruct *PObj1,
+				  const struct IPObjectStruct *PObj2);
+struct IPObjectStruct *BooleanMERGE(const struct IPObjectStruct *PObj1,
+				    const struct IPObjectStruct *PObj2);
+struct IPObjectStruct *BooleanSELF(const struct IPObjectStruct *PObj);
+struct IPObjectStruct *BooleanCONTOUR(const struct IPObjectStruct *PObj,
 				      IrtPlnType Pln);
 
 typedef struct BooleanMultiCntrGenInfoStruct *BooleanMultiCntrGenInfoStructPtr;
 BooleanMultiCntrGenInfoStructPtr BooleanMultiCONTOURInit(
-						  struct IPObjectStruct *PObj,
-						  int Axis);
+					     const struct IPObjectStruct *PObj,
+					     int Axis);
 struct IPObjectStruct *BooleanMultiCONTOUR(IrtRType CntrLevel,
 				          BooleanMultiCntrGenInfoStructPtr GI);
 void BooleanMultiCONTOURFree(BooleanMultiCntrGenInfoStructPtr GI);

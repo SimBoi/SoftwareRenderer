@@ -30,8 +30,8 @@
 #ifndef IRIT_MARCH_CUBE_H
 #define IRIT_MARCH_CUBE_H
 
-#include "irit_sm.h"
-#include "triv_lib.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/triv_lib.h"
 
 #define MC_VRTX_0 0
 #define MC_VRTX_1 1
@@ -114,7 +114,12 @@ IPObjectStruct *MCExtractIsoSurface3(IPObjectStruct *ImageList,
 				     IrtPtType CubeDim,
 				     int SkipFactor,
 				     CagdRType IsoVal);
-void MCExtractIsoSurfaceClean();
+IPObjectStruct *MCExtractIsoSurface4(const void **ImageVector,
+				     const int *Size,
+				     TrivImagePixelType PixelType,
+				     IrtPtType CubeDim,
+				     int SkipFactor,
+				     CagdRType IsoVal);
 TrivTVStruct *TrivLoadVolumeIntoTV(const char *FileName,
 				   int DataType,
 				   IrtVecType VolSize,

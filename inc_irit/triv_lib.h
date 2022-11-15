@@ -11,10 +11,10 @@
 #define IRIT_TRIV_LIB_H
 
 #include <stdio.h>
-#include "irit_sm.h"
-#include "miscattr.h"
-#include "misc_lib.h"
-#include "cagd_lib.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/miscattr.h"
+#include "inc_irit/misc_lib.h"
+#include "inc_irit/cagd_lib.h"
 
 #define TV_PT_COPY(PtDest, PtSrc) \
             IRIT_GEN_COPY((char *) (PtDest), (char *) (PtSrc), \
@@ -116,12 +116,16 @@ typedef enum {
     TRIV_ERR_BZR_TV_EXPECT,
     TRIV_ERR_BSP_TV_EXPECT,
     TRIV_ERR_PERIODIC_EXPECTED,
+    TRIV_ERR_PERIODIC_NOT_SUPPORTED,
     TRIV_ERR_CRV_OR_SRF_EXPECTED,
     TRIV_ERR_CRV_SRF_TV_EXPECTED,
     TRIV_ERR_WRONG_NUM_BNDRY_TILES,
     TRIV_ERR_UNSUPPORT_DERIV,
     TRIV_ERR_INVALID_VALUE,
     TRIV_ERR_NO_INTERSECTION,
+    TRIV_ERR_SWEEP_AXIS_TOO_COMPLEX,
+    TRIV_ERR_FILLET_UNSUPPORTED_TOPOLOGY,
+    TRIV_ERR_FILLET_UNSUPPORTED_SRF_TYPE,
 
     TRIV_ERR_UNDEFINE_ERR
 } TrivFatalErrorType;
@@ -141,6 +145,27 @@ typedef enum {
     TRIV_END_DIR
 } TrivTVDirType;
 
+#define TRIV_IMAGE_VAR_BYTE 0x100000
+#define TRIV_IMAGE_VAR_FLOAT 0x200000
+#define TRIV_IMAGE_VAR_DOUBLE 0x300000
+
+typedef enum  {
+    TRIV_IMAGE_UNDEFINED_TYPE = 0x000000,
+    TRIV_IMAGE_BYTE_SCALAR_TYPE =   TRIV_IMAGE_VAR_BYTE   + 0x001000 + sizeof(unsigned char),
+    TRIV_IMAGE_FLOAT_SCALAR_TYPE =  TRIV_IMAGE_VAR_FLOAT  + 0x001000 + sizeof(float),
+    TRIV_IMAGE_DOUBLE_SCALAR_TYPE = TRIV_IMAGE_VAR_DOUBLE + 0x001000 + sizeof(double),
+    TRIV_IMAGE_BYTE_ARGB_TYPE =     TRIV_IMAGE_VAR_BYTE   + 0x004000 + sizeof(unsigned char) * 4,
+    TRIV_IMAGE_FLOAT_ARGB_TYPE =    TRIV_IMAGE_VAR_FLOAT  + 0x004000 + sizeof(float) * 4,
+    TRIV_IMAGE_DOUBLE_ARGB_TYPE =   TRIV_IMAGE_VAR_DOUBLE + 0x004000 + sizeof(double) * 4
+} TrivImagePixelType;
+
+#define TRIV_IMAGE_PIXEL_SIZE(Type)  ((int) ((Type) & 0xfff))
+#define TRIV_IMAGE_PIXEL_NUM_COORDS(Type)  ((int) (((Type) & 0x0ff000) >> 12))
+#define TRIV_IMAGE_PIXEL_VAR_TYPE(Type)  ((int) ((Type) & 0xf00000))
+#define TRIV_IMAGE_PIXEL_CREATE_BYTE_TYPE(N) (TRIV_IMAGE_VAR_BYTE + ((N) << 12) + sizeof(unsigned char) * (N))
+#define TRIV_IMAGE_PIXEL_CREATE_FLOAT_TYPE(N) (TRIV_IMAGE_VAR_FLOAT + ((N) << 12) + sizeof(float) * (N))
+#define TRIV_IMAGE_PIXEL_CREATE_DOUBLE_TYPE(N) (TRIV_IMAGE_VAR_DOUBLE + ((N) << 12) + sizeof(double) * (N))
+
 #define TRIV_PREV_DIR(Dir) (((int) Dir) + 1 > ((int) TRIV_CONST_W_DIR) ? \
 			TRIV_CONST_U_DIR : (TrivTVDirType) ((int) Dir) + 1)
 #define TRIV_NEXT_DIR(Dir) (((int) Dir) - 1 < ((int) TRIV_CONST_U_DIR) ? \
@@ -153,14 +178,20 @@ typedef enum {
 		            : (IDir == 1 ? TRIV_CONST_V_DIR : TRIV_CONST_U_DIR)
 
 typedef enum {
-    TRIV_NO_BNDRY = CAGD_NO_BNDRY,
+    TRIV_UVW_BNDRY_MASK = CAGD_UV_BNDRY_MASK,     /* 8 lower bits must be 0. */
+    TRIV_NO_BNDRY = TRIV_UVW_BNDRY_MASK,
     TRIV_U_MIN_BNDRY = CAGD_U_MIN_BNDRY,
     TRIV_U_MAX_BNDRY = CAGD_U_MAX_BNDRY,
     TRIV_V_MIN_BNDRY = CAGD_V_MIN_BNDRY,
     TRIV_V_MAX_BNDRY = CAGD_V_MAX_BNDRY,
-    TRIV_W_MIN_BNDRY,
-    TRIV_W_MAX_BNDRY
+    TRIV_W_MIN_BNDRY = TRIV_UVW_BNDRY_MASK + 16,
+    TRIV_W_MAX_BNDRY = TRIV_UVW_BNDRY_MASK + 32,
+    TRIV_U_MINMAX_BNDRY = CAGD_U_MINMAX_BNDRY,
+    TRIV_V_MINMAX_BNDRY = CAGD_V_MINMAX_BNDRY,
+    TRIV_W_MINMAX_BNDRY = TRIV_W_MIN_BNDRY | TRIV_W_MAX_BNDRY
 } TrivTVBndryType;
+
+#define TRIV_TV_BNDRY_FILTER_MASK(B) ((B) & ~TRIV_UVW_BNDRY_MASK)
 
 typedef enum {
     TRIV_GEOM_CONST,
@@ -168,8 +199,14 @@ typedef enum {
     TRIV_GEOM_TV_OF_REV,
     TRIV_GEOM_TRILINEAR,
     TRIV_GEOM_EXTRUSION,
-    TRIV_GEOM_RULED_TV
+    TRIV_GEOM_RULED_TV,
+    TRIV_GEOM_SWEEP_TV
 } TrivIsGeometryType;
+
+typedef enum {
+    FILLETING_METHOD_RLD_VLM,
+    FILLETING_METHOD_BOOL_SUM
+} TrivFilletingMethodType;
 
 typedef struct TrivTriangleStruct {
     struct TrivTriangleStruct *Pnext;
@@ -206,14 +243,19 @@ typedef void (*TrivSetErrorFuncType)(TrivFatalErrorType ErrorFunc);
 typedef CagdBType (*TrivTVTestingFuncType)(const TrivTVStruct *TV,
 					   TrivTVDirType *Dir,
 					   CagdRType *t);
+typedef CagdBType (*TrivTVAdjSrfCmpFuncType)(const CagdSrfStruct *Srf1,
+					     const CagdSrfStruct *Srf2,
+					     CagdRType Eps,
+					     int *Modified);
 
-#define TRIV_IS_BEZIER_TV(TV)		(TV -> GType == TRIV_TVBEZIER_TYPE)
-#define TRIV_IS_BSPLINE_TV(TV)		(TV -> GType == TRIV_TVBSPLINE_TYPE)
-#define TRIV_IS_POWER_TV(TV)		(TV -> GType == TRIV_TVPOWER_TYPE)
+#define TRIV_IS_BEZIER_TV(TV)		((TV) -> GType == TRIV_TVBEZIER_TYPE)
+#define TRIV_IS_BSPLINE_TV(TV)		((TV) -> GType == TRIV_TVBSPLINE_TYPE)
+#define TRIV_IS_POWER_TV(TV)		((TV) -> GType == TRIV_TVPOWER_TYPE)
 
-#define TRIV_IS_RATIONAL_TV(TV)		CAGD_IS_RATIONAL_PT(TV -> PType)
+#define TRIV_IS_RATIONAL_PT(PType)	CAGD_IS_RATIONAL_PT(PType)
+#define TRIV_IS_RATIONAL_TV(TV)		CAGD_IS_RATIONAL_PT((TV) -> PType)
 #define TRIV_NUM_OF_PT_COORD(PType)	CAGD_NUM_OF_PT_COORD(PType)
-#define TRIV_NUM_OF_TV_COORD(TV)	CAGD_NUM_OF_PT_COORD(TV -> PType)
+#define TRIV_NUM_OF_TV_COORD(TV)	CAGD_NUM_OF_PT_COORD((TV) -> PType)
 
 #define TRIV_PARAM_IN_DOMAIN(Prm, UMin, UMax, VMin, VMax, WMin, WMax) \
     (Prm[0] >= UMin && Prm[0] <= UMax && \
@@ -282,6 +324,13 @@ typedef CagdBType (*TrivTVTestingFuncType)(const TrivTVStruct *TV,
 		  TrivTVEvalToData((Trivar), (u), (v), (w), _R); \
 		  CagdCoerceToE3(PtE3, &PR, -1, (Trivar) -> PType); }
 
+/******************************************************************************
+* This macro is called when the library has detected an unrecoverable error.  *
+* Default action is to call TrivFatalError, but you may want to reroute this  *
+* to invoke your handler and recover yourself (by long jump for example).     *
+******************************************************************************/
+#define TRIV_FATAL_ERROR(Msg)	TrivFatalError(Msg)
+
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
@@ -343,6 +392,30 @@ void TrivTriangleFreeList(TrivTriangleStruct *TriangleList);
 					     TriangleList = NULL; }
 #endif /* DEBUG */
 
+TrivTVStruct *TrivPrimCylinder(const CagdVType Center,
+			       CagdRType Radius,
+			       CagdRType Height,
+			       CagdBType Rational);
+TrivTVStruct *TrivPrimCone(const CagdVType Center,
+			   CagdRType Radius,
+			   CagdRType Height,
+			   CagdBType Rational);
+TrivTVStruct *TrivPrimCone2(const CagdVType Center,
+			    CagdRType MajorRadius,
+			    CagdRType MinorRadius,
+			    CagdRType Height,
+			    CagdBType Rational);
+TrivTVStruct *TrivPrimSphere(const CagdVType Center,
+			     CagdRType Radius,
+			     CagdBType Rational);
+TrivTVStruct *TrivPrimSphere2(const CagdVType Center,
+			      CagdRType Radius,
+			      CagdBType Rational);
+TrivTVStruct *TrivPrimTorus(const CagdVType Center,
+			    CagdRType MajorRadius,
+			    CagdRType MinorRadius,
+			    CagdBType Rational);
+
 TrivTVStruct *TrivNSPrimBox(CagdRType MinX,
 			    CagdRType MinY,
 			    CagdRType MinZ,
@@ -357,6 +430,13 @@ TrivTVStruct *TrivNSPrimGenBox(const CagdPType P000,
 			       const CagdPType P101,
 			       const CagdPType P110,
 			       const CagdPType P111);
+TrivTVStruct *TrivNSPrimGenBox2(const CagdVType VecUMin,
+				const CagdVType VecUMax,
+				const CagdVType VecVMin,
+				const CagdVType VecVMax,
+				const CagdVType VecWMin,
+				const CagdVType VecWMax,
+				int Normalize);
 TrivTVStruct *TrivNSPrimCylinder(const CagdVType Center,
 				 CagdRType Radius,
 				 CagdRType Height,
@@ -386,7 +466,9 @@ TrivTVStruct *TrivNSPrimTorus(const CagdVType Center,
 TrivTVStruct *TrivCnvrtBzr2BspTV(const TrivTVStruct *TV);
 TrivTVStruct *TrivCnvrtBsp2BzrTV(const TrivTVStruct *TV);
 
-void TrivTVTransform(TrivTVStruct *TV, CagdRType *Translate, CagdRType Scale);
+void TrivTVTransform(TrivTVStruct *TV,
+		     const CagdRType *Translate,
+		     CagdRType Scale);
 TrivTVStruct *TrivTVMatTransform(const TrivTVStruct *TV, CagdMType Mat);
 TrivTVStruct *TrivTVListMatTransform(const TrivTVStruct *TVs, CagdMType Mat);
 void TrivTVMatTransform2(TrivTVStruct *TV, CagdMType Mat);
@@ -433,7 +515,7 @@ void TrivTVEval2ToData(const TrivTVStruct *TV,
 		       CagdRType u,
 		       CagdRType v,
 		       CagdRType w,
-		       CagdRType* Pt);
+		       CagdRType *Pt);
 CagdRType *TrivTVEval2Malloc(const TrivTVStruct *TV,
 			     CagdRType u,
 			     CagdRType v,
@@ -444,10 +526,13 @@ CagdSrfStruct *TrivSrfFromTV(const TrivTVStruct *TV,
 			     int OrientBoundary);
 CagdSrfStruct **TrivBndrySrfsFromTVToData(const TrivTVStruct *TV,
 					  int OrientBoundary,
+					  int FilterSimilar,
 					  CagdSrfStruct **Srfs);
 CagdSrfStruct *TrivBndrySrfsFromTVs(const TrivTVStruct *Trivars,
 				    CagdRType Eps,
-				    int OrientBoundary);
+				    int OrientBoundary,
+				    int FilterSelfSimilar,
+				    int FilterDupSrfs);
 CagdCrvStruct *TrivBndryEdgesFromTV(const TrivTVStruct *TV);
 CagdPtStruct *TrivBndryCrnrsFromTV(const TrivTVStruct *TV);
 
@@ -510,7 +595,7 @@ TrivTVStruct *TrivBspTVDerive(const TrivTVStruct *TV,
 			      TrivTVDirType Dir,
 			      CagdBType DeriveScalar);
 TrivTVStruct *TrivBspTVDeriveScalar(const TrivTVStruct *TV, TrivTVDirType Dir);
-CagdRType TrivTVEvalJacobian(TrivTVStruct *TV,
+CagdRType TrivTVEvalJacobian(const TrivTVStruct *TV,
 			     CagdRType u,
 			     CagdRType v,
 			     CagdRType w);
@@ -520,7 +605,9 @@ TrivTVStruct *TrivTVSubdivAtParam(const TrivTVStruct *TV,
 TrivTVStruct *TrivTVsSubdivAtAllDetectedLocations(const TrivTVStruct *TV,
 						  TrivTVTestingFuncType
 						                TVTestFunc);
-TrivTVStruct *TrivTVsSubdivAtAllC0Discont(const TrivTVStruct *TVs);
+TrivTVStruct *TrivTVSubdivAtAllC0Discont(const TrivTVStruct *TV);
+TrivTVStruct *TrivTVsSubdivAtAllC1Discont(const TrivTVStruct *TVs);
+TrivTVStruct *TrivTVSubdivAtAllC0Discont(const TrivTVStruct *TV);
 TrivTVStruct *TrivTVsSubdivAtAllC1Discont(const TrivTVStruct *TVs);
 TrivTVStruct *TrivTVDegreeRaise(const TrivTVStruct *TV, TrivTVDirType Dir);
 TrivTVStruct *TrivTVDegreeRaiseN(const TrivTVStruct *TV,
@@ -538,6 +625,14 @@ TrivTVStruct *TrivTVReverseDir(const TrivTVStruct *TV, TrivTVDirType Dir);
 TrivTVStruct *TrivTVReverse2Dirs(const TrivTVStruct *TV,
 				 TrivTVDirType Dir1,
 				 TrivTVDirType Dir2);
+TrivTVStruct *TrivMergeTVTV(const TrivTVStruct *CTV1,
+			    const TrivTVStruct *CTV2,
+			    TrivTVDirType Dir,
+			    CagdBType Discont);
+int TrivUpdateBndrySrfinTV(TrivTVStruct *TV,
+			   const CagdSrfStruct *Srf,
+			   TrivTVBndryType TVBndry);
+int TrivMakeTVsCompatibleDomain(const TrivTVStruct *TV1, TrivTVStruct **TV2);
 CagdBType TrivMakeTVsCompatible(TrivTVStruct **TV1,
 				TrivTVStruct **TV2,
 				CagdBType SameUOrder,
@@ -604,7 +699,8 @@ TrivTVStruct *TrivTrilinearSrf(const CagdPtStruct *Pt000,
 			       const CagdPtStruct *Pt100,
 			       const CagdPtStruct *Pt101,
 			       const CagdPtStruct *Pt110,
-			       const CagdPtStruct *Pt111);
+			       const CagdPtStruct *Pt111,
+			       CagdPointType PType);
 TrivTVStruct *TrivExtrudeTV(const CagdSrfStruct *Srf,
 			    const CagdVecStruct *Vec);
 TrivTVStruct *TrivExtrudeTV2(const CagdSrfStruct *Srf,
@@ -622,7 +718,27 @@ TrivTVStruct *TrivTVOfRevAxis(const CagdSrfStruct *Srf,
 			      const TrivP4DType AxisPoint,
 			      const TrivV4DType AxisVector,
 			      CagdBType PolyApprox);
-TrivTVStruct *TrivEditSingleTVPt(TrivTVStruct *TV,
+CagdSrfStruct *TrivExtractSleeveSrf(const TrivTVStruct *TV);
+TrivTVStruct *TrivSweepTV(const CagdSrfStruct *CrossSection,
+			  const CagdCrvStruct *Axis,
+			  const CagdCrvStruct *ScalingCrv,
+			  CagdRType Scale,
+			  const VoidPtr Frame,
+			  int FrameOption);
+TrivTVStruct *TrivSweepTVC1(const CagdSrfStruct *CrossSection,
+			    const CagdCrvStruct *Axis,
+			    const CagdCrvStruct *ScalingCrv,
+			    CagdRType Scale,
+			    const VoidPtr Frame,
+			    int FrameOption,
+			    CagdCrvCornerType CornerType,
+			    CagdRType C1DiscontCropTol);
+CagdSrfStruct *TrivSweepTVError(const TrivTVStruct *SweepTV,
+				const CagdSrfStruct *CrossSection,
+				const CagdCrvStruct *Axis,
+				const CagdCrvStruct *ScalingCrv,
+				CagdRType Scale);
+TrivTVStruct *TrivEditSingleTVPt(const TrivTVStruct *TV,
 				 CagdCtlPtStruct *CtlPt,
 				 int UIndex,
 				 int VIndex,
@@ -652,7 +768,20 @@ CagdBType TrivTVIsMeshC1DiscontAt(const TrivTVStruct *TV,
 			          CagdRType t);
 CagdBType TrivBspTVHasBezierKVs(const TrivTVStruct *TV);
 CagdBType TrivBspTVHasOpenEC(const TrivTVStruct *TV);
+CagdBType TrivBspTVHasOpenECDir(const TrivTVStruct *TV, TrivTVDirType Dir);
 CagdBType TrivIsTVClosed(const TrivTVStruct *TV, int Dim);
+void TrivTVGenAdjacencyInfo(TrivTVStruct *TVList,
+			    TrivTVAdjSrfCmpFuncType SrfCmpFuncPtr,
+			    TrivTVAdjSrfCmpFuncType SrfCmpApxFuncPtr,
+			    CagdRType SrfGapTol,
+			    CagdBType MarkUVWBndry);
+void TrivTVGenAdjacencyInfo2(TrivTVStruct **TVVec,
+			     int NumTVs,
+			     TrivTVAdjSrfCmpFuncType SrfCmpFuncPtr,
+			     TrivTVAdjSrfCmpFuncType SrfCmpApxFuncPtr,
+			     CagdRType SrfGapTol,
+			     CagdBType MarkUVWBndry);
+TrivTVStruct *TrivMakeTVArrngmntCompatible(const TrivTVStruct *TVList);
 
 void TrivDbg(const void *Obj);
 #ifdef DEBUG
@@ -782,6 +911,8 @@ int TrivInverseQuery(struct TrivInverseQueryStruct *Handle,
 		     CagdRType *UVWParams,
 		     int InitialGuess);
 void TrivFreeInverseQueries(struct TrivInverseQueryStruct *Handle);
+struct TrivInverseQueryStruct *TrivCopyInverseQueries(
+				  const struct TrivInverseQueryStruct *Handle);
 int TrivInverseQueryPolys(struct IPObjectStruct *PlObj,
 			  const TrivTVStruct *TV);
 
@@ -827,11 +958,40 @@ TrivTVStruct *TrivSwungAlgSumTV(const CagdCrvStruct *Crv,
 				const CagdSrfStruct *Srf);
 
 /******************************************************************************
+* Fillets methods.                                                            *
+******************************************************************************/
+TrivTVStruct *TrivTVFillet(const CagdSrfStruct *Srf1List,
+                           const CagdSrfStruct *Srf2List,
+                           CagdRType RailDist,
+                           int R1Orient,
+                           int R2Orient,
+                           CagdRType TanScale,
+                           int ApproxCrvsCtlPts,
+                           CagdRType Tol,
+                           CagdRType NumerTol,
+                           TrivFilletingMethodType FilletingMethod,
+                           CagdBType PreciseFillet,
+                           CagdSrfStruct **PrimSrfs1,
+                           CagdSrfStruct **PrimSrfs2);
+
+void TrivBlendFilletProperties(TrivTVStruct **FilletTV,
+                               const CagdSrfStruct *PrimSrf1,
+                               const CagdSrfStruct *PrimSrf2);
+
+/******************************************************************************
 * Error handling.							      *
 ******************************************************************************/
 TrivSetErrorFuncType TrivSetFatalErrorFunc(TrivSetErrorFuncType ErrorFunc);
 void TrivFatalError(TrivFatalErrorType ErrID);
 const char *TrivDescribeError(TrivFatalErrorType ErrID);
+
+/******************************************************************************
+* Trivariate fitting methods.                                                 *
+******************************************************************************/
+TrivTVStruct *TrivFitTV2PolyMesh(struct IPObjectStruct *MeshObj, 
+				 struct IPObjectStruct *MedialAxisObj,
+				 IrtRType MeanErrThr, 
+				 IrtRType HausdorffErrThr);
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

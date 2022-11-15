@@ -200,7 +200,7 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	CRect r;
 	GetClientRect(&r);
 	DeleteObject(m_pDbBitMap);
-	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);	
+    	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);	
 	m_pDbDC->SelectObject(m_pDbBitMap);
 }
 

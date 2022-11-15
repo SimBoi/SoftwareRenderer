@@ -10,39 +10,55 @@
 #ifndef IRIT_USER_LIB_H
 #define IRIT_USER_LIB_H
 
-#include "irit_sm.h"
-#include "bool_lib.h"
-#include "cagd_lib.h"
-#include "geom_lib.h"
-#include "mvar_lib.h"
-#include "iritprsr.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/bool_lib.h"
+#include "inc_irit/cagd_lib.h"
+#include "inc_irit/geom_lib.h"
+#include "inc_irit/mvar_lib.h"
+#include "inc_irit/iritprsr.h"
 
 #ifdef __WINNT__
 #include <wchar.h>
+typedef wchar_t UserFontChar;
 #define USER_FONT_STR_CONST(Str)	L##Str
+#define USER_FONT_STR_MALLOC(n)		malloc(sizeof(UserFontChar) * (n) + 2)
+#define USER_FONT_STR_FREE(Str)		free(Str)
 #define USER_FONT_STR_CPY(DStr, SStr)	wcscpy(DStr, SStr)
+#define USER_FONT_STR_NCPY(DStr, SStr, n) wcsncpy(DStr, SStr, n)
 #define USER_FONT_STR_CAT(DStr, SStr)	wcscat(DStr, SStr)
+#define USER_FONT_STR_CMP(DStr, SStr)	wcscmp(DStr, SStr)
 #define USER_FONT_STR_DUP(Str)		_wcsdup(Str)
 #define USER_FONT_STR_CHR(Str, Chr)	wcschr(Str, L##Chr)
 #define USER_FONT_STR_LEN(Str)		wcslen(Str)
 #define USER_FONT_IS_SPACE(c)		iswspace(c)
 #define USER_FONT_TEXT2INT(Str)		_wtoi(Str)
-#define USER_FONT_GET_WORD_ASCII(Str)	UserWChar2Ascii(Str)
-#define USER_FONT_GET_WORD_UNICODE(Str) UserAscii2WChar(Str)
+#define USER_FONT_GET_WORD_ASCII(Str)	IritWChar2Ascii(Str)
+#define USER_FONT_GET_WORD_UNICODE(Str) IritAscii2WChar(Str)
 #else
+#include <string.h>
+typedef char UserFontChar;
 #define USER_FONT_STR_CONST(Str)	Str
+#define USER_FONT_STR_MALLOC(n)		malloc(sizeof(UserFontChar) * (n) + 1)
+#define USER_FONT_STR_FREE(Str)		free(Str)
 #define USER_FONT_STR_CPY(DStr, SStr)	strcpy(DStr, SStr)
+#define USER_FONT_STR_NCPY(DStr, SStr, n) strncpy(DStr, SStr, n)
 #define USER_FONT_STR_CAT(DStr, SStr)	strcat(DStr, SStr)
+#define USER_FONT_STR_CMP(DStr, SStr)	strcmp(DStr, SStr)
 #define USER_FONT_STR_DUP(Str)		strdup(Str)
 #define USER_FONT_STR_CHR(Str, Chr)	strchr(Str, Chr)
 #define USER_FONT_STR_LEN(Str)		strlen(Str)
 #define USER_FONT_IS_SPACE(c)		isspace(c)
 #define USER_FONT_TEXT2INT(Str)		atoi(Str)
-#define USER_FONT_GET_WORD_ASCII(Str)	(Str)
-#define USER_FONT_GET_WORD_UNICODE(Str) (Str)
+#define USER_FONT_GET_WORD_ASCII(Str)	strdup(Str)
+#define USER_FONT_GET_WORD_UNICODE(Str) strdup(Str)
 #endif /* __WINNT__ */
 
+typedef UserFontChar *UserFontText;
+typedef char *UserFontName;
+
 #define USER_HC_VEC_DRAW_SCALE	0.25
+
+#define USER_PACK_TILE_MAX_SPACE_DIM	3
 
 /* Microstructures package. */
 #define USER_MICRO2_MAX_DIM 3
@@ -111,7 +127,13 @@
 #define USER_MICRO_IS_SHELL_OR_CAP_WMAX(Flag) \
 		(Flag & (USER_MICRO_BIT_SHELL_WMAX | USER_MICRO_BIT_CAP_WMAX))
 
-#define USER_NON_TRIMMED_SRF_ATTR "NON_TRIMMED_SRF"
+/* Tile membership. */
+#define USER_MICROJOIN_TILE_UNDEFINED 0
+#define USER_MICROJOIN_TILE_INSIDE 1
+#define USER_MICROJOIN_TILE_ONBNDRY 2
+#define USER_MICROJOIN_TILE_OUTSIDE 3
+
+#define USER_NON_TRIMMED_SRF_ATTR_ID	IRIT_ATTR_CREATE_ID(NON_TRIMMED_SRF)
 
 #define USER_PATCH_ACCESS_TEST    1
 #define USER_PATCH_ACCESS_NO_TEST 0
@@ -137,8 +159,15 @@ typedef enum {
     USER_MICRO2_BIFUTILE_1_4	    = 2,
     USER_MICRO2_BIFUTILE_2_2	    = 3,
     USER_MICRO2_NUM_BIFUTILE_TOPOLOGY
-} UserMicro2TileTopology;
+} UserMicro2TileTopologyType;
 #define USER_MICRO2_TILE_MAX_BIFURCATION_TOPOLOGY 4
+
+#define USER_PACK_TRANS_VEC1_ATTR_NAME	    IRIT_ATTR_CREATE_ID(vec1)
+#define USER_PACK_TRANS_VEC2_ATTR_NAME	    IRIT_ATTR_CREATE_ID(vec2)
+#define USER_PACK_TRANS_VEC3_ATTR_NAME	    IRIT_ATTR_CREATE_ID(vec3)
+#define USER_PACK_TRANS_USTEP_ATTR_NAME	    IRIT_ATTR_CREATE_ID(USteps)
+#define USER_PACK_TRANS_VSTEP_ATTR_NAME	    IRIT_ATTR_CREATE_ID(VSteps)
+#define USER_PACK_TILE_POS_ATTR_NAME	    IRIT_ATTR_CREATE_ID(TileBndryType)
 
 typedef struct UserMicro2TilingStruct *UserMicro2TilingStructPtr;
 
@@ -151,10 +180,10 @@ typedef char UserMicroTileName[IRIT_LINE_LEN];
 /*                  point.                                                  */
 /*   CPIndexInTile: The indices of the control point in the tile.           */
 typedef CagdRType (*UserMicroFunctionalTileCBFuncType)(
-						    UserMicro2TilingStructPtr T,
-						    const int *TileIndex,
-						    const int *CPGlobalIndex,
-						    const int *CPIndexInTile);
+						  UserMicro2TilingStructPtr T,
+						  const int *TileIndex,
+						  const int *CPGlobalIndex,
+						  const int *CPIndexInTile);
 
 typedef struct UserMicroPreProcessTileCBStruct {
     /* Domain of tile in local deformation func.  Always [0, 1]. */
@@ -202,16 +231,30 @@ typedef struct UserMicroTileStruct {
     IPObjectStruct *Geom; /* Geometry of a tile (curves/surfaces/polys etc. */
 } UserMicroTileStruct;
 
-typedef struct UserMicroTileBndryPrmStruct {
+typedef struct UserMicroTileBndryPrmStruct {           /* Static tile info. */
     IrtRType OuterRadius;                       /* Outer dimension of tube. */
     IrtRType InnerRadius;     /* Inner dimension of tube.  Zero to disable. */
     IrtRType YScale; /* Optional scale of cross section in higher dimension */
        /* of face, for elliptic/rectangular cross sections. Zero to ignore. */
     CagdBType Circular;/* TRUE for circular cross section, FALSE for square.*/
-    CagdRType Bndry[4];   /* >0 for all four corners in lexicographic order */
-                           /* if on boundary deform. TV, of that thickness. */
+    CagdRType Bndry[4];  /* >0 for all four corners in lexicographic order, */
+            /* if on boundary deform. TV, to create skin of that thickness. */
     CagdRType BndryShape;  /* Between zero (flat & smooth) and one (bulky). */
+    CagdPType FaceCenter;             /* [0, 1]^3 to shift center location, */
 } UserMicroTileBndryPrmStruct;
+
+typedef struct UserMicroParamTileBndryPrmStruct {  /* Parametric tile info. */
+    MiscExprTreeGenInfoStructPtr E2TGI;    /* Handler of expr. tree module. */
+    IritE2TExprNodeStruct *OuterRadius;         /* Outer dimension of tube. */
+    IritE2TExprNodeStruct *InnerRadius;/* Inner dimension of tube.  Zero to */
+    /* disable (no hole).						    */
+    IritE2TExprNodeStruct *Circular;/* > 0.0 for circular cross section,    */
+    /* <0.0 square.							    */
+    IritE2TExprNodeStruct *BndryShape;/* Between zero (flat & smooth) & one */
+    /* (bulky).								    */
+    /* These designates if TV is in UVW space (TRUE) or Euclidean (FALSE):  */
+    UserMicroTileBndryPrmStruct StaticTileParam;
+} UserMicroParamTileBndryPrmStruct;
 
 typedef struct UserMicroRegularParamStruct {
     UserMicroTileStruct *Tile;    /* The tile to be used in regular tiling. */
@@ -219,7 +262,7 @@ typedef struct UserMicroRegularParamStruct {
     CagdBType TilingStepMode;   /* Repeat tiling if TRUE, tiling Repeat[i]  */
     /* tiles, either globally or per Bezier domain. If FALSE, each tile is  */
     /* displace TilingSteps[i] amount, each dir (which can be overlapping). */
-  CagdRType *TilingSteps[CAGD_MAX_PT_SIZE]; /* In each dimension:           */
+    CagdRType *TilingSteps[CAGD_MAX_PT_SIZE]; /* In each dimension:         */
     /* If TilingStepMode is TRUE, defines indices repetition count in each  */
     /* knot interval as (n, r1, r2, r3, ...) where n is the size of this    */
     /* vector and r1 is the number of tiles in first knot interval, r2 in   */
@@ -242,6 +285,13 @@ typedef struct UserMicroRegularParamStruct {
     UserMicroPostProcessTileCBFuncType PostProcessCBFunc; /* If !NULL, a    */
     /* call back func. called just after composition, editing the tile.     */
     void *CBFuncData;      /* Optional pointer to be passed to CB functions.*/
+    UserMicroParamTileBndryPrmStruct ParamTilePrm; /* If we have parametric */
+    int HasParamTilePrm; /* tiles, parameter functions will be stored here. */
+    IPAttrIDType *_AttrsToPropagate; /* An array of attribute Ids to        */
+    /* propagate through the tiling process. Must end with                  */
+    /* IRIT_ATTR_CREATE_ID(___INVALID_ATTR). Can be NULL.                   */
+    int _DisableParallelRun;			      /* Internal use only. */
+    UserMicroTileStruct *_BndryTiles[3][3][3];	      /* Internal use only. */
 } UserMicroRegularParamStruct;
 
 typedef struct UserMicroImplicitParamStruct {
@@ -267,8 +317,9 @@ typedef struct UserMicroRandomBiFurcationParamStruct {
 
 typedef struct UserMicroRegularBiFurcationParamStruct {
      IPObjectStruct *TileTopologies[USER_MICRO2_NUM_BIFUTILE_TOPOLOGY];
-     CagdRType SubdThreshold;
      int SubdDir;
+     int FFDeformApprox;
+     CagdRType SubdThreshold;
 } UserMicroRegularBiFurcationParamStruct;
 
 typedef struct UserMicroFunctionalParamStruct {
@@ -284,8 +335,6 @@ typedef struct UserMicroParamStruct {
     CagdRType ShellThickness;  /* The thickness of a SHELL global boundary. */
     int ApproxLowOrder; /* If 3 or 4, higher order freeforms results are    */
                         /* reduced (approximated) to quadratics or cubics.  */
-    int _UniqueTileID;        /* Internal - current running unique tile ID. */
-    int _UniqueGeomID;    /* Internal - current unique running geometry ID. */
     union {
 	UserMicroRegularParamStruct RegularParam;
 	UserMicroRandomParamStruct RandomParam;
@@ -295,9 +344,184 @@ typedef struct UserMicroParamStruct {
     } U;
 } UserMicroParamStruct;
 
+typedef struct UserMicroAuxeticTileBndryPrmStruct {
+    int HasOutJoint;          /* TRUE to also have a joint to the neighbor. */
+    CagdRType InnerJointDiameter;             /* Positive - joint diameter. */
+    CagdRType PossionRatio;     /* For this side boundaries. Ignored for Z. */
+    CagdRType _Z;	   /* Used internally to set Z level of this joint. */
+    int _FaceIdx; /* Used internally to set face (0 to 5 for UMin to WMax). */
+} UserMicroAuxeticTileBndryPrmStruct;
+
 /* Used by the C^0 discont tiles to hold the respective refinement matrix. */
-#define USER_ATTR_MICRO_SPLIT_TILE_UREF_MAT "UKnotRefineMatrix"
-#define USER_ATTR_MICRO_SPLIT_TILE_VREF_MAT "VKnotRefineMatrix"
+#define USER_ATTR_MICRO_SPLIT_TILE_UREF_MAT  IRIT_ATTR_CREATE_ID(UKnotRefineMatrix)
+#define USER_ATTR_MICRO_SPLIT_TILE_VREF_MAT  IRIT_ATTR_CREATE_ID(VKnotRefineMatrix)
+
+/* Data structure to store micro tiles of a tensor product trivariate	    */
+/* volume and the macro shape of the micro tile set.	 		    */
+typedef struct UserMJTileStrctStruct {
+    struct UserMJTileStrctStruct *Pnext;
+    /* A list of the geometries of the micro tiles.			    */
+    IPObjectStruct *TileGeoms;
+    /* A pointer to the deformation TV map to represent the macro shape.    */
+    const TrivTVStruct *BaseTVRef;
+    /* Whether the deformation map is geometrically periodic or not.	    */
+    CagdBType UVWPeriodic[3];
+    /* Priority of TV in the construction of joint tiles.		    */
+    IrtRType TVMapPriority;
+} UserMJTileStrctStruct;
+
+/* Joint surface that connects one tile to the other tile.   */
+typedef struct UserMJTileJointSrfStruct {
+    struct UserMJTileJointSrfStruct *Pnext;
+    /* Joint surface that is one of the bounding surface of a micro tile.    */
+    IPObjectStruct *JointSrf; 
+    /* A reference pointer to TV where the joint surface comes from. Can be  */
+    /* the entire tile if the tile is composed of a single TV. Otherwise,    */
+    /* pointer to one TV among a list of TVs of the tile.		     */
+    const TrivTVStruct *JointTVRef;
+    /* The boundary direction of the joint surface in joint TV. 0 ~ 5 if the */
+    /* joint surface is the UMin / UMax / VMin / VMax / WMin / WMax boundary */
+    /* of the joint TV.							     */
+    int JointSrfType; 
+    /* A reference pointer to the tile where the joint surface comes from.   */
+    const IPObjectStruct *JointTileRef;
+} UserMJTileJointSrfStruct;
+
+typedef struct UserMJTileJointSrfRefStruct {
+    struct UserMJTileJointSrfRefStruct *Pnext;
+    UserMJTileJointSrfStruct *Obj;
+} UserMJTileJointSrfRefStruct;
+
+/* The trimmed surface that interfaces two sets of the tile joint surfaces. */
+/* The associated tile joint surfaces are also stored here.		    */
+typedef struct UserMJJoinInterSrfStruct {
+    struct UserMJJoinInterSrfStruct *Pnext;
+    /* The trimmed surface that separates two micro tile sets.		    */
+    TrimSrfStruct *InterSrf;
+    /* Auxilliary cache used in the acceleration of the surface distance    */
+    /* computation.							    */
+    void *InterSrfDistPrep;
+    /* Opposite volume element which this join surface interfaces. NULL in  */
+    /* case of the outmost boundary surface.				    */
+    const VMdlVolumeElementStruct *OppoVolElem;
+    /* Whether the joint tile is already created or not. */
+    IrtBType TileCreated;
+    /* A list of joint surfaces on this interface surface.		    */
+    UserMJTileJointSrfStruct *TouchingSrfs;
+    /* A list of joint surfaces in the interior of the trimmed volume.	    */
+    UserMJTileJointSrfStruct *InteriorSrfs;
+} UserMJJoinInterSrfStruct;
+
+typedef struct UserMJJoinInterSrfRefStruct {
+    struct UserMJJoinInterSrfRefStruct *Pnext;
+    UserMJJoinInterSrfStruct *Obj;
+} UserMJJoinInterSrfRefStruct;
+
+/* Geometry and auxiliary information of an anchor, which connects one tile */
+/* to another tile or the boundary of the macro object.			    */
+typedef struct UserMJAnchorGeomStruct {
+    struct UserMJAnchorGeomStruct *Pnext;
+    /* Anchor geometry. Either a surface or a point.			    */	    
+    IPObjectStruct *AnchorGeom; 
+    /* A start direction of an axis of a bridging tile that is constructed  */
+    /* from this anchor.						    */
+    CagdVType AnchorDir; 
+    /* A pointer to the tile where this anchor originates from.		    */
+    const IPObjectStruct *AnchorTileRef;
+    /* If a tile is of trivariate type, a pointer to the tile trivariate    */
+    /* where this anchor originates from.				    */
+    const TrivTVStruct *AnchorTVRef;
+    /* The boundary direction of this anchor surface in AnchorTVRef. (valid */
+    /* only in case of trivariate types. 0 ~5 if the anchor is UMin / UMax /*/
+    /* VMin / VMax / WMin / WMax boundary of AnchorTVRef.		    */
+    int AnchorBndType;
+    /* A pointer to the boundary geometry which this anchor connects to.    */
+    /* Valid only when the anchor connects to the macro boundary object.    */
+    const IPObjectStruct *MacroGeom;
+    /* Id of the macro object when MacroGeom is a list or a polygon.	    */
+    int MacroGeomId;
+} UserMJAnchorGeomStruct;
+
+/* Packing spheres and circles in 3D and 2D containers - data structures */
+
+typedef struct UserSpkRandomPoolStruct *UserSpkRandomPoolStructPtr;
+
+/* A struct-wrapper for a 3D vector to allow dense vector arrays */
+typedef struct UserSpkVectorStruct {
+    IrtVecType V;
+} UserSpkVectorStruct;
+
+/* A border, including all its method implementations */
+typedef struct UserSpkBorderFieldsStruct {
+    void *Instance;
+    IrtBType Is3D;
+    IrtBType IsThreadSafe;
+    void(*GetBoundingBox)(void *Instance, GMBBBboxStruct *BoundingBox);
+    IrtBType(*PointIsInside)(void *Instance, const IrtVecType Point);
+    void(*ClosestPoint)(void *Instance,
+			const IrtVecType Point,
+			IrtVecType ClosestPoint,
+			IrtBType *WasInside);
+    void(*ClosestPointInside)(void *Instance,
+			      const IrtVecType Point,
+			      IrtVecType ClosestPoint);
+} UserSpkBorderFieldsStruct;
+
+typedef struct UserSpkBorderFieldsStruct *UserSpkBorderStructPtr;
+
+/* Different algorithms of sphere packing */
+typedef enum UserSpkAlgorithmType {
+    USER_SPK_ALG_HONEYCOMB,
+    USER_SPK_ALG_REPULSION,
+    USER_SPK_ALG_REPULSION_PARALLEL,
+    USER_SPK_ALG_GRAVITY,
+    USER_SPK_ALG_GRAVITY_LOCALLY_DISTRIBUTED,
+} UserSpkAlgorithmType;
+
+typedef struct UserSpkSolvingSettingsStruct {                  /* Settings. */
+    IrtRType SphereRadius;				  /* Sphere radius. */
+    IrtRType PenetrationTolerance;   /* Penetration depth, below which two  */
+			  /* spheres are still considered non-intersecting. */
+    IrtRType ConnectivityTolerance;    /* Distance, below which spheres are */
+                                             /* still considered connected. */
+    int MaxIterationsPerAttempt;     /* Maximum allowed number of repulsion */
+					         /* iterations per attempt. */
+    IrtRType MinCostDecrease;     /* Minimal cost decrease, below which the */
+			  /* cost is considered to have stopped decreasing. */
+    int CostDecreaseGracePeriod;     /* Number of iterations after cost has */
+			 /* stop decreasing until the attempt is abandoned. */
+    int StartSphereCount;  /* Sphere count to start the first attempt with. */
+              /* Ignored if less than honeycomb configuration sphere count. */
+    int RandomNumberPoolCapacity; /* Capacity of the random number pool.    */
+    IrtBType SingleThreadedRepulsion; /* Prohibits parallelization          */
+                                      /* of repulsion.                      */
+} UserSpkSolvingSettingsStruct;
+
+typedef struct UserSpkSolvingProcessFieldsStruct *UserSpkSolvingProcessStructPtr;
+
+/* A pair of connected spheres, represented as indices in the               */
+/* configuration's sphere array.					    */
+typedef struct UserSpkConnectivityPairStruct {
+    int SphereIndices[2];
+} UserSpkConnectivityPairStruct;
+
+typedef struct UserSpkSphereConfigurationStruct {/* A sphere configuration. */
+    int NumSpheres;
+    UserSpkVectorStruct *SphereCenters;
+    int NumConnectivityPairs;
+    UserSpkConnectivityPairStruct *ConnectivityPairs;
+} UserSpkSphereConfigurationStruct;
+
+typedef struct UserSpkSolvingStatusStruct { /* Solving status & statistics. */
+    UserSpkSphereConfigurationStruct LatestSuccess;    /* Latest successful */
+							  /* configuration. */
+    int AttemptsSinceLatestSuccess;
+    double SecondsSinceLatestSuccess;
+    int AttemptsForLatestSuccess;
+    double SecondsForLatestSuccess;
+    int AttemptsTotal;
+    double SecondsTotal;
+} UserSpkSolvingStatusStruct;
 
 typedef enum {
     USER_ERR_WRONG_SRF,
@@ -314,6 +538,7 @@ typedef enum {
     USER_ERR_NO_INTERSECTION,
     USER_ERR_EXPCT_REG_TRIANG,
     USER_ERR_EXPCT_POLY_OBJ,
+    USER_ERR_EXPCT_CRV_OBJ,
     USER_ERR_EXPCT_SRF_OBJ,
     USER_ERR_EXPCT_VRTX_NRMLS,
     USER_ERR_EXPCT_VRTX_UVS,
@@ -327,6 +552,9 @@ typedef enum {
     USER_ERR_INVALID_IMAGE_SIZE,
     USER_ERR_INVALID_KV_END_COND,
     USER_ERR_INVALID_OPERATION,
+    USER_ERR_TRIVAR_UNSUPPORTED,
+    USER_ERR_EXPECTED_POLY_OR_ONE_SRF,
+    USER_ERR_NON_UNIFORM_BEAMS_UNSUPPORTED,
     USER_ERR_XRANGE_EMPTY,
     USER_ERR_YRANGE_EMPTY,
     USER_ERR_ZRANGE_EMPTY,
@@ -334,6 +562,7 @@ typedef enum {
     USER_ERR_NC_INVALID_PARAM,
     USER_ERR_NC_INVALID_INTER,
     USER_ERR_NC_NO_POLYLINES,
+    USER_ERR_EXPCT_C1_GEOM,
     USER_ERR_NC_MIX_CRVS_PLLNS
 } UserFatalErrorType;
 
@@ -631,6 +860,19 @@ typedef enum {
     USER_FONT_OUTPUT_SWEPT_TUBES
 } UserFontGeomOutputType;
 
+typedef enum {
+    USER_TILE_SEM_REG_UNIVARIATE,
+    USER_TILE_SEM_REG_BIVARIATE,
+    USER_TILE_SEM_REG_TRIVARIATE
+} UserTileSemiRegType;
+
+typedef enum {
+    USER_TILE_SEM_REG_UNIVARIATE_CLOSED,
+    USER_TILE_SEM_REG_UNIVARIATE_OPEN,
+    USER_TILE_SEM_REG_BIVARIATE_SURF,
+    USER_TILE_SEM_REG_TRVARIATE_EXTRUDE
+} UserTileSemiRegDualType;
+
 typedef struct UserFontDimInfoStruct {
     IrtRType DescentLineHeight;      /* The four height lines of this font. */
     IrtRType BaseLineHeight;
@@ -657,17 +899,6 @@ typedef struct UserPatchAccessSrfParamsStruct {
     IrtRType Angle;     /* Maximal angular change of normals in the surface. */
 } UserPatchAccessSrfParamsStruct;
 
-
-#ifdef __WINNT__
-typedef wchar_t *UserFontText;
-typedef wchar_t UserFontChar;
-#else
-typedef char *UserFontText;
-typedef char UserFontChar;
-#endif /* __WINNT__ */
-
-typedef char *UserFontName;
-
 typedef struct UserFontWordLayoutStruct {
     struct UserFontWordLayoutStruct *Pnext;
     UserFontText Word;
@@ -684,6 +915,249 @@ typedef struct UserFontWordLayoutStruct {
     IrtBType NewLine;			      /* A new line after this word. */
 } UserFontWordLayoutStruct;
 
+typedef struct UserLineAccessParamsStruct {
+    int SrfToProcess;
+    int PatchToProcess;
+    CagdRType PatchAdjacencyTolerance;
+    CagdRType TangentIntersectionTolerance;
+    CagdBType CountOnly;
+    int NumDirectionFrustums;
+    UserPatchAccessSrfParamsStruct SubdivParams;
+} UserLineAccessParamsStruct;
+
+typedef struct UserLineAccessSrfLineAccessResStruct {
+    struct UserLineAccessSrfLineAccessResStruct *Pnext;
+    IPAttributeStruct *Attr;
+    const CagdSrfStruct **OrigSrfs;
+    int NumSrfs;
+    int NumPatches;
+    struct UserLineAccessPatchLineAccessStruct *PatchesAccessibility;
+} UserLineAccessSrfLineAccessResStruct;
+
+/* Data structures used by the AM fiber 3-axis printing. */
+typedef struct UserAMFiber3AxisTValListStruct {
+    struct UserAMFiber3AxisTValListStruct *Pnext;
+    IrtRType TVal;
+} UserAMFiber3AxisTValListStruct;
+
+typedef struct UserAMFiber3AxisFragStruct {
+    const CagdCrvStruct *Crv;
+    int Num;
+    IrtRType *TVals;
+} UserAMFiber3AxisFragStruct;
+
+typedef struct UserAMFiber3AxisCrvOrderStruct {
+    CagdCrvStruct *Crv;
+    IrtRType Val;
+} UserAMFiber3AxisCrvOrderStruct;
+
+/* Gear design via conjugation using 2D swept volumes - data structures */
+typedef enum {
+    USER_GEAR2D_SWEEP_CONJUGATE = 1,
+    USER_GEAR2D_SWEEP_ARRANGE_TEETH = 2,
+    USER_GEAR2D_SWEEP_CENTRODE = 3,
+    USER_GEAR2D_SWEEP_UNIFORM_MOTION = 4,
+    USER_GEAR2D_SWEEP_NON_UNIFORM_MOTION = 5,
+    USER_GEAR2D_SWEEP_OBLONG_MOTION = 6,
+    USER_GEAR2D_SWEEP_INVERSE_MOTION = 7,
+} UserGr2DSwpFunctionType;
+
+typedef struct UserGr2DSwpParamStruct {
+    UserGr2DSwpFunctionType FunctionSelect;	/* Type of functionality.   */
+    IPObjectStruct *Crv1;   /* Input gear to conjugate, or overall shape of */
+       /* gear to arrange teeth on, or centroid (return argument), or       */
+       /* non-uniform circular displacement profile for non-uniform motion. */
+    IPObjectStruct *Crv2;      /* Conjugate gear(return argument) or tooth  */
+                               /* shape to arrange around an overall shape. */
+    IPObjectStruct *CrvSrf; /* Gear obtained after arranging teeth (return  */
+          /* argument), or planar surface within which to compute centroid. */
+    MvarMVStruct *Rot[2];               /* Rotational part of rigid motion. */
+    MvarMVStruct *Trans;             /* Translational part of rigid motion. */
+    MvarMVStruct *RotInv[2];	/* Rotational part of inverse motion        */
+                                /*(return argument).			    */
+    MvarMVStruct *TransInv;	/* Translational part of inverse motion     */
+			        /* (return argument).			    */ 
+    CagdRType SolverStepSize;	/* Step-size for univariate solver.	    */
+    CagdRType ToothLen;	        /* Arc-length of the base of tooth.	    */
+    CagdRType GearDist;	          /* Distance between centers of two gears. */
+    int NumTeeth;                    /* Number of teeth in the source gear. */
+    int NumTeethCirc;         /* Number of teeth in circular portion of the */
+			      /* oblong gear.				    */
+    int NumTeethLin;	        /* Number of teeth in linear portion of the */
+				/* oblong gear.				    */
+    CagdBType InverseMotion;   /* TRUE if the inverse motion is desired     */
+                               /* while generating motion for oblong gears. */
+} UserGr2DSwpParamStruct;
+
+/* Truss construction. */
+
+typedef enum UserTrussOutputType {
+    USER_TRUSS_OUTPUT_TRIM_SRFS,
+    USER_TRUSS_OUTPUT_TRIVARS,
+    USER_TRUSS_OUTPUT_MDLS,
+} UserTrussOutputType;
+
+typedef enum {
+    USER_CRVNETWORK_OUT_CRV,
+    USER_CRVNETWORK_OUT_SRF,
+    USER_CRVNETWORK_OUT_TRIV
+} UserCrvNetworkOutType;
+
+typedef const struct UserTrussNodeDefStruct *UserTrussNodeDefPtr;
+
+typedef void *(*UserTrussBeamInfoPrepFuncType)(UserTrussNodeDefPtr,
+					       int NumNodes,
+					       const CagdSrfStruct *ShellSrf,
+					       void *ExtraData);
+typedef void (*UserTrussBeamInfoFuncType)(const UserTrussNodeDefPtr,
+					  int NumNodes,
+					  void *PrepData,
+					  int CurrNode,
+					  int CurrBeam,
+					  const CagdSrfStruct *ShellSrf,
+					  const CagdPType ShellPt,
+					  CagdRType ShellDist,
+					  CagdRType *BeamR,
+					  CagdRType *FilletR, 
+					  CagdRType *FilletH,
+					  CagdRType *ShellFilletR,
+					  CagdRType *ShellFilletH,
+					  CagdRType *SphereR);
+typedef void (*UserTrussBeamInfoCleanFuncType)(const UserTrussNodeDefPtr,
+					       int NumNodes,
+					       void *PrepData);
+
+typedef struct UserTrussTolerancesStruct {
+    /* The tolerance for considering two end points the same in the curve   */
+    /* arrangement (in the trimming of the beams and spheres).              */
+    CagdRType CrvArngmntTol;
+    /* The tolerance of intersection locations' computation in the curve    */
+    /* arrangement (in the trimming of the beams and spheres).              */
+    CagdRType CrvArngmntInterTol;
+    /* The tolerance determining if points are non co-linear, and therefore */
+    /* define a single plane (in trivariate truss lattice construction).    */
+    CagdRType BeamBisectPlnTol;
+    /* The tolerance for determining if points are non co-linear, and       */
+    /* therefore define a plane (in trivariate truss lattice construction). */
+    CagdRType BeamBisectDbgTol;
+    /* The tolerance for verifying that the bisectors between beams are     */
+    /* indeed co-planar (used in DEBUG mode only).                          */
+    CagdRType CloseLoopTestTol;
+    /* The offset by which to extend the intersection loops outside the UV  */
+    /* domain of the surfaces. This is done to increase the robustness of   */
+    /* the curve arrangement computation.                                   */
+    CagdRType CloseLoopOffset;
+    /* Tolerance for merging intersection curve segments in which the end   */
+    /* ponits are close to each other. Should be greater than CrvArngmntTol.*/
+    CagdRType CrvMergeEps;
+    /* The subdivision tolerance for computing the intersection curves.     */
+    CagdRType ContourSubdivTol;
+    /* The numeric tolerance for computing the intersection curves.	    */
+    CagdRType ContourNumTol;
+    /* The tracing tolerance for computing the intersection curves.	    */
+    CagdRType ContourTraceTol;
+    /* The tolerance for filtering out very short intersection curves.      */
+    /* Should be greater than CrvMergeEps.                                  */
+    CagdRType ContourFilterTol;
+    /* The tolerance for filtering out very short trimming loops. Used in   */
+    /* post-processing truss lattices for conversion to model.              */
+    CagdRType MdlSmallLoopTol;
+    /* The subdivision tolerance for back-projecting subdivision markers on */
+    /* surfaces. Used in post-processing truss lattices for conversion to   */
+    /* models.                                                              */
+    CagdRType MdlBackProjSrfSubdivTol;
+    /* The numeric tolerance for back-projecting subdivision markers on     */
+    /* surfaces. Used in post-processing truss lattices for conversion to   */
+    /* models.                                                              */
+    CagdRType MdlBackProjSrfNumTol;
+    /* The numeric tolerance for back-projecting subdivision markers on     */
+    /* curves. Used in post-processing truss lattices for conversion to     */
+    /* models.                                                              */
+    CagdRType MdlBackProjCrvNumTol;
+    /* The tolerance for verifying that the back-projection of subdivision  */
+    /* markers is close to its requires position. Used in post-processing   */
+    /* truss lattices for conversion to models.                             */
+    CagdRType MdlBackProjTestTol;
+    /* The tolerance for ignoring subdivision markers that are very close   */
+    /* to the end of a trimming curve segment. Used in post-processing      */
+    /* truss lattices for conversion to models.                             */
+    CagdRType MdlBackProjCrvEndTol;
+    /* The tolerance for snapping subdivision markers to the UV-domain      */
+    /* boundary of a surface. Used in post-processing truss lattices for    */
+    /* conversion to models.                                                */
+    CagdRType MdlBackProjBndryTol;
+    /* The tolerance for determining whether a node point is outside the    */
+    /* shell surface.                                                       */
+    CagdRType PtOutsideSrfTol;
+    /* The subdivision tolerance for computing the distance between a node  */
+    /* point and the shell (if not provided).                               */
+    CagdRType ShellPtDistSubdivTol;
+    /* The numeric tolerance for computing the distance between a node      */
+    /* point and the shell (if not provided).                               */
+    CagdRType ShellPtDistNumTol;
+} UserTrussTolerancesStruct;
+
+typedef struct UserTrussNodeDefCallbacksStruct {
+    UserTrussBeamInfoPrepFuncType PrepCallback;
+    UserTrussBeamInfoFuncType SetDataCallback;
+    UserTrussBeamInfoCleanFuncType CleanupCallback;
+    void *ExtraData;
+} UserTrussNodeDefCallbacksStruct;
+
+/* Struct for constant beam width trusses: */
+typedef struct UserTrussConstBeamWidthStruct {
+    CagdRType SphereR, BeamR, FilletR, FilletH;
+} UserTrussConstBeamWidthStruct;
+
+/* Struct for graded beam width trusses: */
+typedef struct UserTrussGradedBeamWidthStruct {
+    CagdVType GradientVec;
+    CagdRType SphereR, BeamRStartEnd[2],
+	      FilletRStartEnd[2], FilletHStartEnd[2], GMinMax[2];
+} UserTrussGradedBeamWidthStruct;
+
+typedef struct UserTrussSpherePackParamsStruct {
+    CagdRType SphereRadius;
+    CagdRType SpherePackTime;
+    CagdRType SubdivTol;
+    CagdRType NumericTol;
+    UserSpkAlgorithmType SpherePackAlg;
+} UserTrussSpherePackParamsStruct;
+
+typedef struct UserTrussLatticeParamsStruct {
+    CagdRType ConnectDist;
+    UserTrussNodeDefCallbacksStruct *Callbacks;
+    CagdRType SphereRadius;
+    CagdRType BeamRadius;
+    CagdRType FilletRadius;
+    CagdRType FilletHeight;
+    const IPObjectStruct *ShellObj;
+    CagdBType ShellPruneOnly;
+    UserTrussOutputType OutputType;
+} UserTrussLatticeParamsStruct;
+
+/* Dither by curves structs. */
+
+#define USER_DBC2_MAX_DIM		3
+#define USER_DBC2_MAX_IMG_SIZE		1000
+
+struct UserDitherImagesByCurvesDBStruct;
+
+typedef struct UserDitherImagesByCurvesInfoStruct {
+    int Dim, DiffuseFSError, MergeCurves, DumpPolys, Rounded;     /* State. */
+    CagdRType NoiseLevel, SweepRadius;
+
+    /* Info on input images. */
+    IrtImgPixelStruct *Imgs[USER_DBC2_MAX_DIM];
+    int ImgMaxX, ImgMaxY;
+
+    /* Auxiliary structure for error diffusion. */
+    IrtRType
+	_ErrorDiffusion[USER_DBC2_MAX_IMG_SIZE][USER_DBC2_MAX_IMG_SIZE]
+		       [USER_DBC2_MAX_DIM];
+} UserDitherImagesByCurvesInfoStruct;
+
+/****************************************************************************/
 
 typedef void (*UserSetErrorFuncType)(UserFatalErrorType ErrorFunc);
 typedef int (*UserRegisterTestConverganceFuncType)(IrtRType CrntDist, int i);
@@ -694,15 +1168,18 @@ typedef void (*UserHCEditDrawCtlPtFuncType)(int PtIndex,
 					    int PtUniqueID,
 					    IrtRType *Pos,
 					    IrtRType *TanBack,
-					    IrtRType *TanForward);
+					    IrtRType *TanForward,
+					    void *FuncData);
 
 /* Rocket fuel design call back functions. */
-typedef CagdRType (*UserRocketFuelThrustFuncType)(void *CBData,
-						  CagdRType t);
-typedef CagdRType (*UserRocketFuelBasicFuelThrustFuncType)(
+typedef CagdRType (*UserRocketFuelThrustProfileFuncType)(void *CBData,
+						         CagdRType t);
+typedef CagdRType (*UserRocketFuelEvalLclFuelThrustFuncType)(
 						   void *CBData,
 						   CagdSrfStruct *LclElement,
+						   CagdRType LclDepth,
 						   CagdSrfStruct *GlblFront,
+						   const int Indices[],
 						   const int NumElements[],
 						   CagdRType GlblFrontArea);
 typedef CagdRType (*UserRocketFuelAccelerantRatioFuncType)(
@@ -732,14 +1209,55 @@ IPObjectStruct *UserMicro3DCrossTile(
 				  const UserMicroTileBndryPrmStruct *VMinPrms,
 				  const UserMicroTileBndryPrmStruct *VMaxPrms,
 				  const UserMicroTileBndryPrmStruct *WMinPrms,
-				  const UserMicroTileBndryPrmStruct *WMaxPrms);
+				  const UserMicroTileBndryPrmStruct *WMaxPrms,
+				  char ** const Error);
 IPObjectStruct *UserMicroBifurcate1to2Tile(
 				 const UserMicroTileBndryPrmStruct *WMinPrms,
 				 const UserMicroTileBndryPrmStruct *WMax1Prms,
 				 const UserMicroTileBndryPrmStruct *WMax2Prms,
 				 CagdRType SeparationGap,
 				 CagdRType SaddleSize,
-				 CagdBType Trivars);
+				 CagdBType Trivars,
+				 char ** const Error);
+IPObjectStruct *UserMicroZSpringTile(int SpringOrder,
+				     const CagdRType *SpringParams,
+				     const CagdRType *BotTopCrossWidth,
+				     CagdRType BotTopCrossHeight);
+IPObjectStruct *UserMicroDiagTile1(CagdRType CntrSize,
+				   CagdRType CrnrSizes[8],
+				   CagdRType SmoothFactor);
+IPObjectStruct *UserMicroAuxeticTile(
+			       UserMicroAuxeticTileBndryPrmStruct *XMinParams,
+			       UserMicroAuxeticTileBndryPrmStruct *XMaxParams,
+			       UserMicroAuxeticTileBndryPrmStruct *YMinParams,
+			       UserMicroAuxeticTileBndryPrmStruct *YMaxParams,
+			       UserMicroAuxeticTileBndryPrmStruct *ZMinParams,
+			       UserMicroAuxeticTileBndryPrmStruct *ZMaxParams,
+			       int CircularBars,
+			       CagdRType FlexClipRatio,
+			       char ** const Error);
+IPObjectStruct *UserMicroAuxFrameTile(
+			 const UserMicroAuxeticTileBndryPrmStruct *FaceParams,
+			 int CircularBars,
+			 char ** const Error);
+TrivTVStruct *UserMicroAuxClipFlexEnds(TrivTVStruct **TVs,
+				       CagdRType FlexClipRatio,
+				       char ** const Error);
+IPObjectStruct *UserMicroBiStableTile2D(CagdRType FrameSize,
+					CagdRType FrameHGap,
+					CagdRType WeightRodsThickness,
+					CagdRType WeightRodsSpring,
+					CagdRType WeightRodsAngle,
+					CagdRType FlexClipRatio,
+				        const CagdRType CenterWeightSizes[3],
+					char ** const Error);
+IPObjectStruct *UserMicroBiStableTile3D(CagdRType FrameSize,
+					CagdRType WeightRodsThickness,
+					CagdRType WeightRodsSpring,
+					CagdRType WeightRodsAngle,
+					CagdRType FlexClipRatio,
+					const CagdRType CenterWeightSizes[3],
+					char ** const Error);
 UserMicroTileStruct *UserMicroTileNew(IPObjectStruct *Geom);
 void UserMicroTileFree(UserMicroTileStruct *Tile);
 void UserMicroTileFreeList(UserMicroTileStruct *Tile);
@@ -753,22 +1271,136 @@ UserMicroTileStruct *UserMicroReadTileFromFile(const char *FileName,
 					       int MoreMessages);
 IPObjectStruct *UserMicroStructComposition(UserMicroParamStruct *Param);
 IPObjectStruct *UserMicroStructComposition2(UserMicroParamStruct *Param,
-					    IPObjectStruct *DeformMVs);
+					    const IPObjectStruct *DeformMVs);
+void UserMicroStructParamFree(UserMicroParamStruct *MSParam, int FreeSelf);
+
+/* Micro-structures joining in complex (VModel) objects. */
+
+UserMJTileStrctStruct *UserMJTileStrctNew(const TrivTVStruct *BaseTVMap,
+					  const IPObjectStruct *MicroTiles);
+UserMJTileStrctStruct *UserMJTileStrctNew2(const TrivTVStruct *BaseMap,
+					   const IPObjectStruct *MicroTiles);
+void UserMJTileStrctFree(UserMJTileStrctStruct *MJT);
+void UserMJTileStrctListFree(UserMJTileStrctStruct *MJT);
+void UserMJTileJointSrfFree(UserMJTileJointSrfStruct *TileJSrf);
+void UserMJJoinInterSrfFree(UserMJJoinInterSrfStruct *JISrf);
+void UserMJJoinInterSrfListFree(UserMJJoinInterSrfStruct *JISrfList);
+void UserMJAnchorFree(UserMJAnchorGeomStruct *Anchor);
+void UserMJAnchorFreeList(UserMJAnchorGeomStruct *Anchors);
+
+void UserMJVMdlBooleanCallBack(const VMdlParamsStruct *Params,
+			       const VMdlVModelStruct *VMdl1,
+			       const VMdlVModelStruct *VMdl2,
+			       VMdlVModelStruct *ResVMdl,
+			       VMdlBoolOpType BoolOp,
+			       void *AuxData);
+IPObjectStruct *UserMJMicroJoinSynthesize(const VMdlVModelStruct *VMdlOrig,
+					  CagdRType NrmScale,
+					  CagdRType NrmBlendingRatio,
+					  CagdRType SaddleRatio,
+					  CagdRType BndTileMargin,
+					  CagdBType CheckJacobian);
+
+void UserMJClassifyFieldElmnts(const MdlModelStruct *MacroMdl,
+	    		       const IPObjectStruct *Elments,
+			       IPAttrIDType SubPartAttrID,
+			       IPObjectStruct **InElmnts, 
+	    		       IPObjectStruct **OutElmnts,
+			       IPObjectStruct **InterElmnts);
+IPObjectStruct *UserMJMicroFieldTiles(const IPObjectStruct *Tiles,
+			    	      const IPObjectStruct *TileField,
+				      const IPObjectStruct *MacroGeomObj,
+				      CagdRType AxisNrmRatio,
+				      CagdRType AxisNrmBlendingRatio,
+				      CagdRType LastSrfScale);
+
+/* Tile packing in some domain module: */
+struct UserTilePackInfoStruct *UserPackTileCreateTileObject(
+						const IPObjectStruct *TileObj,
+						const int *StepsMin,
+						const int *StepsMax,
+						int Dim);
+void UserPackTileFreeTileObject(struct UserTilePackInfoStruct *Tile);
+IPObjectStruct *UserPackTilesInDomain(
+				   struct UserTilePackInfoStruct *PackTileInfo,
+				   const GMBBBboxStruct *TilingDomain,
+				   int TileInclusion,
+				   CagdRType SkewFactor);
+void UserTileGetSteps(const struct UserTilePackInfoStruct *PackTileInfo,
+		      int *StepsMin, 
+		      int *StepsMax,
+		      CagdRType *RelStepsSize);
+void UserTileSetSteps(struct UserTilePackInfoStruct *PackTileInfo,
+		      const int *StepsMin, 
+		      const int *StepsMax,
+		      const CagdRType *RelStepsSize);
+
+
+/* Tiles in 2D (including srfs and extruded 3D) - semi-regular. */
+IPObjectStruct *UserTile2DSemi848(UserTileSemiRegType TileType,
+				  const CagdRType TileSize);
+IPObjectStruct *UserTile2DSemi1246(UserTileSemiRegType TileType,
+				   const CagdRType TileSize);
+IPObjectStruct *UserTile2DSemi4346(UserTileSemiRegType TileType,
+				   const CagdRType TileSize);
+IPObjectStruct *UserTile2DSemi6363(UserTileSemiRegType TileType,
+				   const CagdRType TileSize);
+IPObjectStruct *UserTile2DSemi12312(UserTileSemiRegType TileType,
+				    const CagdRType TileSize);
+IPObjectStruct *UserTile2DSemi33336(UserTileSemiRegType TileType,
+				    const CagdRType TileSize);
+IPObjectStruct *UserTile2DSemi43433(UserTileSemiRegType TileType,
+				    const CagdRType TileSize);
+IPObjectStruct *UserTile2DSemi44333(UserTileSemiRegType TileType,
+				    const CagdRType TileSize);
+
+IPObjectStruct *UserTile2DSemi848D(UserTileSemiRegDualType TileType,
+				   const CagdRType TileSize,
+				   const CagdRType Indent,
+				   const CagdRType CrvAmt);
+IPObjectStruct *UserTile2DSemi1246D(UserTileSemiRegDualType TileType,
+				    const CagdRType TileSize,
+				    const CagdRType Indent,
+				    const CagdRType CrvAmt);
+IPObjectStruct *UserTile2DSemi4346D(UserTileSemiRegDualType TileType,
+				    const CagdRType TileSize,
+				    const CagdRType Indent,
+				    const CagdRType CrvAmt);
+IPObjectStruct *UserTile2DSemi6363D(UserTileSemiRegDualType TileType,
+				    const CagdRType TileSize,
+				    const CagdRType Indent,
+				    const CagdRType CrvAmt);
+IPObjectStruct *UserTile2DSemi12312D(UserTileSemiRegDualType TileType,
+				     const CagdRType TileSize,
+				     const CagdRType Indent,
+				     const CagdRType CrvAmt);
+IPObjectStruct *UserTile2DSemi33336D(UserTileSemiRegDualType TileType,
+				     const CagdRType TileSize,
+				     const CagdRType Indent,
+				     const CagdRType CrvAmt);
+IPObjectStruct *UserTile2DSemi43433D(UserTileSemiRegDualType TileType,
+				     const CagdRType TileSize,
+				     const CagdRType Indent,
+				     const CagdRType CrvAmt);
+IPObjectStruct *UserTile2DSemi44333D(UserTileSemiRegDualType TileType,
+				     const CagdRType TileSize,
+				     const CagdRType Indent,
+				     const CagdRType CrvAmt);
 
 /* Heterogeneous rocket fuel design. */
 IPObjectStruct *UserRocketFuelDesign3D( 
-		    const TrivTVStruct *TV,
-		    int NumLayers,
-		    const int NumElements[2],
-		    int SliceThrough,
-		    int BndrySrfs,
-		    const CagdRType *ApplyRGB,
-		    UserRocketFuelThrustFuncType ThrustFunc,
-		    UserRocketFuelBasicFuelThrustFuncType BasicFuelThrustFunc,
-		    UserRocketFuelAccelerantRatioFuncType AccelerantRatioFunc,
-		    UserRocketFuelDeformElementFuncType DeformElementFunc,
-		    UserRocketFuelElementCBFuncType ElementCBFunc,
-		    void *CBData);
+		  const TrivTVStruct *TV,
+		  int NumLayers,
+		  const int NumElements[2],
+		  int SliceThrough,
+		  int BndrySrfs,
+		  const CagdRType *ApplyRGB,
+		  UserRocketFuelThrustProfileFuncType ThrustFunc,
+		  UserRocketFuelEvalLclFuelThrustFuncType EvalLclFuelThrustFunc,
+		  UserRocketFuelAccelerantRatioFuncType AccelerantRatioFunc,
+		  UserRocketFuelDeformElementFuncType DeformElementFunc,
+		  UserRocketFuelElementCBFuncType ElementCBFunc,
+		  void *CBData);
 
 /* Generate a Tiling using a given control points values function. */
 UserMicro2TilingStructPtr UserMicroFunctionalTiling(
@@ -808,11 +1440,9 @@ IPObjectStruct *UserMicroRegularBifurcationTiling(
 					    const UserMicroParamStruct *Param);
 void UserMicroFunctionalFreeTiling(UserMicro2TilingStructPtr Tiling);
 CagdBType UserMicroFunctionalEvaluateEucl(UserMicro2TilingStructPtr Tiling, 
-					  const MvarMVStruct *DeformMV, 
 					  const CagdRType *EuclideanPnt,
 					  CagdRType *ResValue);
 CagdBType UserMicroFunctionalEvaluateUV(UserMicro2TilingStructPtr Tiling,
-					const MvarMVStruct *DeformMV, 
 					const CagdRType *UVPnt,
 					CagdRType *ResValue);
 IPObjectStruct *UserMicroFunctionalTilingIsoSurface(
@@ -821,6 +1451,13 @@ IPObjectStruct *UserMicroFunctionalTilingIsoSurface(
 CagdRType UserMicroFunctionalTilingVolume(UserMicro2TilingStructPtr Tiling, 
 					  CagdRType CubeSize,
 					  CagdBType PositiveVol);
+
+/* Micro4strct.c - tile neighborhoods, etc. */
+IPObjectStruct **UserMicroTileFindNeighbors(const IPObjectStruct *Tile,
+					    const IPObjectStruct *TileList,
+					    const MvarMVStruct *DeformMV,
+					    const CagdBType *DeformMVPeriodic,
+					    IPObjectStruct **Neighbors);
 
 /* Microstructures slicings toward 3D printing. */
 struct UserMicroSlicerInfoStruct *UserMicroSlicerInit(
@@ -840,6 +1477,11 @@ TrivTVStruct *UserMicroSlicerCreateAll(const struct UserMicroSlicerInfoStruct
 IPPolygonStruct *UserMicroSlicerGetOutline(struct UserMicroSlicerInfoStruct
 					                              *Slicer,
                                            CagdRType z);
+
+/* Create tiles from networks of curves. */
+IPObjectStruct *UserCrvNetworktoTile(const IPObjectStruct *InObject,
+				     CagdRType DfltOffset, 
+				     UserCrvNetworkOutType OutType);
 
 /* Surface-Primitive Geometry (rays, points, etc.) interactions. */
 VoidPtr IntrSrfHierarchyPreprocessSrf(const CagdSrfStruct *Srf,
@@ -871,6 +1513,11 @@ CagdSrfDirType UserInterSrfAtAllKnots(CagdSrfStruct *Srfs,
 				      int MinKV,
 				      int MaxKV,
 				      CagdRType *Param);
+void UserSnapInterCrvs2Bndry(CagdCrvStruct *Crvs,
+			     CagdRType UMin,
+			     CagdRType UMax,
+			     CagdRType VMin,
+			     CagdRType VMax);
 TrimSrfStruct *UserDivideSrfAtInterCrvs(const CagdSrfStruct *Srf,
 					const CagdCrvStruct *ICrvs);
 TrimSrfStruct *UserDivideOneSrfAtAllTVInteriorKnot(CagdSrfStruct *Srf,
@@ -882,6 +1529,10 @@ TrimSrfStruct *UserDivideOneSrfAtAllMVInteriorKnot(CagdSrfStruct *Srf,
 						   const MvarMVStruct *MV);
 TrimSrfStruct *UserDivideSrfsAtAllMVInteriorKnot(CagdSrfStruct *Srfs,
 						 const MvarMVStruct *MV);
+TrimSrfStruct *UserClipSrfAtPlane(const CagdSrfStruct *Srf,
+				  const IrtPlnType Pln);
+CagdSrfStruct *UserConservativeClipSrfByPlane(const CagdSrfStruct *Srf,
+					      const IrtPlnType Pln);
 MvarPolylineStruct *UserInterSrfByAlignedHyperPlane2(const CagdSrfStruct *Srf,
 				                     int Axis,
 					             CagdRType t);
@@ -937,7 +1588,6 @@ MvarComposedTrivStruct *UserDivideOneTVAtAllMVInteriorKnot(
 						       const TrivTVStruct *TV,
 						       const MvarMVStruct *MV);
 MvarComposedTrivStruct *UserDivideTVAtAllKnots(MvarComposedTrivStruct *TVP,
-					       IrtPlnType Pln,
 					       int Axis,
 					       const CagdRType *KV,
 					       int MinKV,
@@ -1036,7 +1686,7 @@ CagdSrfStruct *UserMoldRuledRelief2Srf(const CagdSrfStruct *Srf,
 
 IrtRType UserMinDistLineBBox(const IrtPtType LinePos,
 			     const IrtVecType LineDir,
-			     IrtBboxType BBox);
+			     const IrtBboxType BBox);
 IrtRType UserMinDistLinePolygonList(const IrtPtType LinePos,
 				    const IrtVecType LineDir,
 				    struct IPPolygonStruct *Pls,
@@ -1168,6 +1818,72 @@ struct IPObjectStruct *User3DDither3Images(const char *Image1Name,
 					   IrtRType SphereRad,
 					   IrtRType *AccumPenalty);
 
+/* Dither by wire. */
+
+IPObjectStruct *UserWDDitherCombiBW(IritImgPrcssImgStruct *Image0,
+				    IritImgPrcssImgStruct *Image1,
+				    int NumberOfLines,
+				    int NumberOfPins,
+				    float LineIntensity,
+				    IritImgPrcssImgStruct **Projection0,
+				    IritImgPrcssImgStruct **Projection1,
+				    float Fairness0,
+				    float Fairness1,
+				    float FeatureImportance);
+IPObjectStruct *UserWDDitherCombiRGB(IritImgPrcssImgStruct *Image0,
+				IritImgPrcssImgStruct *Image1,
+				int NumberOfLines,
+				int NumberOfPins,
+				float LineIntensity,
+				IritImgPrcssImgStruct **Projection0,
+				IritImgPrcssImgStruct **Projection1,
+				float Fairness0,
+				float Fairness1,
+				float FeatureImportance);
+ 
+IPObjectStruct *UserWDDitherStochasticBW(IritImgPrcssImgStruct *Image0,
+					 IritImgPrcssImgStruct *Image1,
+					 int NumberOfLines,
+					 int NumberOfPins,
+					 int NumberOfRandomTrials,
+					 float LineIntensity,
+					 IritImgPrcssImgStruct **Projection0,
+					 IritImgPrcssImgStruct **Projection1,
+					 float Fairness0,
+					 float Fairness1,
+					 int BoundWireLength,
+					 float FeatureImportance);
+IPObjectStruct *UserWDDitherStochasticRGB(IritImgPrcssImgStruct *Image0,
+					  IritImgPrcssImgStruct *Image1,
+					  int NumberOfLines,
+					  int NumberOfPins,
+					  int NumberOfRandomTrials,
+					  float LineIntensity,
+					  IritImgPrcssImgStruct **Projection0,
+					  IritImgPrcssImgStruct **Projection1,
+					  float Fairness0,
+					  float Fairness1,
+					  int BoundWireLength,
+					  float FeatureImportance);
+
+/* Dither by curves. */
+
+int UserDitherImagesByCurvesGetDB(
+			  const char *DBFileName,
+			  int RequestedDim,
+			  struct UserDitherImagesByCurvesDBStruct **DtrDBInfo);
+void UserDitherImagesByCurvesFreeDB(
+			   struct UserDitherImagesByCurvesDBStruct *DtrDBInfo);
+int UserDitherImagesByCurvesGetImages(
+				   UserDitherImagesByCurvesInfoStruct *DtrInfo,
+				   const char **Images);
+IPObjectStruct *UserDitherImagesByCurvesSweepTubes(
+				   UserDitherImagesByCurvesInfoStruct *DtrInfo,
+				   const IPObjectStruct *PCrvs);
+IPObjectStruct *UserDitherImagesByCurves(
+		     const struct UserDitherImagesByCurvesDBStruct *DtrDBInfo,
+		     UserDitherImagesByCurvesInfoStruct *DtrInfo);
+
 /* Geometry registration. */
 
 int UserRegisterTestConvergance(IrtRType Dist, int i);
@@ -1206,7 +1922,7 @@ struct IPObjectStruct *UserDDMPolysOverSrf(
 					int LclUV,
 					int Random);
 struct IPObjectStruct *UserDDMPolysOverPolys(
-					 struct IPObjectStruct *PlSrf,
+					 const struct IPObjectStruct *PlSrf,
 					 const struct IPObjectStruct *Texture,
 					 IrtRType UDup,
 					 IrtRType VDup,
@@ -1284,7 +2000,8 @@ void UserHCEditSetPeriodic(VoidPtr HC, CagdBType Periodic);
 CagdBType UserHCEditGetCtlPtCont(VoidPtr HC, int Index);
 void UserHCEditSetCtlPtCont(VoidPtr HC, int Index, CagdBType Cont);
 void UserHCEditSetDrawCtlptFunc(VoidPtr HC,
-				UserHCEditDrawCtlPtFuncType CtlPtDrawFunc);
+				UserHCEditDrawCtlPtFuncType CtlPtDrawFunc,
+				void *FuncData);
 void UserHCEditDelete(VoidPtr HC);
 VoidPtr UserHCEditCopy(VoidPtr HC);
 
@@ -1466,8 +2183,7 @@ int UserCrvArngmntProcessSpecialPts(UserCrvArngmntStruct *CA,
 				    UserCASplitType CrvSplit);
 int UserCrvArngmntPrepEval(UserCrvArngmntStruct *CA);
 int UserCrvArngmntProcessEndPts(UserCrvArngmntStruct *CA);
-int UserCrvArngmntClassifyConnectedRegions(UserCrvArngmntStruct *CA,
-					   int IgnoreInteriorHangingCrvs);
+int UserCrvArngmntClassifyConnectedRegions(UserCrvArngmntStruct *CA);
 CagdCrvStruct *UserCrvArngmntGetCurves(UserCrvArngmntStruct *CA, int XYCurves);
 int UserCrvArngmntRegions2Curves(const UserCrvArngmntStruct *CA,
 				 int Merge,
@@ -1530,7 +2246,9 @@ struct IPObjectStruct *UserCrvs2DBooleans(const CagdCrvStruct *Crvs1,
 					  const CagdCrvStruct *Crvs2,
 					  BoolOperType BoolOper,
 					  int MergeLoops,
-					  int *ResultState);
+					  int *ResultState,
+					  const CagdRType *Tols,
+					  CagdRType ZOffset);
 
 /* Belt curves creation around circles. */
 
@@ -1541,7 +2259,7 @@ struct IPObjectStruct *UserBeltCreate(struct IPVertexStruct *Circs,
 				      int *Intersects,
 				      const char **Error);
 
-/* 2D convex domain covering by a random curve.*/
+/* 2D convex domain covering by a random curve. */
 
 CagdCrvStruct *UserSCvrCoverSrf(const CagdCrvStruct *DomainBndry, 
 				CagdCrvStruct *FillCrv, 
@@ -1552,7 +2270,7 @@ CagdCrvStruct *UserSCvrCoverSrf(const CagdCrvStruct *DomainBndry,
 				CagdRType TopEps,
 				CagdRType IntrpBlndRatio);
 
-/* Packing circles in 2D containers*/
+/* Packing circles in 2D containers. */
 
 CagdCrvStruct *UserPkPackCircles(CagdCrvStruct *Bndry,
 				 CagdRType Radius,
@@ -1560,6 +2278,60 @@ CagdCrvStruct *UserPkPackCircles(CagdCrvStruct *Bndry,
 				 CagdRType NumericTol,
 				 CagdRType SubdivTol);
 
+/* Packing spheres and circles in 3D and 2D containers. */
+
+/* Create a new polygonal border. */
+UserSpkBorderStructPtr UserSpkPolyObjBorderNew(/* Create a new poly border. */
+               const IPObjectStruct *PObj,
+               IrtRType GridCellSize,    /* Size of a cell in look-up grid. */
+	                                            
+	       IrtRType MaxSphereRadius);     /* Maximum sphere radius this */
+					       /* border will be used with. */
+
+/* Delete a polygonal border. */
+void UserSpkPolyObjBorderDelete(UserSpkBorderStructPtr Border);
+
+/* Create a new surface border. */
+UserSpkBorderStructPtr UserSpkSurfObjBorderNew(const IPObjectStruct *PObj,
+					       IrtRType SubdivTol,
+					       IrtRType NumerTol);
+
+/* Delete a surface border */
+void UserSpkSurfObjBorderDelete(UserSpkBorderStructPtr Border);
+
+/* Initializes default solver settings for a given sphere radius. */
+UserSpkSolvingSettingsStruct UserSpkSolvingSettingsGetDefault(
+						       IrtRType SphereRadius);
+
+/* Creates a new solving process. */
+UserSpkSolvingProcessStructPtr UserSpkSolvingProcessNew(
+				 const UserSpkSolvingSettingsStruct *Settings,
+				 UserSpkBorderStructPtr Border,
+                                 UserSpkSolvingStatusStruct *Status);
+
+/* Forks a new solving process from an existing one. */
+UserSpkSolvingProcessStructPtr UserSpkSolvingProcessFork(
+                                        UserSpkSolvingProcessStructPtr Parent);
+
+/* Deletes a solving process */
+void UserSpkSolvingProcessDelete(UserSpkSolvingProcessStructPtr ProcessHandle);
+
+/* Runs a solving process for a given number of attempts. */
+void UserSpkSolvingProcessRunRepulsionsAttempt(
+                                        UserSpkSolvingProcessStructPtr Process,
+					UserSpkSolvingStatusStruct *Status);
+
+/* Runs a solving process using a random gravity algorithm. */
+void UserSpkSolvingProcessRunGravityAttempt(
+					UserSpkSolvingProcessStructPtr Process,
+					UserSpkSolvingStatusStruct *Status);
+
+/* Run a given sphere packing algorithm on a given border within a given    */
+/* time limit (budget).							    */
+IPObjectStruct *UserSpkSolveForBorder(UserSpkBorderStructPtr Border,
+                                      IrtRType SphereRadius,
+                                      IrtRType TimeLimitInSeconds, 
+                                      UserSpkAlgorithmType Algorithm);
 
 /* Ruled surface fitting. */
 
@@ -1634,6 +2406,65 @@ IPObjectStruct *UserDexelColorTriangles(IPPolygonStruct *PolyList);
 IPPolygonStruct *UserDexelTriangulateDxGrid(struct UserDexelDxGridStruct
 					                             *DxGrid);
 
+/* Line Accessibility related code. */
+
+void UserLineAccessSrfLineAccessResFree(UserLineAccessSrfLineAccessResStruct
+					                      *SrfLineAccess);
+IPObjectStruct *UserLineAccessSrfLineAccessToObject(
+		   const UserLineAccessSrfLineAccessResStruct *SrfLineAccess);
+UserLineAccessSrfLineAccessResStruct *UserLineAcccessSrfLineAccessFromObject(
+						    const IPObjectStruct *Obj);
+CagdSrfStruct *UserLineAccessSrfPreProcess(CagdSrfStruct **Srf);
+UserLineAccessSrfLineAccessResStruct *UserLineAccessSrfLineAccessibility(
+					   CagdSrfStruct *InSrf,
+					   UserLineAccessParamsStruct *Params,
+					   IPObjectStruct **ExtraOutObjs);
+IPVertexStruct *UserLineCutPathToCutDirs(
+		 const CagdSrfStruct *Srf,
+		 const UserLineAccessSrfLineAccessResStruct *SrfAccessibility,
+		 const CagdCrvStruct *CuttingCrv,
+		 CagdRType MinAngleFromPathTan,
+		 int NumSamples);
+CagdSrfStruct *UserLineCutRobotPathToRuledSrf(const IPVertexStruct *CutPath,
+					      CagdRType HalfWidth);
+
+/* Gear design via conjugation using 2D swept volumes. */
+IPObjectStruct *UserGr2DSwpReadCrvFromFile(char *Filename);
+MvarMVStruct *UserGr2DSwpMatVecMult(const MvarMVStruct *Mat[2],
+				    const MvarMVStruct *Vec);
+void UserGr2DSwpGenInverseMotion(const MvarMVStruct *Rot[2],
+				 const MvarMVStruct *Trans,
+				 MvarMVStruct *InvRot[2],
+				 MvarMVStruct **InvTrans);
+void UserGr2DSwpGenMotionOblong(CagdRType ToothLen,
+				int NumTeethSrc,
+				int NumTeethCirc,
+				int NumTeethLin,
+				CagdBType InverseMotion,
+				MvarMVStruct *Rot[2],
+				MvarMVStruct **Trans);
+void UserGr2DSwpGenUniformMotion(MvarMVStruct *Rot[2],
+				 MvarMVStruct **Trans,
+				 CagdRType GearDist);
+void UserGr2DSwpGenNonUniformMotion(MvarMVStruct *Rot[2],
+				    MvarMVStruct **Trans,
+				    CagdRType GearDist,
+				    const CagdCrvStruct *RelVeloFn);
+CagdCrvStruct *UserGr2DSwpComputeCentrode(const MvarMVStruct *Rot[2],
+					  const MvarMVStruct *Trans,
+					  const CagdSrfStruct *Plane,
+					  CagdRType SolverStepSize);
+IPObjectStruct *UserGr2DSwpArrangeTeeth(const CagdCrvStruct *Centrode,
+					const CagdCrvStruct *Tooth,
+					CagdRType ToothLen,
+					int NTeeth);
+IPObjectStruct *UserGr2DSwpConjugateShape(const IPObjectStruct *CrvSegList,
+					  const MvarMVStruct *Rot[2],
+					  const MvarMVStruct *Trans,
+					  CagdRType SolverStepSize);
+void UserGr2DSwpMain(UserGr2DSwpParamStruct *Params);
+
+
 /* CNC tool sweep computation code. */
 
 typedef struct UserSwpGenInfoStruct *UserSwpGenInfoStructPtr;
@@ -1696,11 +2527,9 @@ struct IPObjectStruct *UserText2OutlineCurves2D(const char *Str,
 						IrtRType ScaleFactor,
 						IrtRType *Height);
 #ifdef __WINNT__
-/* #define _FREETYPE_FONTS_                 On windows use native windows fonts. */
+/* #define _FREETYPE_FONTS_            On windows use native windows fonts. */
 #define USER_FONT_DEFAULT_WIDTH	-1 
 
-char *UserWChar2Ascii(const UserFontText Str);
-UserFontText UserAscii2WChar(const char *Str);
 struct IPObjectStruct *UserFontConvertFontToBezier(
 			                        const UserFontText Text,
 						const UserFontName FontName,
@@ -1809,6 +2638,250 @@ int UserFontLayoutOverShapePlaceWords(
 				   const UserFontDimInfoStruct *FontDims,
 				   const struct IPPolygonStruct *BoundingPoly,
 				   struct IPObjectStruct **PlacedTextGeom);
+
+/* AM Fiber 3-Axis - fFragment split code. */
+UserAMFiber3AxisTValListStruct *UserAMFiber3AxisGetMonotoneTVals(
+						     const CagdCrvStruct *Crv);
+UserAMFiber3AxisTValListStruct *UserAMFiber3AxisGetKnotsTVals(
+						     const CagdCrvStruct *Crv);
+UserAMFiber3AxisTValListStruct *UserAMFiber3AxisGetBBoxMaxTVals(
+						     const CagdCrvStruct *Crv,
+						     IrtRType Size);
+UserAMFiber3AxisTValListStruct *UserAMFiber3AxisMergeTValLists(
+					UserAMFiber3AxisTValListStruct *List1,
+					UserAMFiber3AxisTValListStruct *List2);
+UserAMFiber3AxisFragStruct *UserAMFiber3AxisGetTValFragments(
+				   const CagdCrvStruct *Crv,
+				   const UserAMFiber3AxisTValListStruct *List);
+CagdCrvStruct *UserAMFiber3AxisGetFragmentCrvs(
+				  const UserAMFiber3AxisFragStruct *Fragments);
+void UserAMFiber3AxisGetCrvsFromTValArray(const CagdCrvStruct *Crv,
+					  CagdCrvStruct **CrvArray,
+					  IrtRType *TVals,
+					  int First,
+					  int Last);
+  
+void UserAMFiber3AxisFreeTValList(UserAMFiber3AxisTValListStruct *List);
+void UserAMFiber3AxisFreeFragments(UserAMFiber3AxisFragStruct *Fragments);
+
+/* AM Fiber 3-Axis - subtract fibers from ambient curves. */
+CagdCrvStruct *UserAMFiber3AxisSubCrvs(const CagdCrvStruct *SubCrvs,
+				       const CagdCrvStruct *FromCrvs,
+				       IrtRType Dist,
+				       IrtRType Accuracy,
+				       IrtBType Invert);
+
+/* AM Fiber 3-Axis - ordering curves code. */
+CagdCrvStruct *UserAMFiber3AxisOrderCrvs(
+				   const UserAMFiber3AxisCrvOrderStruct *Crvs,
+				   int Num,
+				   IrtRType Radius,
+				   IrtRType XYRadius,
+				   IrtRType Angle,
+				   IrtRType ZOffs,
+				   IrtRType Accuracy);
+void UserAMFiber3AxisSaveCrvsAsSweeps(const CagdCrvStruct *Crvs,
+				      const char *FileName);
+
+/* 3D Puzzles constructions. */
+
+IPObjectStruct *UserPuz3DComposeTileOverModel(
+					const IPObjectStruct *InputTiles,
+					const GMBBBboxStruct *TileBBox,
+					const MdlModelStruct *Mdl,
+					const CagdVType PolyApproxInfo,
+					const CagdRType *BoolTols,
+					CagdRType MergeStitchedTrimmedTiles);
+IPObjectStruct *UserPuz3DComposeTileOverSrf(const IPObjectStruct *InputTiles,
+					    const GMBBBboxStruct *TileBBox,
+					    CagdSrfStruct **Srf,
+					    CagdBType MapTo3D,
+					    const CagdVType PolyApproxInfo,
+					    IrtRType *TileXYZScale);
+
+/* Truss construction. */
+
+IPObjectStruct *UserTrussConstructLatticeMain(
+			     const IPObjectStruct *InObj,
+			     UserTrussSpherePackParamsStruct *SpherePackParams,
+			     UserTrussLatticeParamsStruct *TrussParams,
+			     const UserTrussTolerancesStruct *Tol);
+
+void UserTrussDefaultTol(UserTrussTolerancesStruct *TolStruct);
+
+IPObjectStruct *UserTrussTrimmedLattice(
+				   const CagdPType *Pts,
+				   int NumPts,
+				   CagdRType DistToConnect,
+				   UserTrussNodeDefCallbacksStruct *Callbacks,
+				   CagdBType PrepForMdl,
+				   CagdBType MultiObj,
+				   const UserTrussTolerancesStruct *Tol);
+IPObjectStruct *UserTrussTrimmedLatticeWithShell(
+				    const CagdPType *Pts,
+				    const CagdPType *ShellPts,
+				    CagdRType *ShellDists,
+				    int NumPts,
+				    CagdRType DistToConnect,
+				    UserTrussNodeDefCallbacksStruct *Callbacks,
+				    CagdBType PruneOnly,
+				    const IPObjectStruct *ShellObj,
+				    CagdBType PrepForMdl,
+				    const UserTrussTolerancesStruct *Tol);
+IPObjectStruct *UserTrussTrivLattice(const CagdPType *Pts,
+				     int NumPts,
+				     CagdRType DistToConnect,
+				     UserTrussNodeDefCallbacksStruct *Callbacks,
+				     const UserTrussTolerancesStruct *Tol);
+IPObjectStruct *UserTrussTrivLatticeWithShell(
+				    const CagdPType *Pts,
+				    const CagdPType *ShellPts,
+				    CagdRType *ShellDists,
+				    int NumPts,
+				    CagdRType DistToConnect,
+				    UserTrussNodeDefCallbacksStruct *Callbacks,
+				    const IPObjectStruct *ShellObj,
+				    const UserTrussTolerancesStruct *Tol);
+IPObjectStruct *UserTrussLatticeWithQualityInfo(
+				  const CagdPType *Pts,
+				  int NumPts,
+				  CagdRType DistToConnect,
+				  UserTrussNodeDefCallbacksStruct *Callbacks,
+				  const CagdRType *QuantizationVector,
+				  const UserTrussTolerancesStruct *Tol);
+void UserTrussDefaultTol(UserTrussTolerancesStruct *TolStruct);
+void UserTrussSetConstBeamCallbacks(
+				 UserTrussConstBeamWidthStruct *ConstBeamData,
+				 UserTrussNodeDefCallbacksStruct *Callbacks);
+void UserTrussSetGradedBeamCallbacks(
+				UserTrussGradedBeamWidthStruct *GradedBeamData,
+				UserTrussNodeDefCallbacksStruct *Callbacks);
+void UserTrussSetCustomBeamCallbacks(
+				UserTrussBeamInfoPrepFuncType PrepCallback,
+				UserTrussBeamInfoFuncType SetDataCallback,
+				UserTrussBeamInfoCleanFuncType CleanupCallback,
+				void *ExtraData,
+				UserTrussNodeDefCallbacksStruct *Callbacks);
+
+/* Constructs Hoberman-like expanding structures. */
+IPObjectStruct *UserHoberConstRadMdl(const CagdCrvStruct *Crv,
+				     CagdRType Offset,
+				     int NumOfScissors,
+				     int RefineCycles,
+				     const IrtVecType PinHoleDiams,
+				     CagdRType ScissorThickness,
+				     CagdRType ScissorRelWidth,
+				     int AddColorCode,
+				     CagdRType Tol);
+IPObjectStruct *UserHoberConstAngleMdl(const CagdCrvStruct *Crv,
+				       CagdRType Offset,
+				       int NumOfScissors,
+				       int RefineCycles,
+				       const IrtVecType PinHoleDiams,
+				       CagdRType ScissorThickness,
+				       CagdRType ScissorRelWidth,
+				       CagdRType ScissorRelYShift,
+				       int AddColorCodes,
+				       CagdRType Tol);
+  
+/* Visualization (of multi dim. data). */
+
+typedef IPObjectStruct *(*UserVolVisGenPolygonRepresentationFuncType)(
+						   void *DataCB,
+						   const IPObjectStruct *PObj,
+						   char *Error);
+typedef int (*UserVolVisGetRGBFromRealFuncType)(void *DataCB,
+						IrtRType PropVal,
+						IrtRType *r,
+						IrtRType *g,
+						IrtRType *b);
+
+int UserVolVisVerifyCorrespondence(const IPObjectStruct *GeomObj,
+				   const IPObjectStruct *PropObj,
+				   char *Error);
+IPObjectStruct *UserVolVisMapPropertyOnGeometry(
+				const IPObjectStruct *GeomObj,
+				const IPObjectStruct *PropObj,
+				UserVolVisGenPolygonRepresentationFuncType
+				                      GenPolygonRepresentFunc,
+				void *GenPolygonRepresentData,
+				UserVolVisGetRGBFromRealFuncType
+							   GetRGBFromRealFunc,
+				void *GetRGBFromRealData,
+				int PropCoord,
+				IrtRType MaxEdgeLen,
+				IrtRType MinProp,
+				IrtRType MaxProp,
+				char *Error);
+IPObjectStruct *UserVolVisMapPropertyOnIsoSrfGeometry(
+				const IPObjectStruct *GeomObj,
+				const IPObjectStruct *PropObj,
+				UserVolVisGenPolygonRepresentationFuncType
+				                      GenPolygonRepresentFunc,
+				void *GenPolygonRepresentData,
+				UserVolVisGetRGBFromRealFuncType
+							   GetRGBFromRealFunc,
+				void *GetRGBFromRealData,
+				TrivTVDirType VisDir,
+				IrtRType ParamVal,
+				int PropCoord,
+				IrtRType MaxEdgeLen,
+				IrtRType MinProp,
+				IrtRType MaxProp,
+				char *Error);
+void UserVolVisMapPropertyOnPolygons(IPObjectStruct *PlObj,
+				     int UVReversed,
+				     const TrivTVStruct *PropTV,
+				     UserVolVisGetRGBFromRealFuncType
+							  GetRGBFromRealFunc,
+				     void *GetRGBFromRealData,
+				     int PropCoord,
+				     IrtRType MinProp,
+				     IrtRType MaxProp,
+				     char *Error);
+IPObjectStruct *UserVolVisMapPropertyOnPlanarSliceGeometry(
+					const IPObjectStruct *GeomObj,
+					const IPObjectStruct *PropObj,
+					const IrtPlnType PlaneEqn,
+					UserVolVisGetRGBFromRealFuncType
+							    GetRGBFromRealFunc,
+					void *GetRGBFromRealData,
+					int PropCoord,
+					IrtRType MaxEdgeLen,
+					IrtRType MinProp,
+					IrtRType MaxProp,
+					char *Error);
+IPObjectStruct *UserVolVisMapPropertyOnMarchingCubeGeometry(
+					const IPObjectStruct *GeomObj,
+					const IPObjectStruct *PropObj,
+					UserVolVisGetRGBFromRealFuncType
+							  GetRGBFromRealFunc,
+					void *GetRGBFromRealData,
+					IrtRType IsoVal,
+					int PropCoord,
+					IrtRType MaxEdgeLen,
+					IrtRType MinProp,
+					IrtRType MaxProp,
+					char *Error);
+IPObjectStruct *UserVolVisDisplaceGeometry(const IPObjectStruct *GeomObj,
+					   const IPObjectStruct *PropObj,
+					   IrtRType PropScale,
+					   char *Error);
+IPObjectStruct *UserSrfVisSurfaceVisualize(
+				const IPObjectStruct *GeomSrf,
+				const IPObjectStruct *PropSrf,
+				UserVolVisGenPolygonRepresentationFuncType
+				                      GenPolygonRepresentFunc,
+				void *GenPolygonRepresentData,
+				UserVolVisGetRGBFromRealFuncType
+							   GetRGBFromRealFunc,
+				void *GetRGBFromRealData,
+				int PropCoord,
+				IrtRType *MinVal,
+				IrtRType *MaxVal,
+				const char *MapFuncStr,
+				IrtRType MaxEdgeLen,
+				char *Error);
 
 /* Error handling. */
 

@@ -12,10 +12,10 @@
 #define IRIT_SYMB_LIB_H
 
 #include <stdio.h>
-#include "irit_sm.h"
-#include "cagd_lib.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/cagd_lib.h"
 
-#define SYMB_CRV_APRX_C1_DISCONT_ATTR "C1-Discontinuity"
+#define SYMB_CRV_APRX_C1_DISCONT_ATTR_ID IRIT_ATTR_CREATE_ID(C1Discont)
 
 typedef enum {
     SYMB_ERR_WRONG_INPUT,
@@ -63,6 +63,8 @@ typedef enum {
     SYMB_ERR_WRONG_KNOT_INDEX,
     SYMB_ERR_SUBDIV_TREE_BEZ_ONLY,
     SYMB_ERR_IDENTICAL_ZERO_DATA,
+    SYMB_ERR_PERODIC_NOT_SUPPORTED,
+    SYMB_ERR_MISMATCH_DOMAIN,
 
     SYMB_ERR_UNDEFINE_ERR
 } SymbFatalErrorType;
@@ -94,7 +96,6 @@ typedef enum {
 } SymbApproxLowDegStateType;
 
 typedef enum {
-    BSP_MULT_QUERY_VAL = -1,
     BSP_MULT_BEZ_DECOMP,
     BSP_MULT_INTERPOL,
     BSP_MULT_BLOSSOMING
@@ -104,7 +105,13 @@ typedef enum {
     SYMB_CRV_LS_APX_ERROR_PRECISE,
     SYMB_CRV_LS_APX_ERROR_PRECISE_FAST,
     SYMB_CRV_LS_APX_ERROR_FAST,
-    } SymbCrvLSErrorMeasureType;
+} SymbCrvLSErrorMeasureType;
+
+typedef enum {
+    SYMB_ASYMP_BOUNDS_B,
+    SYMB_ASYMP_BOUNDS_A,
+    SYMB_ASYMP_BOUNDS_T
+} SymbSrfAsympBoundsMethod;
 
 typedef struct SymbMultiResCrvStruct {
     struct SymbMultiResCrvStruct *Pnext;
@@ -124,7 +131,11 @@ typedef struct SymbArcStruct {
     CagdPType Pt1, Cntr, Pt2;
 } SymbArcStruct;
 
-#define SYMB_MAX_CRV_SUBDIV_LEN   5000         /* No subdiv. of larger crvs. */
+#if defined(_WIN64) || defined(LINUX386)
+#define SYMB_MAX_CRV_SUBDIV_LEN  100000        /* No subdiv. of larger crvs. */
+#else
+#define SYMB_MAX_CRV_SUBDIV_LEN    5000        /* No subdiv. of larger crvs. */
+#endif /* _WIN64 || LINUX386 */
 
 typedef void (*SymbSetErrorFuncType)(SymbFatalErrorType ErrorFunc);
 typedef CagdCrvStruct *(*SymbAdapIsoDistSqrFuncType)(int Level,
@@ -227,9 +238,11 @@ CagdCrvStruct *SymbMakePosCrvCtlPolyPos(const CagdCrvStruct *OrigCrv);
 CagdPtStruct *SymbCrv2DInflectionPts(const CagdCrvStruct *Crv,
 				     CagdRType Epsilon);
 CagdPtStruct *SymbCrvExtremCrvtrPts(const CagdCrvStruct *Crv,
-				    CagdRType Epsilon);
+				    CagdRType Epsilon,
+				    CagdBType Crv2D);
 CagdPtStruct *SymbCrvExtremCrvtrPts2(const CagdCrvStruct *Crv,
-				     CagdRType Epsilon);
+				     CagdRType Epsilon,
+				     CagdBType Crv2D);
 void SymbCrvSplitScalarN(const CagdCrvStruct *Crv, CagdCrvStruct **Crvs);
 void SymbCrvSplitScalar(const CagdCrvStruct *Crv,
 			CagdCrvStruct **CrvW,
@@ -259,6 +272,9 @@ CagdRType SymbCrvArcLen2(const CagdCrvStruct *Crv, CagdRType Epsilon);
 CagdPtStruct *SymbCrvArcLenSteps(const CagdCrvStruct *Crv,
 				 CagdRType Length,
 				 CagdRType Epsilon);
+CagdRType *SymbCrvArcLenSteps2(const CagdCrvStruct *Crv,
+			       int NumSteps,
+			       CagdRType Epsilon);
 int SymbCrvMonotoneCtlPt(const CagdCrvStruct *Crv, int Axis);
 CagdCrvStruct *SymbComposeCrvCrv(const CagdCrvStruct *Crv1,
 				 const CagdCrvStruct *Crv2);
@@ -268,7 +284,12 @@ CagdCrvStruct *SymbComposePeriodicCrvCrv(const CagdCrvStruct *Crv1,
 int SymbComposeSrfSetCache(int Cache);
 void SymbComposeSrfClrCache(const CagdSrfStruct *Srf);
 CagdCrvStruct *SymbComposeSrfCrv(const CagdSrfStruct *Srf,
-				 const CagdCrvStruct *Crv);
+				 const CagdCrvStruct *Crv,
+				 int EvalLinCrvsDirectly,
+				 CagdRType FilterTinysegs);
+CagdCrvStruct *SymbComposeSrfCrv2(const CagdSrfStruct *Srf,
+				  const CagdCrvStruct *Crv,
+				  CagdRType FilterTinysegs);
 CagdSrfStruct *SymbComposeSrfPatch(const CagdSrfStruct *Srf,
 				   const CagdUVType UV00,
 				   const CagdUVType UV01,
@@ -297,7 +318,8 @@ CagdRType SymbDistCrvPoint(const CagdCrvStruct *Crv,
 			   void *CrvPtPrepHandle,
 			   const CagdPType Pt,
 			   CagdBType MinDist,
-			   CagdRType Epsilon);
+			   CagdRType Epsilon,
+			   CagdPointType DistSpace);
 void *SymbDistCrvPointPrep(const CagdCrvStruct *CCrv);
 void SymbDistCrvPointFree(void *CrvPtPrepHandle);
 CagdPtStruct *SymbLclDistCrvPoint(const CagdCrvStruct *Crv,
@@ -340,6 +362,10 @@ CagdPtStruct *SymbCrvConstSet(const CagdCrvStruct *Crv,
 			      CagdRType Epsilon,
 			      CagdRType ConstVal,
 			      CagdBType NoSolsOnEndPts);
+CagdCrvStruct *SymbCrvSliceCrvsByPrllLines(const CagdCrvStruct *Crvs,
+					   int Axis,
+					   CagdRType Epsilon,
+					   CagdVType Range);
 CagdPtStruct *SymbScalarCrvLowDegZeroSet(CagdCrvStruct *Crv);
 CagdBType SymbCrvPosNegWeights(const CagdCrvStruct *Crv);
 CagdPtStruct *SymbSplitRationalCrvsPoles(const CagdCrvStruct *Crv,
@@ -405,7 +431,10 @@ CagdCrvStruct *SymbCrvOffset2CrvsJoint(CagdCrvStruct *OrigCrv1,
 				       CagdCrvStruct *OrigCrv2,
 				       CagdCrvStruct **OffCrv1,
 				       CagdCrvStruct **OffCrv2);
-				       
+CagdCrvStruct *SymbCrvCrvtrTrim(const CagdCrvStruct *Crv,
+				CagdRType Dist,
+				CagdRType Eps);
+
 CagdRType *SymbUniformAprxPtOnCrvDistrib(const CagdCrvStruct *Crv,
 					 CagdBType ParamUniform,
 					 int n);
@@ -417,7 +446,7 @@ IrtRType *SymbDistPoint1DWithEnergy(int N,
 				    int Resolution,
 				    SymbDistEnergy1DFuncType EnergyFunc);
 CagdPtStruct *SymbInsertNewParam2(CagdPtStruct *PtList, CagdRType t);
-void SymbEvalCrvCurvPrep(CagdCrvStruct *Crv, CagdBType Init);
+void SymbEvalCrvCurvPrep(const CagdCrvStruct *Crv, CagdBType Init);
 CagdBType SymbEvalCrvCurvature(const CagdCrvStruct *Crv,
 			       CagdRType t,
 			       CagdRType *k,
@@ -431,11 +460,11 @@ void SymbEvalCrvCurvTN(CagdVType Nrml,
 /******************************************************************************
 * Routines to handle surfaces generically.				      *
 ******************************************************************************/
-CagdPolygonStruct *SymbSrf2Polygons(const CagdSrfStruct *Srf,
-				    int FineNess,
-				    CagdBType ComputeNormals,
-				    CagdBType FourPerFlat,
-				    CagdBType ComputeUV);
+struct IPPolygonStruct *SymbSrf2Polygons(const CagdSrfStruct *Srf,
+				         int FineNess,
+				         CagdBType ComputeNormals,
+				         CagdBType FourPerFlat,
+				         CagdBType ComputeUV);
 CagdPolylineStruct *SymbSrf2Polylines(const CagdSrfStruct *Srf,
 				      int NumOfIsocurves[2],
 				      CagdRType TolSamples,
@@ -469,6 +498,7 @@ CagdSrfStruct *SymbSrfRtnlMult(const CagdSrfStruct *Srf1X,
 CagdSrfStruct *SymbSrfDeriveRational(const CagdSrfStruct *Srf,
 				     CagdSrfDirType Dir);
 CagdSrfStruct *SymbSrfNormalSrf(const CagdSrfStruct *Srf);
+CagdSrfStruct *SymbSrfNormalSrfReversed(const CagdSrfStruct *Srf);
 CagdSrfStruct *Symb2DSrfJacobian(const CagdSrfStruct *Srf);
 void SymbMeshAddSub(CagdRType **DestPoints,
 		    CagdRType * const *Points1,
@@ -611,31 +641,39 @@ CagdSrfStruct *SymbSrfIsoDirNormalCurvatureBound(const CagdSrfStruct *Srf,
 						 CagdSrfDirType Dir);
 
 /* Surfaces's normal curvatrue bounding routines. */
-typedef struct SymbSrfCrvtrBndsInfoStruct  SymbSrfCrvtrBndsInfoStruct;
-SymbSrfCrvtrBndsInfoStruct *SymbSrfCrvtrBndsInfoCreate(const CagdSrfStruct *Srf);
-void SymbSrfCrvtrBndsSplitInfo(const SymbSrfCrvtrBndsInfoStruct *Info,
-			       SymbSrfCrvtrBndsInfoStruct *Ret,
-			       CagdSrfDirType Dir);
-SymbSrfCrvtrBndsInfoStruct *SymbSrfCrvtrBndsSubInfo(
-				       const SymbSrfCrvtrBndsInfoStruct *Info,
-				       IrtRType UMin,
-				       IrtRType UMax,
-				       IrtRType VMin,
-				       IrtRType VMax);
+typedef struct SymbSrfCrvtrBndsInfoStruct *SymbSrfCrvtrBndsInfoStructPtr;
 
-void SymbSrfCrvtrBndsCalcBnds(const SymbSrfCrvtrBndsInfoStruct *Info,
+SymbSrfCrvtrBndsInfoStructPtr SymbSrfCrvtrBndsInfoCreate(const CagdSrfStruct
+							                *Srf);
+void SymbSrfCrvtrBndsSplitInfo(const SymbSrfCrvtrBndsInfoStructPtr Info,
+			       SymbSrfCrvtrBndsInfoStructPtr Ret,
+			       CagdSrfDirType Dir);
+SymbSrfCrvtrBndsInfoStructPtr SymbSrfCrvtrBndsSubInfo(
+				      const SymbSrfCrvtrBndsInfoStructPtr Info,
+				      IrtRType UMin,
+				      IrtRType UMax,
+				      IrtRType VMin,
+				      IrtRType VMax);
+
+void SymbSrfCrvtrBndsCalcBnds(const SymbSrfCrvtrBndsInfoStructPtr Info,
 			      IrtRType *K1Limits,
 			      IrtRType *K2Limits);
 
-void SymbSrfCrvtrBndsCalcBnds2(const SymbSrfCrvtrBndsInfoStruct *Info,
+void SymbSrfCrvtrBndsCalcBnds2(const SymbSrfCrvtrBndsInfoStructPtr Info,
 			       int Count,
 			       IrtRType ValMin,
 			       IrtRType ValMax,
 			       IrtRType ValRes,
 			       IrtRType *K1Limits,
 			       IrtRType *K2Limits);
-void SymbSrfCrvtrBndsInfoClear(SymbSrfCrvtrBndsInfoStruct *Info);
-void SymbSrfCrvtrBndsInfoFree(SymbSrfCrvtrBndsInfoStruct *Info);
+void SymbSrfCrvtrBndsInfoClear(SymbSrfCrvtrBndsInfoStructPtr Info);
+void SymbSrfCrvtrBndsInfoFree(SymbSrfCrvtrBndsInfoStructPtr Info);
+
+int SymbSrfCalcAsympDirsCoeffs(const CagdSrfStruct *SffMatrix[3],
+                               IrtRType *AsympLimits,
+			       SymbSrfAsympBoundsMethod *ChosenMethod);
+
+/**************************/
 
 CagdSrfStruct *SymbSrfDistCrvCrv(const CagdCrvStruct *Crv1,
 				 const CagdCrvStruct *Crv2,
@@ -647,6 +685,11 @@ CagdPtStruct *SymbCrvCrvInter(const CagdCrvStruct *Crv1,
 			      const CagdCrvStruct *Crv2,
 			      CagdRType CCIEpsilon,
 			      CagdBType SelfInter);
+CagdBType SymbIntersectCrvWithLine(const CagdCrvStruct *OrigCrv,
+				   int Axis,
+				   CagdRType Val,
+				   CagdCrvStruct **CrvsBelow,
+				   CagdCrvStruct **CrvsAbove);
 CagdSrfStruct *SymbConicDistCrvCrv(const CagdCrvStruct *Crv1,
 				   const CagdCrvStruct *Crv2,
 				   CagdRType Dist);
@@ -682,6 +725,8 @@ CagdSrfStruct *SymbTwoSrfsMorphing(const CagdSrfStruct *Srf1,
 				   const CagdSrfStruct *Srf2,
 				   CagdRType Blend);
 CagdSrfStruct *SymbSrfOffset(const CagdSrfStruct *Srf, CagdRType OffsetDist);
+CagdSrfStruct *SymbSrfVarOffset(const CagdSrfStruct *CSrf,
+				const CagdSrfStruct *VarOffsetDist);
 CagdSrfStruct *SymbSrfSubdivOffset(const CagdSrfStruct *Srf,
 				   CagdRType OffsetDist,
 				   CagdRType Tolerance);
@@ -700,7 +745,7 @@ CagdUVType *SymbUniformAprxPtOnSrfGetDistrib(const CagdSrfStruct *Srf,
 					     CagdRType *DistProb,
 					     int DistSize,
 					     int *n);
-void SymbEvalSrfCurvPrep(CagdSrfStruct *Srf, CagdBType Init);
+void SymbEvalSrfCurvPrep(const CagdSrfStruct *Srf, CagdBType Init);
 CagdBType SymbEvalSrfCurvature(const CagdSrfStruct *Srf,
 			       CagdRType U,
 			       CagdRType V,
@@ -732,8 +777,6 @@ CagdCrvStruct *BzrCrvMultList(const CagdCrvStruct *Crv1Lst,
 CagdCrvStruct *BzrCrvFactorT(const CagdCrvStruct *Crv);
 CagdCrvStruct *BzrCrvFactor1MinusT(const CagdCrvStruct *Crv);
 
-SymbApproxLowDegStateType SymbApproxCrvsLowDegState(
-					     SymbApproxLowDegStateType State);
 CagdCrvStruct *SymbApproxCrvAsBzrCubics(const CagdCrvStruct *Crv,
 					CagdRType Tol,
 					CagdRType MaxLen);
@@ -804,7 +847,7 @@ CagdSrfStruct *BzrSrfFactorExtremeRowCol(const CagdSrfStruct *Srf,
 					 CagdSrfBndryType Bndry);
 
 /******************************************************************************
-* Routines to handle Bspline surfaces.					      *
+* Routines to handle B-spline surfaces.					      *
 ******************************************************************************/
 CagdSrfStruct *BspSrfMult(const CagdSrfStruct *Srf1,
 			  const CagdSrfStruct *Srf2);
@@ -1065,6 +1108,11 @@ const SymbNormalConeStruct *SymbDirectionsConeOptToData(
 					     int NumPts,
 					     CagdPointType PType,
 					     SymbNormalConeStruct *NormalCone);
+const SymbNormalConeStruct *SymbDirectionsConeToData(
+					      const CagdRType * const *Pts,
+					      int NumPts,
+					      CagdPointType PType,
+					      SymbNormalConeStruct *NormalCone);
 int SymbNormalConeForSrfDoOptimal(int Optimal);
 const SymbNormalConeStruct *SymbNormalConeForSrfAvgToData(const CagdSrfStruct 
 								         *Srf,
@@ -1101,32 +1149,26 @@ CagdBType SymbNormalConvexHullConeOverlap(const SymbNormalConeStruct
 ******************************************************************************/
 void SymbRflctLnPrepSrf(CagdSrfStruct *Srf,
 			const CagdVType ViewDir,
-			const CagdVType LnDir,
-			const char *AttribName);
+			const CagdVType LnDir);
 CagdSrfStruct *SymbRflctLnGen(CagdSrfStruct *Srf,
 			      const CagdVType ViewDir,
 			      const CagdPType LnPt,
-			      const CagdVType LnDir,
-			      const char *AttribName);
-void SymbRflctLnFree(CagdSrfStruct *Srf, const char *AttribName);
+			      const CagdVType LnDir);
+void SymbRflctLnFree(CagdSrfStruct *Srf);
 void SymbRflctCircPrepSrf(CagdSrfStruct *Srf,
 			  const CagdVType ViewDir,
-			  const CagdPType SprCntr,
-			  const char *AttribName);
+			  const CagdPType SprCntr);
 CagdSrfStruct *SymbRflctCircGen(CagdSrfStruct *Srf,
 				const CagdVType ViewDir,
 				const CagdPType SprCntr,
-				CagdRType ConeAngle,
-				const char *AttribName);
-void SymbRflctCircFree(CagdSrfStruct *Srf, const char *AttribName);
+				CagdRType ConeAngle);
+void SymbRflctCircFree(CagdSrfStruct *Srf);
 void SymbHighlightLnPrepSrf(CagdSrfStruct *Srf,
-			    const CagdVType LnDir,
-			    const char *AttribName);
+			    const CagdVType LnDir);
 CagdSrfStruct *SymbHighlightLnGen(CagdSrfStruct *Srf,
 				  const CagdPType LnPt,
-				  const CagdVType LnDir,
-				  const char *AttribName);
-void SymbHighlightLnFree(CagdSrfStruct *Srf, const char *AttribName);
+				  const CagdVType LnDir);
+void SymbHighlightLnFree(CagdSrfStruct *Srf);
 
 /******************************************************************************
 * Routines to handle K-orthotomics, silhouettes, and isoclines.		      *
@@ -1223,11 +1265,18 @@ CagdSrfStruct *SymbRingRingZeroSetFunc(CagdCrvStruct *C1,
 				       CagdCrvStruct *r2);
 
 /******************************************************************************
-* Routines to handle knot removal of Bspline curves.             	      *
+* Routines to handle knot removal of B-spline curves.             	      *
 ******************************************************************************/
 CagdCrvStruct *SymbRmKntBspCrvRemoveKnots(const CagdCrvStruct *Crv,
 					  CagdRType Tolerance);
 CagdCrvStruct *SymbRmKntBspCrvCleanKnots(const CagdCrvStruct *Crv);
+CagdSrfStruct *SymbRmKntBspSrfRemoveKnots(const CagdSrfStruct *CSrf,
+					  CagdRType Tolerance);
+CagdSrfStruct *SymbRmKntBspSrfRemoveKnotsDir(const CagdSrfStruct *CSrf,
+					     CagdSrfDirType Dir,
+					     CagdRType Tolerance);
+CagdSrfStruct *SymbRmKntBspSrfCleanKnots(const CagdSrfStruct *Srf);
+
 
 /******************************************************************************
 * Routines to handle reverse engineering and surface recognition.	      *

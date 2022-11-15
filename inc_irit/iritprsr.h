@@ -11,15 +11,15 @@
 
 #include <setjmp.h>
 
-#include "irit_sm.h"
-#include "cagd_lib.h"
-#include "trim_lib.h"
-#include "triv_lib.h"
-#include "trng_lib.h"
-#include "mdl_lib.h"
-#include "vmdl_lib.h"
-#include "mvar_lib.h"
-#include "misc_lib.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/cagd_lib.h"
+#include "inc_irit/trim_lib.h"
+#include "inc_irit/triv_lib.h"
+#include "inc_irit/trng_lib.h"
+#include "inc_irit/mdl_lib.h"
+#include "inc_irit/vmdl_lib.h"
+#include "inc_irit/mvar_lib.h"
+#include "inc_irit/misc_lib.h"
 
 /* Dont change the order of these objects (or there values as overloaded     */
 /* tables (see overload.c) are hardwired to it. If you add objects update    */
@@ -46,6 +46,7 @@ typedef enum {
     IP_OBJ_MODEL,
     IP_OBJ_MULTIVAR,
     IP_OBJ_VMODEL,
+    IP_OBJ_VXL_VMDL,
 
     IP_OBJ_ANY = 100		 /* Match any object type, in type checking. */
 } IPObjStructType;
@@ -140,7 +141,8 @@ typedef enum {			 /* Possible error code during data parsing. */
     IP_ERR_CNVRT_MV_NOT_UNIVAR,
     IP_ERR_CNVRT_MV_NOT_BIVAR,
     IP_ERR_CNVRT_MV_NOT_TRIVAR,
-    IP_ERR_CNVRT_TSRF_TO_MDL,
+    IP_ERR_CNVRT_TO_MDL,
+    IP_ERR_CNVRT_TO_VMDL,
     IP_ERR_CNVRT_SRF_MDL_TO_TSRF,
     IP_ERR_CNVRT_INVALID_GEOM_TO_MV,
     IP_ERR_CNVRT_INVALID_COERCE,
@@ -174,7 +176,8 @@ typedef enum {
     IP_XFG_FILE,
     IP_GCODE_FILE,
     IP_OBJ_FILE,
-    IP_MSH_FILE
+    IP_MSH_FILE,
+    IP_3MF_FILE
 } IPStreamFormatType;
 
 /* Draw mode type. */
@@ -237,11 +240,14 @@ typedef struct IPNCGCodeLineStruct {
     int GCodeLineNumber;        /* G code's Nxxxx if has one, -1 otherwise. */
     char *Line;                        /* A copy of the H code as a string. */
     IPNCGCodeLineType GCodeType;
-    IrtRType XYZ[3], IJK[3];                /* Cutter position/orientation. */
+    IrtRType ABC[3], IJK[3], XYZ[3];/* Tool orientation/arc motion/position.*/
     IrtRType FeedRate, UpdatedFeedRate;
     IrtRType SpindleSpeed;
     IrtRType LenStart, Len;       /* Length from start and from last point. */
+    IrtRType DFactor;                   /* Used in AM to set material info. */
     IrtRType EFactor;     /* Used in AM to set flow of material deposition. */
+    IrtRType Width;                    /* Used in AM to set printing width. */
+    int MFactor;             /* GCode M Commands... (No really supported.). */
     int ToolNumber;
     int IsVerticalUpMotion;		  /* TRUE if we move up vertically. */
     int Comment;
@@ -254,6 +260,11 @@ typedef struct IPNCGCodeLineStruct {
     fprintf(File, "Irit %s, %s,\nCreator: %s,\nDate: %s.\n\n", \
 	    IRIT_VERSION, IRIT_COPYRIGHT, Name, IritRealTimeDate(Str)); \
 }
+
+typedef struct IPIritGenericStruct {
+    struct IPIritGenericStruct *Pnext;		        /* To next in chain. */
+    struct IPAttributeStruct *Attr;
+} IPIritGenericStruct;
 
 /*****************************************************************************
 * An instance object - a duplicate at a different location.                  *
@@ -404,6 +415,7 @@ typedef struct IPPolyVrtxArrayStruct {
 #define IP_IS_INSTNC_OBJ(Obj)	((Obj) -> ObjType == IP_OBJ_INSTANCE)
 #define IP_IS_MODEL_OBJ(Obj)	((Obj) -> ObjType == IP_OBJ_MODEL)
 #define IP_IS_VMODEL_OBJ(Obj)	((Obj) -> ObjType == IP_OBJ_VMODEL)
+#define IP_IS_VXL_VMDL_OBJ(Obj) ((Obj) -> ObjType == IP_OBJ_VXL_VMDL)
 #define IP_IS_MVAR_OBJ(Obj)	((Obj) -> ObjType == IP_OBJ_MULTIVAR)
 
 #define IP_IS_GEOM_OBJ(Obj)	(IP_IS_UNDEF_OBJ(Obj) || \
@@ -418,6 +430,7 @@ typedef struct IPPolyVrtxArrayStruct {
 				 IP_IS_TRISRF_OBJ(Obj) || \
 				 IP_IS_MODEL_OBJ(Obj) || \
 				 IP_IS_MVAR_OBJ(Obj) || \
+				 IP_IS_VXL_VMDL_OBJ(Obj) || \
 				 IP_IS_VMODEL_OBJ(Obj) || \
 				 IP_IS_INSTNC_OBJ(Obj))
 
@@ -473,6 +486,7 @@ typedef struct IPObjectStruct {
         IPInstanceStruct *Instance;             /* An instance of an object. */
 	MdlModelStruct *Mdls;                                    /* A model. */
 	VMdlVModelStruct *VMdls;                      /* A volumetric model. */
+        VMdlVoxelVModelStruct *VxlVMdls;    /* A Voxelized volumetric model. */
         MvarMVStruct *MultiVars;                  /* Multivariate functions. */
         IrtRType R;                                    /* Numeric real data. */
         IrtPtType Pt;                            /* Numeric real point data. */
@@ -506,7 +520,7 @@ typedef void (*IPNCGCodeRectangleToolSweepFuncType)(IrtPtType Pt1,
 						    IrtPtType Pt4);
 typedef IrtRType (*IPNCGCodeEvalMRRFuncType)(VoidPtr Data);
 typedef void (*IPNCGCodeParserErrorFuncType)(char *Line);
-typedef void (*IPNCGCodeIndexUpdateFuncType)(void);
+typedef void (*IPNCGCodeIndexUpdateFuncType)(void *Data);
 typedef IPObjectStruct *(*IPForEachObjCallBack)(IPObjectStruct *PObj, 
                                                 void *Param);
 typedef IPPolygonStruct *(*IPForEachPolyCallBack)(IPPolygonStruct *Pl, 
@@ -519,6 +533,85 @@ typedef IPVertexStruct *(*IPForEachVertexCallBack)(IPVertexStruct *V,
 #define IRIT_COMPRESSED_DATA_FILE   "icd"
 #define IRIT_MATRIX_DATA_FILE	    "imd"
 #define STL_BINARY_DATA_FILE	    "bstl"
+
+#define IRIT_TEXT_DATA_WFILE	    L"itd"
+#define IRIT_BINARY_DATA_WFILE	    L"ibd"
+#define IRIT_COMPRESSED_DATA_WFILE  L"icd"
+#define IRIT_MATRIX_DATA_WFILE	    L"imd"
+#define STL_BINARY_DATA_WFILE	    L"bstl"
+
+typedef IrtPtType IPMshBoxXYZType[2];
+
+typedef struct IPMshNodeStruct {
+    unsigned long Tag;
+    double x;
+    double y;
+    double z;
+    double u;
+    double v;
+    double w;
+}IPMshNodeStruct;
+
+typedef struct IPMshCellStruct {
+    int             Tag;
+    int             NumNodes;
+    int	            CellType;
+    int	            MaterialID;
+    unsigned int    ElmNumber;
+    int *NodeTags;
+}IPMshCellStruct;
+
+typedef struct IPMshNodeBlockDataStruct {
+    int		    Tag;
+    unsigned int    Dim;
+    unsigned long   NumNodes;
+    int             Parametric;
+    IPMshNodeStruct *Nodes;
+} IPMshNodeBlockDataStruct;
+
+typedef struct IPMshCellBlockDataStruct {
+    int		    Tag;
+    unsigned int    Dim;
+    unsigned long   NumCells;
+    int             ElementType;
+    IPMshCellStruct *Cells;
+} IPMshCellBlockDataStruct;
+
+typedef struct IPMshEntitiesDataStruct {
+    unsigned long    NumEntities;
+    int              *EntitiesTags;
+    unsigned int     *NumPhysicals;
+    int              **PhysicalTags;
+    IPMshBoxXYZType  *BoxXYZ;
+} IPMshEntitiesDataStruct;
+
+typedef struct IPMshPhysicalGroupDataStruct {
+    int  Dim;
+    int  Tag;
+    char *Name;
+} IPMshPhysicalGroupDataStruct;
+
+typedef struct IPMshDataStruct {
+    float                           Version;
+    unsigned int                    FileType;
+    unsigned int                    DataSize;
+    IPMshEntitiesDataStruct         Points;
+    IPMshEntitiesDataStruct         Curves;
+    IPMshEntitiesDataStruct         Surfaces;
+    IPMshEntitiesDataStruct         Volumes;
+    unsigned int                    NumPhysicalGroups;
+    IPMshPhysicalGroupDataStruct    *PhysicalGroups;
+    unsigned int                    NumNodeBlocks;
+    IPMshNodeBlockDataStruct        *NodeBlocks;
+    unsigned int                    NumCellBlocks;
+    IPMshCellBlockDataStruct        *CellBlocks;
+    unsigned int                    NumNodes;
+    unsigned int                    MinNodeTag;
+    unsigned int                    MaxNodeTag;
+    unsigned int                    NumCells;
+    unsigned int                    MinCellTag;
+    unsigned int                    MaxCellTag;
+} IPMshDataStruct;
 
 typedef struct IPIgesLoadDfltFileParamsStruct {
     int ClipTrimmedSrf;
@@ -548,6 +641,40 @@ typedef struct IPGcodeLoadDfltFileParamsStruct {
     int Messages;
 } IPGcodeLoadDfltFileParamsStruct;
 
+typedef enum {
+    IRIT_EPS_DRAW_POINT_CROSS,
+    IRIT_EPS_DRAW_POINT_FULL_CIRC,
+    IRIT_EPS_DRAW_POINT_HOLLOW_CIRC
+} IPEPSSaveDrawPtType;
+
+typedef struct IPEPSSaveDfltFileParamsStruct {
+    const char *PSTitle;
+    const char *FontName;
+    const char *FileName;
+    int BackGround;
+    int ColorPS;
+    int Messages;
+    int BBoxClip;
+    int WidenPolyEnds;
+    IrtRType WidenEndLength;
+    IrtRType WidenEndWidthScale;
+    int BackGroundColor[3];
+    IrtRType BBoxClipDomain[4];
+    IrtRType LineWidth;
+    IrtRType PointScale;
+    int DepthCue;
+    int DepthCueGray;
+    IrtRType DepthCueZ[2];
+    IrtRType PrintSize;
+    IPEPSSaveDrawPtType DrawPoint;
+
+    /* Internal data. */
+    IrtRType LastScale;
+    IrtHmgnMatType _CrntMat;
+    GMBBBboxStruct _BBox;
+    FILE *_OutputFile;
+} IPEPSSaveDfltFileParamsStruct;
+
 /* Gets lists of all freeform curves/(trimmed/triangular) surfaces/          */
 /* trivariates in the datafile, process them as needed.			     */
 /*   May return a processed version to be put on returned list from          */
@@ -568,6 +695,15 @@ typedef struct IPFreeFormStruct {
     IPObjectStruct *VModelObjs;
 } IPFreeFormStruct;
 
+typedef struct IPTraverseObjHierarchyStruct {
+    int TraverseObjCopy;
+    int TraverseObjAll;
+    int TraverseInvisibleObjs;
+    int PrintInstance;
+    IrtHmgnMatType Mat;
+    IPApplyObjFuncType ApplyFunc;
+} IPTraverseObjHierarchyStruct;
+
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
@@ -580,6 +716,8 @@ IRIT_GLOBAL_DATA_HEADER IPGcodeLoadDfltFileParamsStruct IPGcodeLoadDfltParams;
 /* Will be set to VIEW_MAT and PERS_MAT respectively if found in parsed data.*/
 IRIT_GLOBAL_DATA_HEADER IrtHmgnMatType IPViewMat, IPPrspMat;
 IRIT_GLOBAL_DATA_HEADER int IPWasViewMat, IPWasPrspMat;
+
+const char *IPGetDataFileType(const char *FileName, int *Compressed);
 
 /* Different data file types support: IGES. */
 void IPIgesLoadFileSetDefaultParameters(int ClipTrimmedSrf,
@@ -596,14 +734,27 @@ int IPIgesSaveFile(const IPObjectStruct *PObj,
 		   int Messages);
 int IPIgesSaveEucTrimCrvs(int SaveEucTrimCrvs);
 
+/* Different data file types support: (Encapsulated) Post Script. */
+int IPEPSSaveFile(IPObjectStruct *PObjects,
+		  IrtHmgnMatType CrntMat,
+		  IPEPSSaveDfltFileParamsStruct *EPSParams);
+
 /* Different data file types support: MSH - gmsh finite element data. */
-int IPMSHSaveFile(const IPObjectStruct *PObj,
+int IPMshSaveFile(const IPObjectStruct *PObj,
 		  const char *MSHFileName,
 		  int Messages,
 		  int *UVWSamples,
 		  IrtRType Eps,
 		  CagdBType MixedElements,
 		  CagdBType Quads);
+int IPMshCnvrtIrit2Mesh(const IPObjectStruct *PObj,
+			IPMshDataStruct *MeshData,
+			int Messages,
+			int *UVWSamples,
+			IrtRType Eps,
+			CagdBType MixedElements,
+			CagdBType Quads);
+void IPMshFreeMesh(IPMshDataStruct *MeshData);
 
 /* Different data file types support: STL. */
 void IPSTLLoadFileSetDefaultParameters(int BinarySTL,
@@ -615,6 +766,7 @@ IPObjectStruct *IPSTLLoadFile(const char *STLFileName,
 int IPSTLSaveFile(const IPObjectStruct *PObj,
 		  IrtHmgnMatType CrntViewMat,
 		  int RegularTriang,
+		  int ReverseVertices,
 		  int MultiObjSplit,
 		  const char *STLFileName,
 		  int Messages);
@@ -629,13 +781,21 @@ IPObjectStruct *IPOBJLoadFile(const char *OBJFileName,
 			      const IPOBJLoadDfltFileParamsStruct *Params);
 int IPOBJSaveFile(const IPObjectStruct *PObj, 
                   const char *OBJFileName,
-                  int WarningMsgs,
+		  int WarningMsgs,
+		  int CnvxTriangPolys,
                   int UniqueVertices);
 
 /* Different data file types support: DXF. */
 int IPDXFSaveFile(const IPObjectStruct *PObj,
 		  const char *DXFFileName,
 		  int DumpFreeForms);
+
+#ifdef IRIT_HAVE_3MF_LIB
+int IP3MFSaveFile(IPObjectStruct *PObj,
+                  const char *OutFileName,
+                  int WarningMsgs,
+		  const char *Designer);
+#endif /* IRIT_HAVE_3MF_LIB */
 
 /* Different data file types support: HTML. */
 int IPWGLSaveFile(IPObjectStruct *PObj,
@@ -679,6 +839,7 @@ VoidPtr IPNCGCodeParserInit(int ArcCentersRelative,
 			    IrtRType DefSpindleSpeed,
 			    int DefToolNumber,
 			    int ReverseZDir,
+			    int CoerceEndPoints,
 			    IPNCGCodeParserErrorFuncType ErrorFunc);
 VoidPtr IPNCGCodeParserParseLine(VoidPtr IPNCGCodes,
 				 const char *NextLine,
@@ -704,6 +865,7 @@ IrtRType IPNCGCodeTraverseTime(VoidPtr IPNCGCodes,
 			       IrtRType Dt,
 			       IrtRType *NewRealTime,
 			       IrtPtType NewToolPosition,
+			       IrtPtType NewToolOrientation,
 			       IPNCGCodeLineStruct **NewGC);
 IrtRType IPNCGCodeTraverseStep(VoidPtr IPNCGCodes,
 			       IrtRType Step,
@@ -723,9 +885,12 @@ CagdCrvStruct *IPNCUpdateCrvOffsetJoint(CagdCrvStruct *OrigCrv1,
 int IPNCGCodeSave2File(VoidPtr IPNCGCodes, const char *FName);
 const char *IPNCGCodeTraverseLines(VoidPtr IPNCGCodes, int Restart);
 void IPNCGCodeResetFeedRates(VoidPtr IPNCGCodes);
+int IPNCGCodeHasABC(VoidPtr IPNCGCodes);
+IrtRType IPNCGCodeFastSpeedUpFactor(VoidPtr IPNCGCodes, IrtRType NewFactor);
 IPNCGCodeIndexUpdateFuncType IPNCGCodeUpdateGCodeIndexCBFunc(
 		 	                   VoidPtr IPNCGCodes,
-				           IPNCGCodeIndexUpdateFuncType Func);
+					   IPNCGCodeIndexUpdateFuncType Func,
+					   void *Data);
 
 /* General IRIT data file processing. */
 
@@ -737,6 +902,7 @@ int IPPutMatrixFile(const char *File,
 int IPOpenDataFile(const char *FileName, int Read, int Messages);
 int IPOpenStreamFromCallBackIO(IPStreamReadCharFuncType ReadFunc,
 			       IPStreamWriteBlockFuncType WriteFunc,
+			       IPStreamFormatType Format,
 			       int Read,
 			       int IsBinary);
 int IPOpenStreamFromFile(FILE *f,
@@ -756,6 +922,10 @@ IPObjectStruct *IPGetDataFiles(char const * const *DataFileNames,
 			       int NumOfDataFiles,
 			       int Messages,
 			       int MoreMessages);
+IPObjectStruct *IPGetDataWFiles(wchar_t const * const *DataFileNames,
+				int NumOfDataFiles,
+				int Messages,
+				int MoreMessages);
 IPObjectStruct *IPGetDataFromFilehandles(FILE **Files,
 					 int NumOfFiles,
 					 char **Extensions,
@@ -849,6 +1019,10 @@ void *IPListObjToLinkedList(const IPObjectStruct *LObjs);
 IPObjectStruct *IPListObjToLinkedList2(const IPObjectStruct *LObjs);
 void *IPHierarchyObjToLinkedList(const IPObjectStruct *HObj,
 				 IPObjStructType ObjType);
+int IPHierarchyObjToVector(const IPObjectStruct *HObj,
+			   IPObjStructType ObjType,
+			   void ***Vec,
+			   int ElmntSize);
 
 IPPolygonStruct *IPGetLastPoly(IPPolygonStruct *PList);
 IPPolygonStruct *IPGetPrevPoly(IPPolygonStruct *PList,
@@ -875,22 +1049,23 @@ IPPolygonStruct *IPForEachPoly2(IPPolygonStruct *PlList,
 IPVertexStruct *IPForEachVertex2(IPVertexStruct *VList, 
                                  IPForEachVertexCallBack CallBack,
                                  void *Param);
-int IPTraverseObjectCopy(int TraverseObjCopy);
-int IPTraverseObjectAll(int TraverseObjAll);
-int IPTraverseInvisibleObject(int TraverseInvObj);
+void IPTraverseObjHierarchyInitState(IPTraverseObjHierarchyStruct
+				                               *TraversState);
 void IPTraverseObjListHierarchy(IPObjectStruct *PObjList,
-				IrtHmgnMatType CrntViewMat,
-				IPApplyObjFuncType ApplyFunc);
+				IPTraverseObjHierarchyStruct *TraversState);
+void IPTraverseObjListHierarchy1(IPObjectStruct *PObjList,
+				 void *Data,
+				 IPTraverseObjHierarchyStruct *TraversState);
+void IPTraverseObjListHierarchy2(IPObjectStruct *PObjList,
+				 void *Data,
+				 IPTraverseObjHierarchyStruct *TraversState);
 void IPTraverseObjHierarchy(IPObjectStruct *PObj,
 			    IPObjectStruct *PObjList,
-			    IPApplyObjFuncType ApplyFunc,
 			    void *Data,
-			    IrtHmgnMatType Mat,
-			    int PrntInstance);
-void IPTraverseObjListHierarchy2(IPObjectStruct *PObjList,
-				 IrtHmgnMatType CrntViewMat,
-				 IPApplyObjFuncType ApplyFunc,
-				 void *Data);
+			    IPTraverseObjHierarchyStruct *TraversState);
+void IPTraverseObjHierarchy1(IPObjectStruct *PObj,
+			     void *Data,
+			     IPTraverseObjHierarchyStruct *TraversState);
 
 /* Coercion of objects. */
 
@@ -909,7 +1084,7 @@ IPObjectStruct *IPCoerceObjectPtTypeTo(const IPObjectStruct *PObj,
 				       int NewType);
 IPObjectStruct *IPCoerceObjectTo(const IPObjectStruct *PObj, int NewType);
 
-IPObjectStruct *IPReverseObject(IPObjectStruct *PObj);
+IPObjectStruct *IPReverseObject(const IPObjectStruct *PObj);
 
 /* Client Server - communication functions. */
 
@@ -941,7 +1116,7 @@ void IPCnvDataToIritOneObject(const char *Indent,
 void IPCnvDataToIritAttribs(const char *Indent,
 			    const char *ObjName,
 			    const IPAttributeStruct *Attr);
-const char *IPCnvrtReal2Str(IrtRType R);
+const char *IPCnvrtReal2Str(IrtRType R, char *StrBuffer);
 IPPrintFuncType IPCnvSetPrintFunc(IPPrintFuncType CnvPrintFunc);
 int IPCnvSetLeastSquaresFit(int MinLenFit, int Percent, IrtRType MaxError);
 char IPCnvSetDelimitChar(char Delimit);

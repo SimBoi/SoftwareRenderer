@@ -11,13 +11,13 @@
 #ifndef IRIT_RNDR_LIB_H
 #define IRIT_RNDR_LIB_H
 
-#include "irit_sm.h"
-#include "iritprsr.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/iritprsr.h"
 
-#define IRNDR_ATTRIB_PURGED_POLY    "IRnderPurgedPoly"
-#define VIS_MAP_BEFORE_PRSP_X_ATTRIB "VIS_MAP_BEFORE_PRSP_X_ATTRIB"
-#define VIS_MAP_BEFORE_PRSP_Y_ATTRIB "VIS_MAP_BEFORE_PRSP_Y_ATTRIB"
-#define VIS_MAP_BEFORE_PRSP_Z_ATTRIB "VIS_MAP_BEFORE_PRSP_Z_ATTRIB"
+#define IRNDR_PURGED_POLY_ATTR_ID       IRIT_ATTR_CREATE_ID(IRndrPurgedPoly)
+#define IRNDR_VM_BEFORE_PRSP_X_ATTR_ID  IRIT_ATTR_CREATE_ID(IRndrVMBeforePrspX)
+#define IRNDR_VM_BEFORE_PRSP_Y_ATTR_ID  IRIT_ATTR_CREATE_ID(IRndrVMBeforePrspY)
+#define IRNDR_VM_BEFORE_PRSP_Z_ATTR_ID  IRIT_ATTR_CREATE_ID(IRndrVMBeforePrspZ)
 
 typedef enum IRndrLightType {
     IRNDR_LIGHT_POINT,

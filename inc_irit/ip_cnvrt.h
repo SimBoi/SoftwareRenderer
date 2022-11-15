@@ -9,12 +9,13 @@
 #ifndef IRIT_IP_CONVRT_H
 #define IRIT_IP_CONVRT_H
 
-#include "iritprsr.h"
-#include "cagd_lib.h"
-#include "symb_lib.h"
-#include "attribut.h"
+#include "inc_irit/iritprsr.h"
+#include "inc_irit/cagd_lib.h"
+#include "inc_irit/symb_lib.h"
+#include "inc_irit/attribut.h"
+#include "inc_irit/grap_lib.h"
 
-#define IP_ATTRIB_DEGEN_POLY	"IpDegenPoly"
+#define IP_ATTR_ID_DEGEN_PL	IRIT_ATTR_CREATE_ID(IpDegenPoly)
 
 typedef struct IPFreeformConvStateStruct {
     int	      Talkative;                      /* If TRUE, be more talkative. */
@@ -33,19 +34,46 @@ typedef struct IPFreeformConvStateStruct {
     int	      OptimalPolygons;           /* Optimal (or not optimal) approx. */
     int	      BBoxGrid;           /* Compute bbox/grid subdivision for bbox. */
     int	      LinearOnePolyFlag;/* Only one polygonal subdiv. along linears. */
-    int	      SrfsToBicubicBzr;      /* Should we convert to bicubic bezier? */
+    int	      SrfsToBicubicBzr;      /* Should we convert to bicubic Bezier? */
 } IPFreeformConvStateStruct;
 
-IRIT_GLOBAL_DATA_HEADER IPFreeformConvStateStruct IPFFCState;
 IRIT_GLOBAL_DATA_HEADER int IPGlblGenDegenPolys;
 
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
 
+IRIT_GLOBAL_DATA_HEADER IPFreeformConvStateStruct IPFFCState;
+
 /* Lower level functions in ip_cnvrt.c */
 
+IPPolygonStruct *IPGenTriangle(CagdSrf2PlsInfoStrct *TessInfo,
+			       const CagdRType *Pt1,
+			       const CagdRType *Pt2,
+			       const CagdRType *Pt3,
+			       const CagdRType *Nl1,
+			       const CagdRType *Nl2,
+			       const CagdRType *Nl3,
+			       const CagdRType *UV1,
+			       const CagdRType *UV2,
+			       const CagdRType *UV3,
+			       CagdBType *GenPoly);
+IPPolygonStruct *IPGenRectangle(CagdSrf2PlsInfoStrct *TessInfo,
+				const CagdRType *Pt1,
+				const CagdRType *Pt2,
+				const CagdRType *Pt3,
+				const CagdRType *Pt4,
+				const CagdRType *Nl1,
+				const CagdRType *Nl2,
+				const CagdRType *Nl3,
+				const CagdRType *Nl4,
+				const CagdRType *UV1,
+				const CagdRType *UV2,
+				const CagdRType *UV3,
+				const CagdRType *UV4,
+				CagdBType *GenPoly);
 IPPolygonStruct *IPCagdPllns2IritPllns(CagdPolylineStruct *Polys);
+CagdPolygonStruct *IPIritPlgns2CagdPlgns(IPPolygonStruct *Polys);
 IPPolygonStruct *IPCagdPlgns2IritPlgns(CagdPolygonStruct *Polys,
 				       CagdBType ComputeUV);
 IPPolygonStruct *IPCurve2Polylines(const CagdCrvStruct *Crv,
@@ -57,6 +85,9 @@ IPPolygonStruct *IPSurface2Polylines(const CagdSrfStruct *Srf,
 				     int NumOfIsolines[2],
 				     CagdRType TolSamples,
 				     SymbCrvApproxMethodType Method);
+IPPolygonStruct *IPSurface2KnotPolylines(const CagdSrfStruct *Srf,
+				         CagdRType TolSamples,
+					 SymbCrvApproxMethodType Method);
 IPPolygonStruct *IPSurface2CtlMesh(const CagdSrfStruct *Srf);
 SymbPlErrorFuncType IPSrf2OptPolysSetUserTolFunc(SymbPlErrorFuncType Func);
 int IPSurface2PolygonsGenTriOnly(int OnlyTri);
@@ -80,7 +111,8 @@ IPPolygonStruct *IPTrimSrf2Polygons(const TrimSrfStruct *TrimSrf,
 				    IrtRType FineNess,
 				    int ComputeUV,
 				    int ComputeNrml,
-				    int Optimal);
+				    int Optimal,
+				    CagdSrf2PlsInfoStrct *TessInfo);
 IPPolygonStruct *IPTrivar2Polygons(TrivTVStruct *Trivar,
 				   int FourPerFlat,
 				   IrtRType FineNess,
@@ -90,7 +122,8 @@ IPPolygonStruct *IPTrivar2Polygons(TrivTVStruct *Trivar,
 IPPolygonStruct *IPTrivar2Polylines(TrivTVStruct *Trivar,
 				    int NumOfIsolines[3],
 				    CagdRType TolSamples,
-				    SymbCrvApproxMethodType Method);
+				    SymbCrvApproxMethodType Method,
+				    IrtBType SrfsOnly);
 IPPolygonStruct *IPTrivar2CtlMesh(TrivTVStruct *Trivar);
 IPPolygonStruct *IPTriSrf2Polygons(TrngTriangSrfStruct *TriSrf,
 				   IrtRType FineNess,
@@ -136,6 +169,26 @@ CagdSrfStruct *IPSurfacesToCubicBzrSrfs(CagdSrfStruct *Srfs,
 					CagdSrfStruct **NoConvertionSrfs);
 void IPClosedPolysToOpen(IPPolygonStruct *Pls);
 void IPOpenPolysToClosed(IPPolygonStruct *Pls);
+CagdSrf2PlsInfoStrct *IPTSrf2PlysInitTessInfo(CagdSrf2PlsInfoStrct *TessInfo,
+					CagdSrfMakeRectFuncType MakeRectangle,
+					CagdSrfMakeTriFuncType MakeTriangle,
+    					CagdSrfAdapPolyGenFuncType
+							      AdapPolyGenFunc,
+					CagdSrfAdapAuxDataFuncType 
+							      AdapAuxDataFunc,
+					int FourPerFlat,
+					IrtRType RelFineNess,
+					int ComputeUV,
+					int ComputeNrml,
+					int Optimal,
+					void *EvalNrmlCache);
+void IPTSrf2PlysFreeTessInfo(CagdSrf2PlsInfoStrct *TessInfo);
+CagdSrfMakeTriFuncType IPTSrf2PlyAuxSetTriFunc(CagdSrf2PlsInfoStrct *TessInfo,
+					       CagdSrfMakeTriFuncType Func);
+CagdSrfMakeRectFuncType IPTSrf2PlyAuxSetRectFunc(
+					       CagdSrf2PlsInfoStrct *TessInfo,
+					       CagdSrfMakeRectFuncType Func);
+IPVertexStruct *IPCopyAllVerticesFromPolys(const IPObjectStruct *PObj);
 
 /* Higher level functions in ff_cnvrt.c */
 
@@ -165,7 +218,9 @@ IPObjectStruct *IPFreeForm2Polygons(IPFreeFormStruct *FreeForms,
 				    int BBoxGrid);
 IPObjectStruct *IPConvertFreeForm(IPObjectStruct *PObj,
 				  IPFreeformConvStateStruct *State);
-void IPMapObjectInPlace(IPObjectStruct *PObj, IrtHmgnMatType Mat, void *AuxData);
+void IPMapObjectInPlace(IPObjectStruct *PObj,
+			IrtHmgnMatType Mat,
+			void *AuxData);
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

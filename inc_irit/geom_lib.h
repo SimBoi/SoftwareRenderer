@@ -9,8 +9,9 @@
 #ifndef	IRIT_GEOM_LIB_H
 #define IRIT_GEOM_LIB_H
 
-#include "irit_sm.h"
-#include "misc_lib.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/misc_lib.h"
+#include "inc_irit/miscattr.h"
 
 typedef enum {
     GEOM_ERR_NO_OGL_SUPPORT,
@@ -70,7 +71,9 @@ typedef enum {
     GM_GEN_PRIM_SRFS,
     GM_GEN_PRIM_MDLS,
     GM_GEN_PRIM_TVS,
-    GM_GEN_PRIM_VMDLS
+    GM_GEN_PRIM_TVS_SNGLR,
+    GM_GEN_PRIM_VMDLS,
+    GM_GEN_PRIM_VMDLS_SNGLR
 } GMGenPrimType;
 
 #define GM_FIT_MODEL_MAX_PARAM 10
@@ -83,7 +86,7 @@ typedef enum {
 } GMGeomRayRelationType;
 
 #define GM_ANIM_DEFAULT_FILE_NAME	"IAnim"
-#define PRIM_MIN_RESOLUTION	4
+#define PRIM_MIN_RESOLUTION		3
 
 #define GM_ANIM_NO_DEFAULT_TIME IRIT_INFNTY
 
@@ -117,13 +120,18 @@ typedef struct GMBBBboxStruct {
     int Dim;                  /* Actual number of valid dimensions in bbox. */
 } GMBBBboxStruct;
 
-#define GM_BBOX_RESET(Bbox)     IRIT_ZAP_MEM(&(Bbox), sizeof(GMBBBboxStruct));
+#define GM_BBOX_RESET(BBox)     IRIT_ZAP_MEM(&(BBox), sizeof(GMBBBboxStruct));
 
-#define GM_BBOX3D_INIT(Bbox) { \
-    GM_BBOX_RESET((Bbox)); \
-    (Bbox).Min[0] = (Bbox).Min[1] = (Bbox).Min[2] = IRIT_INFNTY; \
-    (Bbox).Max[0] = (Bbox).Max[1] = (Bbox).Max[2] = -IRIT_INFNTY; \
-    (Bbox).Dim = 3; }
+#define GM_BBOX3D_INIT(BBox) { \
+    GM_BBOX_RESET((BBox)); \
+    (BBox).Min[0] = (BBox).Min[1] = (BBox).Min[2] = IRIT_INFNTY; \
+    (BBox).Max[0] = (BBox).Max[1] = (BBox).Max[2] = -IRIT_INFNTY; \
+    (BBox).Dim = 3; }
+
+#define GM_BBOX3D_MAX_SIZE(BBox) \
+    IRIT_MAX((BBox).Max[0] - (BBox).Min[0], \
+	     IRIT_MAX((BBox).Max[1] - (BBox).Min[1], \
+		      (BBox).Max[2] - (BBox).Min[2]))
 
 #define GM_BBOX3D_HOLD_PT(Pt, BBox, Eps) /* Point in BBox to within Eps. */ \
     ((Pt)[0] >= (BBox) -> Min[0] - (Eps) && \
@@ -133,13 +141,29 @@ typedef struct GMBBBboxStruct {
      (Pt)[2] >= (BBox) -> Min[2] - (Eps) && \
      (Pt)[2] <= (BBox) -> Max[2] + (Eps))
 
-#define GM_BBOX3D_SAME(BBox1, BBox2, Eps) /* Check for BBox similarity. */ \
-     (IRIT_FABS(BBox1.Max[0] - BBox2.Max[0]) < Eps) && \
-     (IRIT_FABS(BBox1.Max[1] - BBox2.Max[1]) < Eps) &&\
-     (IRIT_FABS(BBox1.Max[2] - BBox2.Max[2]) < Eps) &&\
-     (IRIT_FABS(BBox1.Min[0] - BBox2.Min[0]) < Eps) &&\
-     (IRIT_FABS(BBox1.Min[1] - BBox2.Min[1]) < Eps) &&\
-     (IRIT_FABS(BBox1.Min[2] - BBox2.Min[2]) < Eps))
+#define GM_BBOX3D_SAME(BBox1, BBox2, Eps)  /* Check for BBox similarity. */ \
+     ((IRIT_FABS((BBox1).Max[0] - (BBox2).Max[0]) < Eps) && \
+      (IRIT_FABS((BBox1).Max[1] - (BBox2).Max[1]) < Eps) && \
+      (IRIT_FABS((BBox1).Max[2] - (BBox2).Max[2]) < Eps) && \
+      (IRIT_FABS((BBox1).Min[0] - (BBox2).Min[0]) < Eps) && \
+      (IRIT_FABS((BBox1).Min[1] - (BBox2).Min[1]) < Eps) && \
+      (IRIT_FABS((BBox1).Min[2] - (BBox2).Min[2]) < Eps)) \
+
+#define GM_BBOX3D_OVERLAP_EPS(BBox1, BBox2, Eps)/* Checks if BBs overlap.*/ \
+    (!((BBox1) -> Max[0] < (BBox2) -> Min[0] - Eps || \
+       (BBox1) -> Max[1] < (BBox2) -> Min[1] - Eps || \
+       (BBox1) -> Max[2] < (BBox2) -> Min[2] - Eps || \
+       (BBox2) -> Max[0] < (BBox1) -> Min[0] - Eps || \
+       (BBox2) -> Max[1] < (BBox1) -> Min[1] - Eps || \
+       (BBox2) -> Max[2] < (BBox1) -> Min[2] - Eps))
+
+#define GM_BBOX2_IN_BBOX1_EPS(BBox1, BBox2, Eps)   /* Containment of BBs. */ \
+    ((BBox1) -> Min[0] < (BBox2) -> Min[0] + Eps && \
+     (BBox1) -> Min[1] < (BBox2) -> Min[1] + Eps && \
+     (BBox1) -> Min[2] < (BBox2) -> Min[2] + Eps && \
+     (BBox1) -> Max[0] > (BBox2) -> Max[0] - Eps && \
+     (BBox1) -> Max[1] > (BBox2) -> Max[1] - Eps && \
+     (BBox1) -> Max[2] > (BBox2) -> Max[2] - Eps)
 
 
 typedef IrtRType GMLsPoint[3];   /* The Z component is pretty much ignored. */
@@ -169,6 +193,33 @@ typedef struct GMBoxBVHInfoStruct {
     IrtRType Min[3];
     int Id;
 } GMBoxBVHInfoStruct;
+
+typedef struct GMFrustumSideStruct {
+    IrtRType Corners[4][3];
+    IrtRType Normal[3];
+} GMFrustumSideStruct;
+
+typedef struct GMGeneralFrustumInfoStruct {
+    GMFrustumSideStruct Sides[6];
+} GMGeneralFrustumInfoStruct;
+
+/* Plane struct used to store the plane divsion metadata. */
+typedef struct GMBspPtsSliceInfoStruct {
+    struct GMBspPtsSliceInfoStruct *Pnext;
+    struct IPAttributeStruct *Attr;
+    IrtPlnType Pln;
+    IrtPtType Pt;
+    IrtVecType Normal, Tangent;
+} GMBspPtsSliceInfoStruct;
+
+/* The node of the Binary space partition tree.  */
+typedef struct GMBspPtsNodeStruct {
+    struct GMBspPtsNodeStruct *Pnext;
+    struct IPAttributeStruct *Attr;
+    struct IPVertexStruct *PC;
+    struct GMBspPtsNodeStruct *Left, *Right;
+    GMBspPtsSliceInfoStruct *DivisionSlice; 
+} GMBspPtsNodeStruct;
 
 typedef enum {            /* Predefined indices for the TransformIrtVecType */
     GM_QUAT_ROT_X = 0,
@@ -237,18 +288,18 @@ typedef void (*GMIdentifyTJunctionFuncType)(struct IPVertexStruct *V0,
 					    struct IPPolygonStruct *Pl1,
 					    struct IPPolygonStruct *Pl2);
 typedef IrtRType *(*GMPointDeformVrtxDirFuncType)(const struct IPVertexStruct
-						                         *V);
-typedef IrtRType (*GMPointDeformVrtxFctrFuncType)(struct IPVertexStruct *V);
+						                           *V,
+						  void *UserData);
+typedef IrtRType (*GMPointDeformVrtxFctrFuncType)(struct IPVertexStruct *V,
+						  void *UserData);
 typedef IrtRType (*GMQuadWeightFuncType)(const struct CagdPolylineStruct *P,
 					 int *VIndices, 
-					 int numV);
+					 int numV,
+					 void *UserData);
 
 /* Points equally spread over a sphere. */
-#define SPHERE_COVER_4CONES_ANGLE 70.5287794
-#define SPHERE_COVER_20CONES_ANGLE 29.6230958
-#define SPHERE_COVER_50CONES_ANGLE 18.3000226
-#define SPHERE_COVER_100CONES_ANGLE 12.9360973
-#define SPHERE_COVER_130CONES_ANGLE 11.3165625
+#define GM_DFLT_SPHERE_CONE_DENSITY 300
+
 IRIT_GLOBAL_DATA_HEADER IrtVecType const
     GMSphereCoverVectors4[],
     GMSphereCoverVectors20[],
@@ -263,7 +314,6 @@ extern "C" {
 #endif
 
 /* And prototypes of the functions: */
-
 IrtRType GMBasicSetEps(IrtRType Eps);
 void GMVecCopy(IrtVecType Vdst, const IrtVecType Vsrc);
 void GMVecNormalize(IrtVecType V);
@@ -274,6 +324,10 @@ void GMVecCrossProd(IrtVecType Vres, const IrtVecType V1, const IrtVecType V2);
 IrtRType GMVecVecAngle(const IrtVecType V1,
 		       const IrtVecType V2,
 		       int Normalize);
+void GMSLerp(const IrtVecType V1,
+	     const IrtVecType V2,
+	     IrtRType t,
+	     IrtVecType VOut);
 IrtRType GMPlanarVecVecAngle(const IrtVecType V1,
 			     const IrtVecType V2,
 			     int Normalize);
@@ -289,6 +343,7 @@ int GMCoplanar4Pts(const IrtPtType Pt1,
 		   const IrtPtType Pt3,
 		   const IrtPtType Pt4);
 IrtRType GMVecDotProd(const IrtVecType V1, const IrtVecType V2);
+IrtRType GMVecDotProdLen(const IrtRType *V1, const IrtRType *V2, int Len);
 void GMVecReflectPlane(IrtVecType Dst, IrtVecType Src, IrtVecType PlaneNormal);
 
 struct IPObjectStruct *GMGenMatObjectRotX(const IrtRType *Degree);
@@ -314,6 +369,13 @@ struct IPObjectStruct *GMTransformObjectList(const struct IPObjectStruct *PObj,
 					     IrtHmgnMatType Mat);
 struct IPObjectStruct *GMTransObjUpdateAnimCrvs(struct IPObjectStruct *PAnim,
 						IrtHmgnMatType Mat);
+struct IPObjectStruct *GMObjExplodeObject(const struct IPObjectStruct *PObj,
+				          int ExplosionType,
+				          const IrtVecType CenterOfExplosion,
+				          IrtRType ExplosionAmount,
+				          const IrtVecType LineExplodeDir,
+				          int AnimCrvs);
+
 int GMObjectNumCoordinates(const struct IPObjectStruct *Obj);
 struct IPObjectStruct *GMGenMatObjectZ2Dir(const IrtVecType Dir);
 struct IPObjectStruct *GMGenMatObjectZ2Dir2(const IrtVecType Dir,
@@ -327,7 +389,6 @@ struct IPObjectStruct *GMGenMatrix3Pts2EqltrlTri(const IrtPtType Pt1,
 					  const IrtPtType Pt3);
 
 /* General basic computational geometry routines: */
-
 IrtRType GMDistPointPoint(const IrtPtType P1, const IrtPtType P2);
 int GMFindLinComb2Vecs(const IrtVecType V1,
 		       const IrtVecType V2,
@@ -352,6 +413,9 @@ IrtRType GMDistPointPlane(const IrtPtType Point, const IrtPlnType Plane);
 int GMPointFromPointPlane(const IrtPtType Pt,
 			  const IrtPlnType Plane,
 			  IrtPtType ClosestPoint);
+int GMVectorFromVectorPlane(const IrtVecType Vec,
+			    const IrtVecType PlaneN,
+			    IrtPtType ProjVec);
 int GMPointFromLinePlane(const IrtPtType Pl,
 			 const IrtPtType Vl,
 			 const IrtPlnType Plane,
@@ -397,7 +461,7 @@ IrtRType GMDistPolyPt(const struct IPPolygonStruct *Pl,
 IrtRType GMDistPolyPt2(const struct IPPolygonStruct *Pl,
 		       int IsPolyline,
 		       IrtPtType Pt,
-		       IrtRType *ExtremePt,
+		       struct IPVertexStruct **ExtremeV,
 		       int MaxDist);
 IrtRType GMDistPolyPoly(const struct IPPolygonStruct *Pl1,
 			const struct IPPolygonStruct *Pl2,
@@ -408,10 +472,19 @@ IrtRType GMDistPolyPoly(const struct IPPolygonStruct *Pl1,
 int GMPolygonPlaneInter(const struct IPPolygonStruct *Pl,
 			const IrtPlnType Pln,
 			IrtRType *MinDist);
+int GMPolygonListPlaneInter(const struct IPPolygonStruct *Pl,
+                            const IrtPlnType Pln);
 int GMSplitPolygonAtPlane(struct IPPolygonStruct *Pl, const IrtPlnType Pln);
+void GMPolygonGetCentroid(const struct IPPolygonStruct *Polyline, IrtPtType *Pt);
+int GMSegmentRayInter(const IrtPtType v1, 
+                      const IrtPtType v2, 
+                      const IrtPtType Pt, 
+                      const IrtPtType Dir, 
+                      IrtPtType InterPt,
+		      IrtRType Eps);
+
 IrtRType GMPolyPlaneClassify(const struct IPPolygonStruct *Pl,
 			     const IrtPlnType Pln);
-
 int GMTrianglePointInclusion(const IrtRType *V1,
 			     const IrtRType *V2,
 			     const IrtRType *V3,
@@ -428,18 +501,22 @@ IrtRType GMAngleSphericalTriangle(const IrtVecType Dir,
 int GMPolygonPointInclusion3D(const struct IPPolygonStruct *Pl,
 			      const IrtPtType Pt);
 
-int GMPolygonRayInter(const struct IPPolygonStruct *Pl,
-		      const IrtPtType PtRay,
-		      int RayAxes);
-int GMPolygonRayInter2(const struct IPPolygonStruct *Pl,
-		       const IrtPtType PtRay,
-		       int RayAxes,
-		       struct IPVertexStruct **FirstInterV,
-		       IrtRType *FirstInterP,
-		       IrtRType *AllInters);
-int GMPolygonRayInter3D(const struct IPPolygonStruct *Pl,
-			const IrtPtType PtRay,
-			int RayAxes);
+int GMPolygonXYRayInter(const struct IPPolygonStruct *Pl,
+		        const IrtPtType PtRay,
+		        int RayAxes);
+int GMPolygonXYRayInter2(const struct IPPolygonStruct *Pl,
+		         const IrtPtType PtRay,
+		         int RayAxes,
+		         struct IPVertexStruct **FirstInterV,
+		         IrtRType *FirstInterP,
+		         IrtRType *AllInters);
+int GMPolygonXYRayInter3D(const struct IPPolygonStruct *Pl,
+			  const IrtPtType PtRay,
+			  int RayAxes);
+int GMPolylineRayInter3D(const struct IPPolygonStruct *Polyline,
+		         const IrtPtType Pt,
+		         const IrtVecType Dir,
+		         IrtPtType InterPt);
 struct IPPolygonStruct *GMPolyHierarchy2SimplePoly(
 					    struct IPPolygonStruct *Root,
 					    struct IPPolygonStruct *Islands);
@@ -558,8 +635,13 @@ int GMPointOnPolygonBndry(const IrtPtType Pt,
 			  const struct IPPolygonStruct *Pl,
 			  IrtRType Eps);
 
-/* Polynomial solvers. */
+/* List of convex polygon - ray intersections in R3. */
+int GMRayCnvxPolygonListInter(const IrtPtType RayOrigin,
+		              const IrtVecType RayDir,
+			      const struct IPPolygonStruct *Plgns,
+		              IrtPtType InterPoint);
 
+/* Polynomial solvers. */
 int GMSolveQuadraticEqn(IrtRType A, IrtRType B, IrtRType *Sols);
 int GMSolveQuadraticEqn2(IrtRType B,
 			 IrtRType C,
@@ -582,15 +664,13 @@ void GMComplexRoot(IrtRType RealVal,
 		   IrtRType *ImageRoot);
 
 /* Geometric properties routines: */
-
 IrtRType GMPolyLength(const struct IPPolygonStruct *Pl);
 int GMPolyCentroid(const struct IPPolygonStruct *Pl, IrtPtType Centroid);
-int GMPolyObjectAreaSetSigned(int SignedArea);
-IrtRType GMPolyObjectArea(const struct IPObjectStruct *PObj);
-IrtRType GMPolyOnePolyArea(const struct IPPolygonStruct *Pl);
-IrtRType GMPolyOnePolyXYArea(const struct IPVertexStruct *VHead);
+IrtRType GMPolyObjectArea(const struct IPObjectStruct *PObj, int SingedArea);
+IrtRType GMPolyOnePolyArea(const struct IPPolygonStruct *Pl, int SingedArea);
+IrtRType GMPolyOnePolyXYArea(const struct IPVertexStruct *VHead, int SingedArea);
 
-IrtRType GMPolyObjectVolume(struct IPObjectStruct *PObj);
+IrtRType GMPolyObjectVolume(const struct IPObjectStruct *PObj);
 int GMInverseBilinearMap(const IrtPtType P00,
 			 const IrtPtType P01,
 			 const IrtPtType P10,
@@ -599,7 +679,6 @@ int GMInverseBilinearMap(const IrtPtType P00,
 			 IrtPtType UV[2]);
 
 /* Box BVH routines. */
-
 struct GMBoxBVHStruct *GMBoxBVHCreate(const GMBoxBVHInfoStruct **Boxes,
 				      int BoxNum, 
 				      int Size);
@@ -618,12 +697,50 @@ int GMBoxBVHTestFrustumIntersection(const struct GMBoxBVHStruct *BVH,
 				    const IrtRType *Max,
 				    const IrtRType *Min,
 				    IrtRType Angle);
+void GMBoxBVHConstructGeneralAlignedFrustum(
+				    const IrtRType Center[3],
+				    IrtRType SizeX,
+				    IrtRType SizeY,
+				    const IrtRType XAxis[3],
+				    const IrtRType HeightAxis[3],
+				    IrtRType Height,
+				    IrtRType XAngle,
+				    IrtRType YAngle,
+				    GMGeneralFrustumInfoStruct *Frustum);
+int GMBoxBVHGetGeneralAlignedFrustumIntersection(
+					     const struct GMBoxBVHStruct *BVH,
+					     const IrtRType Center[3],
+					     IrtRType SizeX,
+					     IrtRType SizeY,
+					     const IrtRType XAxis[3],
+					     const IrtRType HeightAxis[3],
+					     IrtRType Height,
+					     IrtRType XAngle,
+					     IrtRType YAngle,
+					     int *Res);
+struct IPObjectStruct *GMBoxBVHDbgConstructGeneralAlignedFrustum2(
+					    const IrtRType Center[3],
+					    IrtRType SizeX,
+					    IrtRType SizeY,
+					    const IrtRType XAxis[3],
+					    const IrtRType HeightAxis[3],
+					    IrtRType Height,
+					    IrtRType XAngle,
+					    IrtRType YAngle);
+int GMBoxBVHGetGeneralAlignedFrustumIntersection2(
+			    const struct GMBoxBVHStruct *BVH,
+			    const GMGeneralFrustumInfoStruct *Frustum,
+			    int *Res);
+IrtBType GMGetGeneralAlignedFrustumPtsIntersection2(
+			    const GMGeneralFrustumInfoStruct *Frustum,
+			    const IrtRType **Pts,
+			    int NumPts,
+			    IrtBType RationalPts,
+			    IrtRType Tolerance);
 
 /* Functions from sphere's cone distribution - Sph_Cone.c. */
-
-void GMSphConeSetConeDensity(int n);
 const IrtVecType *GMSphConeGetPtsDensity(int *n);
-VoidPtr GMSphConeQueryInit(struct IPObjectStruct *PObj);
+VoidPtr GMSphConeQueryInit(struct IPObjectStruct *PObj, int n);
 void GMSphConeQueryFree(VoidPtr SphCone);
 void GMSphConeQueryGetVectors(VoidPtr SphConePtr,
 			      IrtVecType Dir,
@@ -639,7 +756,6 @@ int GMConvexHull(IrtE2PtStruct *DTPts, int *NumOfPoints);
 int GMMonotonePolyConvex(struct IPVertexStruct *VHead, int Cnvx);
 
 /* Functions from the minimum spanning circle/sphere packages. */
-
 int GMMinSpanCirc(IrtE2PtStruct *DTPts,
 		  int NumOfPoints,
 		  IrtE2PtStruct *Center,
@@ -654,7 +770,6 @@ int GMMinSpanCone(IrtVecType *DTVecs,
 		  int NumOfPoints,
 		  IrtVecType Center,
 		  IrtRType *Angle);
-
 int GMMinSpanSphere(IrtE3PtStruct *DTPts,
 		    int NumOfPoints,
 		    IrtE3PtStruct *Center,
@@ -667,7 +782,6 @@ int GMSphereWith4Pts(IrtE3PtStruct *Pts,
 		     IrtRType *RadiusSqr);
 
 /* Functions to extract silhouette and boundary curves from polygonal data. */
-
 VoidPtr GMSilPreprocessPolys(struct IPObjectStruct *PObj, int n);
 int GMSilPreprocessRefine(VoidPtr PrepSils, int n);
 struct IPObjectStruct *GMSilExtractSilDirect(struct IPObjectStruct *PObj,
@@ -683,7 +797,6 @@ void GMSilProprocessFree(VoidPtr PrepSils);
 int GMSilOrigObjAlive(int ObjAlive);
 
 /* Functions from the animate package. */
-
 void GMAnimResetAnimStruct(GMAnimationStruct *Anim);
 void GMAnimGetAnimInfoText(GMAnimationStruct *Anim);
 int GMAnimHasAnimation(const struct IPObjectStruct *PObjs);
@@ -714,6 +827,7 @@ IrtRType GMExecuteAnimationEvalMat(struct IPObjectStruct *AnimationP,
 void GMAnimDoAnimation(GMAnimationStruct *Anim, struct IPObjectStruct *PObjs);
 int GMAnimSetReverseHierarchyMatProd(int ReverseHierarchyMatProd);
 int GMAnimSetAnimInternalNodes(int AnimInternalNodes);
+int GMAnimHasDispPropAttrib(const struct IPObjectStruct *PObj);
 void GMAnimEvalAnimation(IrtRType t, struct IPObjectStruct *PObj);
 void GMAnimEvalAnimationList(IrtRType t, struct IPObjectStruct *PObjList);
 struct IPObjectStruct *GMAnimEvalObjAtTime(IrtRType t,
@@ -722,14 +836,15 @@ void GMAnimDoSingleStep(GMAnimationStruct *Anim, struct IPObjectStruct *PObjs);
 int GMAnimCheckInterrupt(GMAnimationStruct *Anim);
 
 /* Functions from the bbox package. */
-
 int GMBBSetBBoxPrecise(int Precise);
 GMBBBboxStruct *GMBBComputeBboxObject(const struct IPObjectStruct *PObj,
-				      GMBBBboxStruct *Bbox);
+				      GMBBBboxStruct *Bbox,
+				      int HandleInvisibelObjs);
 GMBBBboxStruct *GMBBComputeBboxObjectList(const struct IPObjectStruct *PObj,
-					  GMBBBboxStruct *Bbox);
-const struct IPObjectStruct *GMBBSetGlblBBObjList(const struct IPObjectStruct
-						                   *BBObjList);
+					  GMBBBboxStruct *Bbox,
+					  int HandleInvisibelObjs);
+const struct IPObjectStruct *GMBBSetGlblBBInstncObjList(
+				   const struct IPObjectStruct *BBInstObjList);
 GMBBBboxStruct *GMBBComputeOnePolyBbox(const struct IPPolygonStruct *PPoly,
 				       GMBBBboxStruct *Bbox);
 GMBBBboxStruct *GMBBComputePolyListBbox(const struct IPPolygonStruct *PPoly,
@@ -742,16 +857,17 @@ GMBBBboxStruct *GMBBMergeBbox(GMBBBboxStruct *MergedBbox,
 			      const GMBBBboxStruct *Bbox);
 
 /* Functions from the convex polygons package. */
-
-int GMConvexPolyNormals(int HandleNormals);
 int GMConvexRaysToVertices(int RaysToVertices);
 int GMConvexNormalizeNormal(int NormalizeNormals);
-struct IPObjectStruct *GMConvexPolyObjectN(const struct IPObjectStruct *PObj);
-void GMConvexPolyObject(struct IPObjectStruct *PObj);
+struct IPObjectStruct *GMConvexPolyObjectN(const struct IPObjectStruct *PObj,
+					   int HandleNormals);
+void GMConvexPolyObject(struct IPObjectStruct *PObj,
+			int HandleNormals);
 int GMIsConvexPolygon2(const struct IPPolygonStruct *Pl);
 int GMIsConvexPolygon(struct IPPolygonStruct *Pl);
 
-struct IPPolygonStruct *GMSplitNonConvexPoly(struct IPPolygonStruct *Pl);
+struct IPPolygonStruct *GMSplitNonConvexPoly(struct IPPolygonStruct *Pl,
+					     int HandleNormals);
 void GMGenRotateMatrix(IrtHmgnMatType Mat, const IrtVecType Dir);
 
 /* Functions from general polygons to triangles package. */
@@ -763,33 +879,21 @@ struct IPPolygonStruct *GMTriangulatePolygonList(const struct IPPolygonStruct
 /* Functions from general polygons to quads. */
 struct IPPolygonStruct *GMQuadrangulatePolygon(const struct
 						        CagdPolylineStruct *Pl,
-					       GMQuadWeightFuncType WF);
+					       GMQuadWeightFuncType WF,
+					       void *UserData);
 struct IPPolygonStruct *GMQuadrangulatePolygon2(const struct 
 							   IPPolygonStruct *Pl,
-						GMQuadWeightFuncType WF);
+						GMQuadWeightFuncType WF,
+						void *UserData);
 struct IPPolygonStruct *GMQuadrangulatePolygonList(const struct 
 						     IPPolygonStruct *PlgnList,
-						   GMQuadWeightFuncType WF);
+						   GMQuadWeightFuncType WF,
+						   void *UserData);
 IrtRType GMQuadAreaPerimeterRatioWeightFunc(const struct CagdPolylineStruct *P,
 				            const int *VIndices, 
 				            int numV);
 
-struct IPObjectStruct *GMDecimateObject(struct IPObjectStruct *PObj);
-void GMDecimateObjSetDistParam(IrtRType d);
-void GMDecimateObjSetPassNumParam(int p);
-void GMDecimateObjSetDcmRatioParam(int r);
-void GMDecimateObjSetMinAspRatioParam(IrtRType a);
-
-VoidPtr HDSCnvrtPObj2QTree(struct IPObjectStruct *PObjects, int Depth);
-struct IPObjectStruct *HDSThreshold(VoidPtr Qt, IrtRType Threshold);
-struct IPObjectStruct *HDSTriBudget(VoidPtr Qt, int TriBudget);
-void HDSFreeQTree(VoidPtr Qt);
-int HDSGetActiveListCount(VoidPtr Qt);
-int HDSGetTriangleListCount(VoidPtr Qt);
-int HDSGetDismissedTrianglesCount(VoidPtr Qt);
-
 /* Functions from the normal/uv/rgb/etc. interpolation package. */
-
 void GMUpdateVerticesByInterp(struct IPPolygonStruct *PlList,
 			      const struct IPPolygonStruct *OriginalPl);
 void GMUpdateVertexByInterp(struct IPVertexStruct *VUpdate,
@@ -831,11 +935,9 @@ void GMFixNormalsOfPolyModel(struct IPPolygonStruct *PlList, int TrustFixedPt);
 void GMFixPolyNormals(struct IPObjectStruct *PObj, int TrustFixPt);
 
 /* Functions from the line sweep package. */
-
 void GMLineSweep(GMLsLineSegStruct **Lines);
 
 /* Functions from the polygonal cleaning package. */
-
 int GMTwoPolySameGeom(const struct IPPolygonStruct *Pl1,
 		      const struct IPPolygonStruct *Pl2,
 		      IrtRType Eps);
@@ -868,13 +970,13 @@ struct IPVertexStruct *GMFindThirdPointInTriangle(
 					   const struct IPVertexStruct *VNext);
 
 /* Functions from the points on polygonal objects package. */
-
 int GMGetMaxNumVrtcsPoly(struct IPObjectStruct *PolyObj);
 int GMPolyHasCollinearEdges(const struct IPPolygonStruct *Pl);
 struct IPPolygonStruct *GMConvertPolyToTriangles(struct IPPolygonStruct *Pl);
-struct IPPolygonStruct *GMConvertPolyToTriangles2(struct IPPolygonStruct *Pl);
-struct IPObjectStruct *GMConvertPolysToNGons(struct IPObjectStruct *PolyObj,
-					     int n);
+struct IPObjectStruct *GMConvertPolysToNGons(
+					  const struct IPObjectStruct *PolyObj,
+					  int n,
+					  int HandleNormals);
 struct IPObjectStruct *GMConvertPolysToTriangles(const struct IPObjectStruct
 						                    *PolyObj);
 struct IPObjectStruct *GMConvertPolysToTriangles2(const struct IPObjectStruct
@@ -889,7 +991,7 @@ struct IPPolygonStruct *GMLimitTrianglesEdgeLen(const struct IPPolygonStruct
 void GMAffineTransUVVals(struct IPObjectStruct *PObj,
 			 const IrtRType Scale[2],
 			 const IrtRType Trans[2]);
-void GMGenUVValsForPolys(struct IPObjectStruct *PObj,
+void GMGenUVValsForPolys(const struct IPObjectStruct *PObj,
 			 IrtRType UTextureRepeat,
 			 IrtRType VTextureRepeat,
 			 IrtRType WTextureRepeat,
@@ -940,7 +1042,6 @@ struct IPPolygonStruct *GMSplitPolyInPlaceAt2Vertices(
 					       struct IPVertexStruct *V2);
 
 /* Functions from the polygonal offsets package. */
-
 IrtRType GMPolyOffsetAmountDepth(const IrtRType *Coord);
 struct IPPolygonStruct *GMPolyOffset(const struct IPPolygonStruct *Poly,
 				     int IsPolygon,
@@ -953,7 +1054,6 @@ struct IPPolygonStruct *GMPolyOffset3D(const struct IPPolygonStruct *Poly,
 				       GMPolyOffsetAmountFuncType AmountFunc);
 
 /* Functions from the primitive constructions' package. */
-
 int PrimSetGeneratePrimType(int PolygonalPrimitive);
 int PrimSetSurfacePrimitiveRational(int SurfaceRational);
 
@@ -1068,7 +1168,6 @@ struct IPPolygonStruct *PrimGenPolyline4Vrtx(const IrtVecType V1,
 int PrimSetResolution(int Resolution);
 
 /* Functions from the quaternions package. */
-
 void GMQuatToMat(GMQuatType q, IrtHmgnMatType Mat);
 void GMQuatMatToQuat(IrtHmgnMatType Mat, GMQuatType q);
 void GMQuatRotationToQuat(IrtRType Xangle,
@@ -1102,11 +1201,9 @@ void GMMatrixToTransform(IrtHmgnMatType Mat,
 			 IrtVecType T);
 
 /* Functions from the spherical coverage package. */
-
 struct IPObjectStruct *GMPointCoverOfUnitHemiSphere(IrtRType HoneyCombSize);
 
 /* Functions from the software z buffer. */
-
 VoidPtr GMZBufferInit(int Width, int Height);
 void GMZBufferFree(VoidPtr ZbufferID);
 void GMZBufferClear(VoidPtr ZbufferID);
@@ -1147,7 +1244,6 @@ void GMZBufferUpdateTri(VoidPtr ZbufferID,
 			IrtRType z3);
 
 /* Functions from the z buffer based on Open GL package. */
-
 IritIntPtrSizeType GMZBufferOGLInit(int Width,
 				    int Height,
 				    IrtRType ZMin,
@@ -1165,7 +1261,6 @@ void GMZBufferOGLQueryColor(IrtRType x,
 void GMZBufferOGLFlush(void);
 
 /* Functions to fit analytic functions to point data sets. */
-
 IrtPtType *GMSrfBilinearFit(IrtPtType *ParamDomainPts,
 			    IrtPtType *EuclideanPts,
 			    int FirstAtOrigin,
@@ -1190,44 +1285,38 @@ IrtPtType *GMSrfCubicQuadOnly(IrtPtType *ParamDomainPts,
 			      IrtPtType *CubicData);
 
 /* Metamorphosis of polygonal objects. */
-
 struct IPPolygonStruct *GMPolygonalMorphosis(const struct IPPolygonStruct *Pl1,
 					     const struct IPPolygonStruct *Pl2,
 					     IrtRType t);
 
 /* Scan conversion of polygons. */
-
 void GMScanConvertTriangle(int Pt1[2],
 			   int Pt2[2],
 			   int Pt3[2],
 			   GMScanConvertApplyFuncType ApplyFunc);
 
 /* Text and string data sets. */
-
 int GMLoadTextFont(const char *FName);
 struct IPObjectStruct *GMMakeTextGeometry(const char *Str,
 					  const IrtVecType Spacing,
 					  const IrtRType *Scaling);
 
 /* Curvature analysis over polygonal meshes. */
-
 void GMPlCrvtrSetCurvatureAttr(struct IPPolygonStruct *PolyList,
 			       int NumOfRings,
 			       int EstimateNrmls);
 int GMPlCrvtrSetFitDegree(int UseCubic);
 
 /* Importance analysis over polygonal meshes. */
-
 void GMPlSilImportanceAttr(struct IPPolygonStruct *PolyList);
 struct IPPolygonStruct *GMPlSilImportanceRange(struct IPPolygonStruct
 					                         *PolyList);
 
 
 /* Extraction of properties from polygonal meshes. */
-
 struct IPPolygonStruct *GMPolyPropFetchAttribute(struct IPPolygonStruct *Pls,
-					  const char *PropAttr,
-					  IrtRType Value);
+						 IPAttrIDType AttrID,
+					         IrtRType Value);
 struct IPPolygonStruct *GMPolyPropFetchIsophotes(struct IPPolygonStruct *Pls,
 					  const IrtVecType ViewDir,
 					  IrtRType InclinationAngle);
@@ -1244,7 +1333,6 @@ struct IPPolygonStruct *GMGenPolyline2Vrtx(IrtVecType V1,
 				    struct IPPolygonStruct *Pnext);
 
 /* Function for primitive fitting to point clouds. */
-
 IrtRType GMFitData(IrtRType **PointData,
 		   unsigned int NumberOfPointsToFit,
 		   GMFittingModelType FittingModel,
@@ -1268,7 +1356,6 @@ IrtRType GMFitEstimateRotationAxis(IrtPtType *PointsOnObject,
 				   IrtVecType RotationAxisDirection);
 
 /* Functions to construct an adjacency data structure for polygonal meshes. */
-
 VoidPtr GMPolyAdjacncyGen(struct IPObjectStruct *PObj, IrtRType EqlEps);
 void GMPolyAdjacncyVertex(struct IPVertexStruct *V,
 			  VoidPtr PolyAdj,
@@ -1280,16 +1367,17 @@ int GMIdentifyTJunctions(struct IPObjectStruct *PolyObj,
 int GMRefineDeformedTriangle(struct IPPolygonStruct *Pl,
 			     GMPointDeformVrtxFctrFuncType DeformVrtxFctrFunc,
 			     GMPointDeformVrtxDirFuncType DeformVrtxDirFunc,
+			     void *UserData,
 			     IrtRType DeviationTol,
 			     IrtRType MaxEdgeLen);
 int GMRefineDeformedTriangle2(struct IPPolygonStruct *Pl,
 			      GMPointDeformVrtxFctrFuncType DeformVrtxFctrFunc,
+			      void *UserData,
 			      IrtBType Ref12,
 			      IrtBType Ref23,
 			      IrtBType Ref31);
 
 /* Functions to smooth poly data. */
-
 struct IPObjectStruct *GMPolyMeshSmoothing(
 			       struct IPObjectStruct *PolyObj,
 			       const struct IPPolygonStruct *VerticesToRound,
@@ -1300,6 +1388,7 @@ struct IPObjectStruct *GMPolyMeshSmoothing(
 			       int CurvatureLimits);
 void GMFindUnConvexPolygonNormal(const struct IPVertexStruct *VL,
 				 IrtVecType Nrml);
+int GMFindPtInsidePoly(const struct IPPolygonStruct *Pl, IrtPtType PtInside);
 int GMFindPtInsidePolyKernel(const struct IPVertexStruct *VE,
 			     IrtPtType KrnlPt);
 int GMIsVertexBoundary(int Index, const struct IPPolyVrtxArrayStruct *PVIdx);
@@ -1307,6 +1396,10 @@ int GMIsInterLinePolygon2D(const struct IPVertexStruct *VS,
 			   const IrtPtType V1, 
 			   const IrtPtType V2, 
 			   IrtRType *t);
+int GMAllIntersLinePolygon2D(const struct IPVertexStruct *VS, 
+			     const IrtPtType V1, 
+			     const IrtPtType V2, 
+			     IrtRType *AllPrms);
 int GMComputeAverageVertex(const struct IPVertexStruct *VS, 
 			   IrtPtType CenterPoint, 
 			   IrtRType BlendFactor);
@@ -1318,17 +1411,55 @@ int GMComputeAverageVertex2(const int *NS,
 			    IrtRType DesiredRadius);
 
   /* Subdivision surfaces functions. */
-
-struct IPObjectStruct *GMSubCatmullClark(struct IPObjectStruct *OriginalObj);
-struct IPObjectStruct *GMSubLoop(struct IPObjectStruct *OriginalObj);
-struct IPObjectStruct *GMSubButterfly(struct IPObjectStruct *OriginalObj, 
+struct IPObjectStruct *GMSubCatmullClark(const struct IPObjectStruct
+							        *OriginalObj);
+struct IPObjectStruct *GMSubLoop(const struct IPObjectStruct *OriginalObj);
+struct IPObjectStruct *GMSubButterfly(const struct IPObjectStruct *OriginalObj, 
 				      IrtRType ButterflyWCoef);
 
 /* Error handling. */
-
 GeomSetErrorFuncType GeomSetFatalErrorFunc(GeomSetErrorFuncType ErrorFunc);
 void GeomFatalError(GeomFatalErrorType ErrID);
 const char *GeomDescribeError(GeomFatalErrorType ErrID);
+
+
+/* Polygon mesh handling functions using BVH. */
+struct GMPolyBVHStruct *GMPolyBVHCreate(const struct IPPolygonStruct *Pl);
+void GMPolyBVHFree(struct GMPolyBVHStruct *PolyBVH);
+
+int GMPolyBVHGetClosestPoint(const IrtPtType query, 
+			     const struct GMPolyBVHStruct *PolyBVH,
+			     IrtPtType ClosestPt,
+			     int *ClosestPlIdx);
+int GMPolyBVHGetClosestPoint2(const IrtPtType QueryPt,
+			      const struct GMPolyBVHStruct *PolyBVH,
+			      IrtPtType ClosestPt,
+			      int *ClosestPlIdx);
+int GMPolyBVHGetRayBVHIntersectionPt(const IrtPtType RayPt, 
+				     const IrtVecType RayDir, 
+				     const struct GMPolyBVHStruct *PolyBVH,
+				     IrtPtType *Res);
+int GMPolyBVHPointInsidePolys(const IrtPtType Pt,
+			      const struct GMPolyBVHStruct *PolyBVH);
+int GMPolyBVHSrfsPolyInter(const struct IPObjectStruct *PSrfs,
+			   const struct GMPolyBVHStruct *PolyBVH);
+int GMPolyBVHCrvsPolyInter(const struct IPObjectStruct *PCrvs,
+			   const struct GMPolyBVHStruct *PolyBVH);
+
+/* BSP tree API, for 3D points. */
+GMBspPtsSliceInfoStruct *GMBspPtsAllocSliceStruct();
+void GMBspPtsFreeSliceStruct(GMBspPtsSliceInfoStruct *Slice);
+void GMBspPtsFreeSliceStructList(GMBspPtsSliceInfoStruct *SliceList);
+GMBspPtsNodeStruct *GMBspPtsCreateTree(struct IPVertexStruct *PC, 
+				       GMBspPtsSliceInfoStruct *Slices, 
+				       int StartIdx, 
+				       int EndIdx);
+void GMBspPtsFreeTree(GMBspPtsNodeStruct *Head);
+struct IPVertexStruct *GMBspPtsGetVertices(GMBspPtsNodeStruct *Head, 
+	                                   GMBspPtsSliceInfoStruct *LeftSlc, 
+				           GMBspPtsSliceInfoStruct *RightSlc);
+void GMBspPtsAddSlices(GMBspPtsNodeStruct *Head, 
+		       GMBspPtsSliceInfoStruct *AddedSlices);
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

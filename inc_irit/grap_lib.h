@@ -12,11 +12,11 @@
 #ifndef	IRIT_GRAP_LIB_H	/* Define only once */
 #define	IRIT_GRAP_LIB_H
 
-#include "irit_sm.h"
-#include "misc_lib.h"
-#include "miscattr.h"
-#include "iritprsr.h"
-#include "geom_lib.h"
+#include "inc_irit/irit_sm.h"
+#include "inc_irit/misc_lib.h"
+#include "inc_irit/miscattr.h"
+#include "inc_irit/iritprsr.h"
+#include "inc_irit/geom_lib.h"
 
 #define IG_IRIT_BLACK		0
 #define IG_IRIT_BLUE		1
@@ -77,15 +77,15 @@
 #define IG_RST_HIGHLIGHT2_OBJ(Obj)  ((Obj) -> Tags &= ~IG_HIGHLIGHT2_OBJ_TAG)
 
 #define IG_ADD_ORIENT_NRML(P, N) \
-				if (IGGlblFlipNormalOrient) { \
-				    P[0] = P[0] - N[0] * IGGlblNormalSize; \
-				    P[1] = P[1] - N[1] * IGGlblNormalSize; \
-				    P[2] = P[2] - N[2] * IGGlblNormalSize; \
+				if (IGState.FlipNormalOrient) { \
+				    P[0] = P[0] - N[0] * IGState.NormalSize; \
+				    P[1] = P[1] - N[1] * IGState.NormalSize; \
+				    P[2] = P[2] - N[2] * IGState.NormalSize; \
 				} \
 				else { \
-				    P[0] = P[0] + N[0] * IGGlblNormalSize; \
-				    P[1] = P[1] + N[1] * IGGlblNormalSize; \
-				    P[2] = P[2] + N[2] * IGGlblNormalSize; \
+				    P[0] = P[0] + N[0] * IGState.NormalSize; \
+				    P[1] = P[1] + N[1] * IGState.NormalSize; \
+				    P[2] = P[2] + N[2] * IGState.NormalSize; \
 				}
 
 #define IG_MAX_LIGHT_SOURCES 10          /* Maximal number of light sources. */
@@ -114,6 +114,7 @@ typedef enum {   /* Note that some device drivers depends on this order. */
     IG_STATE_DRAW_POLYGONS,
     IG_STATE_DRAW_SRF_MESH,
     IG_STATE_DRAW_SRF_WIRE,
+    IG_STATE_DRAW_SRF_KNOT_LNS,
     IG_STATE_DRAW_SRF_BNDRY,
     IG_STATE_DRAW_SRF_SILH,
     IG_STATE_DRAW_SRF_POLY,
@@ -248,10 +249,10 @@ typedef enum {
 #define IG_SHADING_GOURAUD	3
 #define IG_SHADING_PHONG	4
 
-#define IG_HAS_ISOLINES(IGGlblNumOfIsolines) \
-		       (IGGlblNumOfIsolines[0] > 0 || \
-		        IGGlblNumOfIsolines[1] > 0 || \
-			IGGlblNumOfIsolines[2] > 0)
+#define IG_HAS_ISOLINES(NumOfIsolines) \
+		       (NumOfIsolines[0] > 0 || \
+		        NumOfIsolines[1] > 0 || \
+			NumOfIsolines[2] > 0)
 
 typedef float IGLightType[4];
 
@@ -277,12 +278,96 @@ typedef struct IGShadeParamStruct {
     float Shininess;
 } IGShadeParamStruct;
 
+typedef struct IGGraphicStateStruct {
+    int BackGroundColor[3],
+	AbortKeyPressed,
+	AdapIsoDir,
+	BackFaceCull,
+	CacheGeom,
+	CountNumPolys,
+	DepthCue,
+	DrawInternal,
+	DrawPNormal,
+	DrawPolygons,
+	DrawSurfaceMesh,
+	DrawSurfacePoly,
+	DrawSurfaceWire,
+	DrawSurfaceKnotLns,
+	DrawSurfaceOrient,
+	DrawSurfaceBndry,
+	DrawSurfaceSilh,
+	DrawSurfaceDiscont,
+	DrawSurfaceContours,
+	DrawSurfaceIsophotes,
+	DrawSurfaceSketch,
+	DrawSurfaceRflctLns,
+	DrawModelsMonolithic,
+	DrawStyle,
+	DrawVNormal,
+	FlipNormalOrient,
+	PolygonStrips,
+	FourPerFlat,
+	Highlight1Color[3],
+	Highlight2Color[3],
+	IntensityHighState,
+	LastLowResDraw,
+	LineWidth,
+	ManipulationActive,
+	MoreInfo,
+        NumOfIsolines[3],
+	NumPolys,
+	PolygonOptiApprox,
+	QuickLoad,
+	ContinuousMotion,
+	ViewMode,
+	AntiAliasing,
+	ShadingModel,
+	DoDoubleBuffer,
+	Animation,
+	TransformMode,
+	CountFramePerSec,
+	AlwaysGenUV,
+	NumOfIsophotes,
+	NumOfContours;
+
+    IrtRType
+	MinPickDist,
+	NormalSize,
+	PointSize,
+	PlgnFineness,
+	PllnFineness,
+	RelLowresFineNess,
+	FramePerSec,
+	ChangeFactor,
+	ZMinClip,
+	ZMaxClip,
+        EyeDistance;
+
+    IrtVecType
+	IsophotesDir, ContoursDir;
+
+    SymbCrvApproxMethodType
+	PolylineOptiApprox;
+
+    IrtHmgnMatType CrntViewMat, InvCrntViewMat, LastProcessMat,
+	PushViewMat, PushPrspMat, IsometryViewMat;
+
+    IPObjectStruct *DisplayList;
+
+    IGDrawUpdateFuncType
+	DrawSrfPolysPreFunc,
+	DrawSrfPolysPostFunc,
+	DrawSrfWirePreFunc,
+	DrawSrfWirePostFunc,
+	DrawSketchPreFunc,
+	DrawSketchPostFunc,
+	DrawCtlMeshPreFunc,
+	DrawCtlMeshPostFunc;
+} IGGraphicStateStruct;
+
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
-
-IRIT_GLOBAL_DATA_HEADER IPObjectStruct
-    *IGGlblDisplayList;
 
 IRIT_GLOBAL_DATA_HEADER GMAnimationStruct IGAnimation;
 IRIT_GLOBAL_DATA_HEADER IGShadeParamStruct IGShadeParam;
@@ -291,75 +376,7 @@ IRIT_GLOBAL_DATA_HEADER IGSketchParamStruct IGSketchParam;
 IRIT_GLOBAL_DATA_HEADER IGDrawObjectFuncType IGDrawPolyFuncPtr;
 
 /* These variables are used by C++ code so placed under 'extern "C"'. */
-IRIT_GLOBAL_DATA_HEADER int
-    IGGlblBackGroundColor[3],
-    IGGlblAbortKeyPressed,
-    IGGlblAdapIsoDir,
-    IGGlblBackFaceCull,
-    IGGlblCacheGeom,
-    IGGlblCountNumPolys,
-    IGGlblDepthCue,
-    IGGlblDrawInternal,
-    IGGlblDrawPNormal,
-    IGGlblDrawPolygons,
-    IGGlblDrawSurfaceMesh,
-    IGGlblDrawSurfacePoly,
-    IGGlblDrawSurfaceWire,
-    IGGlblDrawSurfaceOrient,
-    IGGlblDrawSurfaceBndry,
-    IGGlblDrawSurfaceSilh,
-    IGGlblDrawSurfaceDiscont,
-    IGGlblDrawSurfaceContours,
-    IGGlblDrawSurfaceIsophotes,
-    IGGlblDrawSurfaceSketch,
-    IGGlblDrawSurfaceRflctLns,
-    IGGlblDrawStyle,
-    IGGlblDrawVNormal,
-    IGGlblFlipNormalOrient,
-    IGGlblPolygonStrips,
-    IGGlblFourPerFlat,
-    IGGlblHighlight1Color[3],
-    IGGlblHighlight2Color[3],
-    IGGlblIntensityHighState,
-    IGGlblLastLowResDraw,
-    IGGlblLineWidth,
-    IGGlblManipulationActive,
-    IGGlblMore,
-    IGGlblNumOfIsolines[3],
-    IGGlblNumPolys,
-    IGGlblPolygonOptiApprox,
-    IGGlblQuickLoad,
-    IGGlblContinuousMotion,
-    IGGlblViewMode,
-    IGGlblAntiAliasing,
-    IGGlblShadingModel,
-    IGGlblDoDoubleBuffer,
-    IGGlblAnimation,
-    IGGlblTransformMode,
-    IGGlblCountFramePerSec,
-    IGGlblAlwaysGenUV,
-    IGGlblNumFiles;
-IRIT_GLOBAL_DATA_HEADER IrtRType
-    IGGlblNormalSize,
-    IGGlblPointSize,
-    IGGlblMinPickDist,
-    IGGlblPlgnFineness,
-    IGGlblPllnFineness,
-    IGGlblRelLowresFineNess,
-    IGGlblFramePerSec,
-    IGGlblChangeFactor,
-    IGGlblZMinClip,
-    IGGlblZMaxClip,
-    IGGlblEyeDistance;
-IRIT_GLOBAL_DATA_HEADER SymbCrvApproxMethodType
-    IGGlblPolylineOptiApprox;
-IRIT_GLOBAL_DATA_HEADER IrtHmgnMatType
-    IGGlblCrntViewMat,
-    IGGlblInvCrntViewMat,
-    IGGlblLastProcessMat,
-    IGGlblPushViewMat,
-    IGGlblPushPrspMat,
-    IGGlblIsometryViewMat;
+IRIT_GLOBAL_DATA_HEADER IGGraphicStateStruct IGState;
 
 /* Functions that should be supplied by the user of this lib. */
 void IGRedrawViewWindow(void);
@@ -376,21 +393,21 @@ void IGActiveListFreePolyIsoAttribute(IPObjectStruct *PObjs,
 				      int FreeIsolines,
 				      int FreeSketches,
 				      int FreeCtlMesh);
-void IGActiveListFreeNamedAttribute(IPObjectStruct *PObjs, char *Name);
+void IGActiveListFreeAttrByID(IPObjectStruct *PObjs, IPAttrIDType AttrID);
 void IGActiveFreePolyIsoAttribute(IPObjectStruct *PObj,
 				  int FreePolygons,
 				  int FreeIsolines,
 				  int FreeSketches,
 				  int FreeCtlMesh);
-void IGActiveFreeNamedAttribute(IPObjectStruct *PObj, char *Name);
+void IGActiveFreeAttrByID(IPObjectStruct *PObj, IPAttrIDType AttrID);
 void IGUpdateObjectBBox(IPObjectStruct *PObj);
 void IGUpdateViewConsideringScale(IrtHmgnMatType Mat);
 IrtRType IGFindMinimalDist(IPObjectStruct *PObj,
 			   IPPolygonStruct **MinPl,
 			   IrtPtType MinPt,
 			   int *MinPlIsPolyline,
-			   IrtPtType LinePos,
-			   IrtVecType LineDir,
+			   const IrtPtType LinePos,
+			   const IrtVecType LineDir,
 			   IrtRType *HitDepth);
 void IGDrawPolygonSketches(IPObjectStruct *PObj);
 IPObjectStruct *IGGenPolygonSketches(IPObjectStruct *PObj, IrtRType FineNess);
@@ -398,15 +415,23 @@ void IGDrawPolySilhBndry(IPObjectStruct *PObj);
 void IGDrawPolySilhouette(IPObjectStruct *PObj);
 void IGDrawPolyBoundary(IPObjectStruct *PObj);
 void IGDrawPolyDiscontinuities(IPObjectStruct *PObj);
+void IGDrawPolyKnotLines(IPObjectStruct *PObj);
 int IGDrawPolyContoursSetup(IrtRType x, IrtRType y, IrtRType z, int n);
 void IGDrawPolyContours(IPObjectStruct *PObj);
 int IGDrawPolyIsophotesSetup(IrtRType x, IrtRType y, IrtRType z, int n);
 void IGDrawPolyIsophotes(IPObjectStruct *PObj);
-IPObjectStruct *IGGetObjIsoLines(IPObjectStruct *PObj);
-IPObjectStruct *IGGetObjPolygons(IPObjectStruct *PObj);
-int IGInitSrfTexture(IPObjectStruct *PObj);
-int IGInitSrfMovie(IPObjectStruct *PObj);
-void IGClearObjTextureMovieAttr(IPObjectStruct *PObj);
+IPObjectStruct *IGGetObjIsoLines(const IPObjectStruct *PObj);
+IPObjectStruct *IGGetObjPolygons(const IPObjectStruct *PObj);
+int IGInitSrfTexture(const IPObjectStruct *PObj);
+int IGInitSrfTextureFromImage(const IPObjectStruct *PObj,
+			      int SrfIdx,
+			      void *Image,
+			      int ImageWidth,
+			      int ImageHeight,
+			      int ImageAlpha);
+int IGDeleteTexture(const IPObjectStruct *PObj);
+int IGInitSrfMovie(const IPObjectStruct *PObj);
+void IGClearObjTextureMovieAttr(const IPObjectStruct *PObj);
 int IGDefaultProcessEvent(IGGraphicEventType Event, IrtRType *ChangeFactor);
 int IGDefaultStateHandler(int State, int StateStatus, int Refresh);
 void IGUpdateFPS(int Start);
@@ -414,28 +439,30 @@ void IGUpdateFPS(int Start);
 /* Generic drawing routines - essentially convert the geometry into a      */
 /* displayable form and invoke the drawing routines recursively.	   */
 void IGDrawCurve(IPObjectStruct *PObj);
-void IGDrawCurveGenPolylines(IPObjectStruct *PObj);
-void IGDrawModel(IPObjectStruct *PObj);
-void IGDrawModelGenPolygons(IPObjectStruct *PObj);
-void IGDrawVModel(IPObjectStruct *PObj);
-void IGDrawVModelGenPolygons(IPObjectStruct *PObj);
+void IGDrawCurveGenPolylines(const IPObjectStruct *PObj);
+void IGDrawModel(IPObjectStruct *PObj, IGDrawObjectFuncType DrawTSrfsFuncPtr);
+void IGDrawModelGenPolygons(const IPObjectStruct *PObj);
+IPObjectStruct *IGDecomposeMdlDue2Graphics(const IPObjectStruct *PMdls);
+void IGDrawVModel(IPObjectStruct *PObj, IGDrawObjectFuncType DrawTSrfsFuncPtr);
+void IGDrawVModelGenPolygons(const IPObjectStruct *PObj);
+IPObjectStruct *IGDecomposeVMdlDue2Graphics(const IPObjectStruct *PVMdls);
 void IGDrawString(IPObjectStruct *PObj);
 unsigned char *IGCnvrtChar2Raster(const char c);
 void IGDrawSurface(IPObjectStruct *PObj);
-void IGDrawSurfaceGenPolygons(IPObjectStruct *PObj);
+void IGDrawSurfaceGenPolygons(const IPObjectStruct *PObj);
 void IGDrawSurfaceAIso(IPObjectStruct *PObj);
 void IGDrawTriangSrf(IPObjectStruct *PObj);
-void IGDrawTriangGenSrfPolygons(IPObjectStruct *PObj);
+void IGDrawTriangGenSrfPolygons(const IPObjectStruct *PObj);
 void IGDrawTrimSrf(IPObjectStruct *PObj);
-void IGDrawTrimSrfGenPolygons(IPObjectStruct *PObj);
+void IGDrawTrimSrfGenPolygons(const IPObjectStruct *PObj);
 void IGDrawTrivar(IPObjectStruct *PObj);
-void IGDrawTrivarGenSrfPolygons(IPObjectStruct *PObj);
+void IGDrawTrivarGenSrfPolygons(const IPObjectStruct *PObj);
 
 /* Sketching related routines for freeforms surfaces and polygonal meshes. */
-void IGSketchDrawSurface(IPObjectStruct *PObjSketches);
-IPObjectStruct *IGSketchGenSrfSketches(CagdSrfStruct *Srf,
+void IGSketchDrawSurface(const IPObjectStruct *PObjSketches);
+IPObjectStruct *IGSketchGenSrfSketches(const CagdSrfStruct *InSrf,
 				       IrtRType FineNess,
-				       IPObjectStruct *PObj,
+				       const IPObjectStruct *PObj,
 				       int Importance);
 void IGSketchDrawPolygons(IPObjectStruct *PObjSketches);
 IPObjectStruct *IGSketchGenPolySketches(IPObjectStruct *PlObj,
@@ -454,6 +481,11 @@ IGDrawUpdateFuncType IGSetSketchPreFunc(IGDrawUpdateFuncType Func);
 IGDrawUpdateFuncType IGSetSketchPostFunc(IGDrawUpdateFuncType Func);
 IGDrawUpdateFuncType IGSetCtlMeshPreFunc(IGDrawUpdateFuncType Func);
 IGDrawUpdateFuncType IGSetCtlMeshPostFunc(IGDrawUpdateFuncType Func);
+
+void IGGraphicsStateSet(const IGGraphicStateStruct *IGS);
+void IGGraphicsStateGet(IGGraphicStateStruct *IGS);
+void IGGraphicsStateResetDefault(void);
+void IGGraphicsStateReset(IGGraphicStateStruct *IGS);
 
 /* Open GL CG hardware GPU support. */
 int IGCGDrawDTexture(IPObjectStruct *PObj);
