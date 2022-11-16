@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "iritSkel.h"
+
 /*****************************************************************************
 * Skeleton for an interface to a parser to read IRIT data files.			 *
 ******************************************************************************
@@ -8,6 +9,10 @@
 * Written by:  Gershon Elber				Ver 1.0, Feb 2002				 *
 * Minimal changes made by Amit Mano			November 2008					 *
 ******************************************************************************/
+
+// global variable to hold data contained in the currently open .itd file
+using namespace CG;
+std::list<Object> objects;
 
 IPFreeformConvStateStruct CGSkelFFCState = {
 	FALSE,          /* Talkative */
@@ -45,6 +50,9 @@ IPFreeformConvStateStruct CGSkelFFCState = {
 *****************************************************************************/
 bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 {
+	// delete objects from previous file and prepare to store data from the new file
+	objects.clear();
+
 	IPObjectStruct *PObjects;
 	IrtHmgnMatType CrntViewMat;
 	IPTraverseObjHierarchyStruct TraversState;
@@ -116,6 +124,9 @@ void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj,
 *****************************************************************************/
 bool CGSkelStoreData(IPObjectStruct *PObj)
 {
+	// create new Object
+	Object object;
+
 	int i;
 	const char *Str;
 	double RGB[3], Transp;
@@ -134,7 +145,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 
 	if (CGSkelGetObjectColor(PObj, RGB))
 	{
-		/* color code */
+		object.color = COLORREF(RGB);
 	}
 	if (CGSkelGetObjectTransp(PObj, &Transp))
 	{
@@ -156,35 +167,62 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			Attrs = AttrTraceAttributes(Attrs, NULL);
 		}
 	}
-	for (PPolygon = PObj -> U.Pl; PPolygon != NULL;	PPolygon = PPolygon -> Pnext) 
+	for (PPolygon = PObj->U.Pl; PPolygon != NULL; PPolygon = PPolygon->Pnext)
 	{
-			if (PPolygon -> PVertex == NULL) {
-				AfxMessageBox(_T("Dump: Attemp to dump empty polygon"));
-				return false;
+		// create new face
+		Face face;
+
+		if (PPolygon->PVertex == NULL) {
+			AfxMessageBox(_T("Dump: Attemp to dump empty polygon"));
+			return false;
+		}
+		/* Count number of vertices. */
+		for (PVertex = PPolygon->PVertex->Pnext, i = 1;
+			PVertex != PPolygon->PVertex && PVertex != NULL;
+			PVertex = PVertex->Pnext, i++);
+		
+		PVertex = PPolygon->PVertex;
+		do {			     /* Assume at least one edge in polygon! */
+			// crate new vertex
+			Vertex vertex;
+
+			// store provided vertex normal
+			if (IP_HAS_NORMAL_VRTX(PVertex))
+			{
+				vertex.normal.x = PVertex->Normal[0];
+				vertex.normal.y = PVertex->Normal[1];
+				vertex.normal.z = PVertex->Normal[2];
 			}
 
-			/* Count number of vertices. */
-			for (PVertex = PPolygon -> PVertex -> Pnext, i = 1;
-				PVertex != PPolygon -> PVertex && PVertex != NULL;
-				PVertex = PVertex -> Pnext, i++);
-			/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
-			   access the normal by the first 3 components of PPolygon->Plane */
-			PVertex = PPolygon -> PVertex;
-			do {			     /* Assume at least one edge in polygon! */
-				/* code handeling all vertex/normal/texture coords */
-				if(IP_HAS_NORMAL_VRTX(PVertex)) 
-				{
-				    int x = 0;
-				    ++x;
-				}
+			// store vertex position
+			vertex.globalPosition.x = PVertex->Coord[0];
+			vertex.globalPosition.y = PVertex->Coord[1];
+			vertex.globalPosition.z = PVertex->Coord[2];
 
+			// add vertex to face
+			face.vertices.push_back(vertex);
 
-				PVertex = PVertex -> Pnext;
-			}
-			while (PVertex != PPolygon -> PVertex && PVertex != NULL);
-			/* Close the polygon. */
+			PVertex = PVertex->Pnext;
+		} while (PVertex != PPolygon->PVertex && PVertex != NULL);
+
+		if (IP_HAS_PLANE_POLY(PPolygon))
+		{
+			face.normal.x = PPolygon->Plane[0];
+			face.normal.y = PPolygon->Plane[1];
+			face.normal.z = PPolygon->Plane[2];
+		}
+		else
+		{
+			// calculate face normal
+		}
+
+		// add face to object
+		object.faces.push_back(face);
 	}
-	/* Close the object. */
+	
+	// add object to objects list
+	objects.push_back(object);
+
 	return true;
 }
 

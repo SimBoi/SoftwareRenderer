@@ -14,6 +14,10 @@
 #include "allocate.h"
 #include "ip_cnvrt.h"
 #include "symb_lib.h"
+#include "CG_Object.h"
+#include <list>
+
+extern std::list<CG::Object> objects;
 
 bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles);
 void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj, IrtHmgnMatType Mat, void *Data);

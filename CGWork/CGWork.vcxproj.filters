@@ -48,6 +48,9 @@
     <ClCompile Include="CG_Matrix.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CG_Object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CGWork.rc">
@@ -161,6 +164,9 @@
       <Filter>Header Files\irit</Filter>
     </ClInclude>
     <ClInclude Include="CG_Matrix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CG_Object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

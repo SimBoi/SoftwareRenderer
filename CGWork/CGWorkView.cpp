@@ -236,10 +236,9 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView drawing
 /////////////////////////////////////////////////////////////////////////////
-
+bool initialized = false;
 void CCGWorkView::OnDraw(CDC* pDC)
 {
-	static float theta = 0.0f;
 	CCGWorkDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
@@ -249,29 +248,37 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	GetClientRect(&r);
 	CDC *pDCToUse = /*m_pDC*/m_pDbDC;
 	
+	// set background color
 	pDCToUse->FillSolidRect(&r, RGB(255, 255, 0));
-	
-	int numLines = 100;
-	double radius = r.right / 3.0;
-	
-	if (r.right > r.bottom) {
-		radius = r.bottom / 3.0;
+
+	// no transformations XY plane rendering (test for data parsing)
+	//char debugStream[100];
+	int i = 0;
+	for (auto const& object : objects)
+	{
+		/*sprintf_s(debugStream, "object: %d, number of faces: %d\n", i + 1, object.faces.size());
+		OutputDebugStringA(debugStream);*/
+		for (auto const& face : object.faces)
+		{
+			/*sprintf_s(debugStream, "	vertices %d:\n", face.vertices.size());
+			OutputDebugStringA(debugStream);*/
+			CG::Vertex prevVertex = face.vertices.back();
+			pDCToUse->MoveTo((int)(prevVertex.globalPosition.x * 1000) + 600, (int)(prevVertex.globalPosition.y * 1000) + 200);
+			for (auto const& vertex : face.vertices)
+			{
+				/*sprintf_s(debugStream, "		(%d, %d, %d)\n", vertex.globalPosition, vertex.globalPosition.x, vertex.globalPosition.y);
+				OutputDebugStringA(debugStream);*/
+				pDCToUse->LineTo((int)(vertex.globalPosition.x * 1000) + 600, (int)(vertex.globalPosition.y * 1000) + 200);
+			}
+		}
+		i++;
 	}
 	
-	for (int i = 0; i < numLines; ++i)
-	{
-		double finalTheta = 2 * M_PI / numLines*i + theta*M_PI/180.0f;
-		
-		pDCToUse->MoveTo(r.right / 2, r.bottom / 2);
-		pDCToUse->LineTo((int)(r.right / 2 + radius*cos(finalTheta)), (int)(r.bottom / 2 + radius*sin(finalTheta)));
-	}	
-
+	
 	if (pDCToUse != m_pDC) 
 	{
 		m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
 	}
-	
-	theta += 5;	
 }
 
 

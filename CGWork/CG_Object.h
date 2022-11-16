@@ -2,10 +2,12 @@
 #define CG_OBJECT
 
 #include "CG_Matrix.h"
+#include <list>
+#include <windef.h>
 
 namespace CG
 {
-	class Vertix
+	class Vertex
 	{
 	public:
 		vec3 globalPosition;
@@ -15,15 +17,16 @@ namespace CG
 	class Face
 	{
 	public:
-		Vertix* vertices;
-		int size;
+		std::list<Vertex> vertices;
 		vec3 normal;
 	};
 
 	class Object
 	{
 	public:
-		Face* faces;
+		mat4 modelFrame;
+		std::list<Face> faces;
+		COLORREF color;
 	};
 }
 
