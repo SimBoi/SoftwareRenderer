@@ -192,12 +192,14 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 				vertex.normal.x = PVertex->Normal[0];
 				vertex.normal.y = PVertex->Normal[1];
 				vertex.normal.z = PVertex->Normal[2];
+				vertex.normal.w = 1;
 			}
 
 			// store vertex position
-			vertex.globalPosition.x = PVertex->Coord[0];
-			vertex.globalPosition.y = PVertex->Coord[1];
-			vertex.globalPosition.z = PVertex->Coord[2];
+			vertex.localPosition.x = PVertex->Coord[0];
+			vertex.localPosition.y = PVertex->Coord[1];
+			vertex.localPosition.z = PVertex->Coord[2];
+			vertex.localPosition.w = 1;
 
 			// add vertex to face
 			face.vertices.push_back(vertex);
@@ -210,6 +212,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			face.normal.x = PPolygon->Plane[0];
 			face.normal.y = PPolygon->Plane[1];
 			face.normal.z = PPolygon->Plane[2];
+			face.normal.w = 1;
 		}
 		else
 		{

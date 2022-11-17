@@ -25,6 +25,9 @@ static char THIS_FILE[] = __FILE__;
 // For Status Bar access
 #include "MainFrm.h"
 
+// our own MoveTo and LineTo implementation
+#include "CG_Line.h"
+
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
 
@@ -256,19 +259,25 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	int i = 0;
 	for (auto const& object : objects)
 	{
+		/* debugging */
 		/*sprintf_s(debugStream, "object: %d, number of faces: %d\n", i + 1, object.faces.size());
 		OutputDebugStringA(debugStream);*/
+
 		for (auto const& face : object.faces)
 		{
+			/* debugging* /
 			/*sprintf_s(debugStream, "	vertices %d:\n", face.vertices.size());
 			OutputDebugStringA(debugStream);*/
+
 			CG::Vertex prevVertex = face.vertices.back();
-			pDCToUse->MoveTo((int)(prevVertex.globalPosition.x * 1000) + 600, (int)(prevVertex.globalPosition.y * 1000) + 200);
+			CG::MoveTo((int)(prevVertex.localPosition.x * 1000) + 600, (int)(prevVertex.localPosition.y * 1000) + 200);
 			for (auto const& vertex : face.vertices)
 			{
+				/* debugging* /
 				/*sprintf_s(debugStream, "		(%d, %d, %d)\n", vertex.globalPosition, vertex.globalPosition.x, vertex.globalPosition.y);
 				OutputDebugStringA(debugStream);*/
-				pDCToUse->LineTo((int)(vertex.globalPosition.x * 1000) + 600, (int)(vertex.globalPosition.y * 1000) + 200);
+
+				CG::LineTo(pDCToUse, (int)(vertex.localPosition.x * 1000) + 600, (int)(vertex.localPosition.y * 1000) + 200);
 			}
 		}
 		i++;

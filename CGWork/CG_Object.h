@@ -3,30 +3,43 @@
 
 #include "CG_Matrix.h"
 #include <list>
-#include <windef.h>
+#include <windows.h>
 
 namespace CG
 {
 	class Vertex
 	{
 	public:
-		vec3 globalPosition;
-		vec3 normal;
+		vec4 localPosition;
+		vec4 normal;
 	};
 
 	class Face
 	{
 	public:
 		std::list<Vertex> vertices;
-		vec3 normal;
+		vec4 normal;
 	};
 
 	class Object
 	{
 	public:
-		mat4 modelFrame;
+		mat4 mTransform;
 		std::list<Face> faces;
 		COLORREF color;
+
+		vec4 Center();
+	};
+
+	class Camera
+	{
+	public:
+		mat4 cTransform;
+		mat4 projection;
+
+		void LookAt(vec4& eye, vec4& at, vec4& up);
+		//void Ortho(…);
+		//void Perspective(…)
 	};
 }
 
