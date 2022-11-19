@@ -19,32 +19,74 @@ namespace CG
 
 	void Object::RotateX(double angle)
 	{
-
+		vec4 p = wTransform * vec4(0, 0, 0, 0);
+		mat4 t1 = mat4(
+			1, 0, 0, -p.x,
+			0, 1, 0, -p.y,
+			0, 0, 1, -p.z,
+			0, 0, 0, 1
+		);
+		mat4 r = mat4::RotateX(angle);
+		mat4 t2 = mat4(
+			1, 0, 0, p.x,
+			0, 1, 0, p.y,
+			0, 0, 1, p.z,
+			0, 0, 0, 1
+		);
+		wTransform = t2 * r * t1 * wTransform;
 	}
 
 	void Object::RotateY(double angle)
 	{
-
+		vec4 p = wTransform * vec4(0, 0, 0, 0);
+		mat4 t1 = mat4(
+			1, 0, 0, -p.x,
+			0, 1, 0, -p.y,
+			0, 0, 1, -p.z,
+			0, 0, 0, 1
+		);
+		mat4 r = mat4::RotateY(angle);
+		mat4 t2 = mat4(
+			1, 0, 0, p.x,
+			0, 1, 0, p.y,
+			0, 0, 1, p.z,
+			0, 0, 0, 1
+		);
+		wTransform = t2 * r * t1 * wTransform;
 	}
 
 	void Object::RotateZ(double angle)
 	{
-
+		vec4 p = wTransform * vec4(0, 0, 0, 0);
+		mat4 t1 = mat4(
+			1, 0, 0, -p.x,
+			0, 1, 0, -p.y,
+			0, 0, 1, -p.z,
+			0, 0, 0, 1
+		);
+		mat4 r = mat4::RotateZ(angle);
+		mat4 t2 = mat4(
+			1, 0, 0, p.x,
+			0, 1, 0, p.y,
+			0, 0, 1, p.z,
+			0, 0, 0, 1
+		);
+		wTransform = t2 * r * t1 * wTransform;
 	}
 
 	void Object::LocalRotateX(double angle)
 	{
-
+		wTransform = wTransform * mat4::RotateX(angle);
 	}
 	
 	void Object::LocalRotateY(double angle)
 	{
-
+		wTransform = wTransform * mat4::RotateY(angle);
 	}
 	
 	void Object::LocalRotateZ(double angle)
 	{
-
+		wTransform = wTransform * mat4::RotateZ(angle);
 	}
 
 	void Object::Scale(vec4 amount)
