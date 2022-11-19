@@ -1,4 +1,5 @@
 #include "CG_Matrix.h"
+#include <cmath>
 
 namespace CG
 {
@@ -65,9 +66,30 @@ namespace CG
 		return vec4(s * x, s * y, s * z, s * w);
 	}
 
-	vec4 vec4::operator*(const vec4& v) const
+	vec4 vec4::operator-(const vec4& other) const
 	{
-		return vec4(x * v.x, y * v.y, z * v.z, w * v.w);
+		return vec4(x - other.x, y - other.y, z - other.z, w - other.w);
+	}
+
+	vec4 vec4::operator-() const
+	{
+		return *this * -1;
+	}
+
+	vec4 vec4::normalize() const
+	{
+		double length = sqrt(x * x + y * y + z * z);
+		return *this * (1/length);
+	}
+
+	double vec4::dot(const vec4& u, const vec4& v)
+	{
+		return u.x * v.x + u.y * v.y + u.z * v.z + u.w * v.w;
+	}
+
+	vec4 vec4::cross(const vec4& u, const vec4& v)
+	{
+		return vec4(u.y * v.z - u.z * v.y, u.z * v.x - u.x * v.z, u.x * v.y - u.y * v.x, 1);
 	}
 
 	///////////// mat3
@@ -125,7 +147,7 @@ namespace CG
 
 	mat4::mat4(const double d)
 	{
-		_m[0].x = d; _m[1].y = d; _m[2].z = d; _m[3].w = d;
+		_m[0][0] = d; _m[1][1] = d; _m[2][2] = d; _m[3][3] = d;
 	}
 
 	mat4::mat4(const vec4& a, const vec4& b, const vec4& c, const vec4& d)
@@ -166,11 +188,66 @@ namespace CG
 
 	mat4 mat4::operator*(const mat4& m) const
 	{
-		mat4 a(0.0);
+		mat4 a(0);
 		for (int i = 0; i < 4; ++i)
 			for (int j = 0; j < 4; ++j)
 				for (int k = 0; k < 4; ++k)
 					a[i][j] += _m[i][k] * m[k][j];
 		return a;
+	}
+
+	vec4 mat4::operator*(const vec4& u) const
+	{
+		vec4 v(0);
+		for (int i = 0; i < 4; ++i)
+			for (int j = 0; j < 4; ++j)
+				v[i] += _m[i][j] * u[j];
+		return v;
+	}
+
+	mat4 mat4::Translate(vec4 amount)
+	{
+		mat4 t = mat4(1);
+		t[0][3] = amount.x;
+		t[1][3] = amount.y;
+		t[2][3] = amount.z;
+		return t;
+	}
+
+	mat4 mat4::RotateX(double angle)
+	{
+		return mat4(
+			1, 0, 0, 0,
+			0, cos(angle), -sin(angle), 0,
+			0, sin(angle), cos(angle), 0,
+			0, 0, 0, 1);
+	}
+	
+	mat4 mat4::RotateY(double angle)
+	{
+		return mat4(
+			cos(angle), 0, sin(angle), 0,
+			0, 1, 0, 0,
+			-sin(angle), 0, cos(angle), 0,
+			0, 0, 0, 1);
+	}
+	
+	mat4 mat4::RotateZ(double angle)
+	{
+		return mat4(
+			cos(angle), -sin(angle), 0, 1,
+			sin(angle), cos(angle), 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1);
+	}
+
+	mat4 mat4::Scale(vec4 amount)
+	{
+		mat4 t;
+		t[0][0] = amount.x;
+		t[1][1] = amount.y;
+		t[2][2] = amount.z;
+		t[3][3] = 1;
+		return t;
 	}
 }

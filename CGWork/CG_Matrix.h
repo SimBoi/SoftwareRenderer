@@ -29,7 +29,11 @@ namespace CG
 		double& operator[](int i);
 		vec4 operator+(const vec4& v) const;
 		vec4 operator*(const double s) const;
-		vec4 operator*(const vec4& v) const;
+		vec4 operator-(const vec4& other) const;
+		vec4 operator-() const;
+		vec4 normalize() const;
+		static double dot(const vec4& u, const vec4& v);
+		static vec4 cross(const vec4& u, const vec4& v);
 	};
 
 	class mat3 {
@@ -61,6 +65,12 @@ namespace CG
 		mat4 operator+(const mat4& m) const;
 		mat4 operator*(const double s) const;
 		mat4 operator*(const mat4& m) const;
+		vec4 operator*(const vec4& u) const;
+		static mat4 Translate(vec4 amount);
+		static mat4 RotateX(double angle);
+		static mat4 RotateY(double angle);
+		static mat4 RotateZ(double angle);
+		static mat4 Scale(vec4 amount);
 	};
 }
 
