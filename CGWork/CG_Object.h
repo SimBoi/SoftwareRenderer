@@ -50,8 +50,8 @@ namespace CG
 		mat4 projection;
 
 		void LookAt(vec4& eye, vec4& at, vec4& up);
-		//void Ortho(…);
-		//void Perspective(…)
+		static mat4 Ortho(double left, double right, double bottom, double top, double zNear, double zFar);
+		static mat4 Perspective(double fovY, double aspectRatio, double zNear, double zFar);
 	};
 }
 

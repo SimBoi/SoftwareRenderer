@@ -29,6 +29,7 @@ namespace CG
 		double& operator[](int i);
 		vec4 operator+(const vec4& v) const;
 		vec4 operator*(const double s) const;
+		vec4 operator/(const double s) const;
 		vec4 operator-(const vec4& other) const;
 		vec4 operator-() const;
 		vec4 normalize() const;

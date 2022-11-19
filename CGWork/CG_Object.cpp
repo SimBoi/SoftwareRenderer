@@ -113,4 +113,32 @@ namespace CG
 												 0,   0,   0,   1);
 		cInverse = mat4(u, v, n, t) * mat4::Translate(-eye);
 	}
+
+	mat4 Camera::Ortho(double left, double right, double bottom, double top, double zNear, double zFar)
+	{
+		// convert to default camera volume
+		mat4 t = mat4::Translate(vec4(-left - right, -bottom - top, zNear + zFar) / 2);
+		t = mat4::Scale(vec4(2 / (right - left), 2 / (top - bottom), 2 / (zFar - zNear))) * t;
+		return t;
+	}
+
+	mat4 Camera::Perspective(double fovY, double aspectRatio, double zNear, double zFar)
+	{
+		// perspective warp
+		mat4 warp = mat4(
+			1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, zFar / (zFar - zNear), -zNear * zFar / (zFar - zNear),
+			0, 0, 1 / zFar, 0
+		);
+
+		// calculate new camera volume after warp
+		double top = zFar * tan(fovY / 2);
+		double bottom = -top;
+		double right = top * aspectRatio;
+		double left = -right;
+
+		// convert to default camera volume
+		return Ortho(left, right, bottom, top, zNear, zFar) * warp;
+	}
 }

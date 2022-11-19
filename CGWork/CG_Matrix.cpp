@@ -66,6 +66,11 @@ namespace CG
 		return vec4(s * x, s * y, s * z, s * w);
 	}
 
+	vec4 vec4::operator/(const double s) const
+	{
+		return *this * (1 / s);
+	}
+
 	vec4 vec4::operator-(const vec4& other) const
 	{
 		return vec4(x - other.x, y - other.y, z - other.z, w - other.w);
@@ -79,7 +84,7 @@ namespace CG
 	vec4 vec4::normalize() const
 	{
 		double length = sqrt(x * x + y * y + z * z);
-		return *this * (1/length);
+		return *this / length;
 	}
 
 	double vec4::dot(const vec4& u, const vec4& v)
