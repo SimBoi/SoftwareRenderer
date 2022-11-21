@@ -234,12 +234,25 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 	return true;
 }
 
+void printMat(CG::mat4 mat)
+{
+	char debugStream[100];
+	sprintf_s(debugStream, "heeeeeeeeeeeeeeeeeeeeeeeeeeeeq    printing mat:\n");
+	OutputDebugStringA(debugStream);
+	sprintf_s(debugStream, "heeeeeeeeeeeeeeeeeeeeeeeeeeeeq    %f  -  %f  -  %f  -  %f\n", mat[0][0], mat[0][1], mat[0][2], mat[0][3]);
+	OutputDebugStringA(debugStream);
+	sprintf_s(debugStream, "heeeeeeeeeeeeeeeeeeeeeeeeeeeeq    %f  -  %f  -  %f  -  %f\n", mat[1][0], mat[1][1], mat[1][2], mat[1][3]);
+	OutputDebugStringA(debugStream);
+	sprintf_s(debugStream, "heeeeeeeeeeeeeeeeeeeeeeeeeeeeq    %f  -  %f  -  %f  -  %f\n", mat[2][0], mat[2][1], mat[2][2], mat[2][3]);
+	OutputDebugStringA(debugStream);
+	sprintf_s(debugStream, "heeeeeeeeeeeeeeeeeeeeeeeeeeeeq    %f  -  %f  -  %f  -  %f\n", mat[3][0], mat[3][1], mat[3][2], mat[3][3]);
+	OutputDebugStringA(debugStream);
+}
 
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView drawing
 /////////////////////////////////////////////////////////////////////////////
-bool initialized = false;
 void CCGWorkView::OnDraw(CDC* pDC)
 {
 	CCGWorkDoc* pDoc = GetDocument();
@@ -254,30 +267,35 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	// set background color
 	pDCToUse->FillSolidRect(&r, RGB(255, 255, 0));
 
-	// no transformations XY plane rendering (test for data parsing)
-	//char debugStream[100];
-	int i = 0;
-	for (auto const& object : objects)
+	if (!initialized)
 	{
-		/* debugging */
-		/*sprintf_s(debugStream, "object: %d, number of faces: %d\n", i + 1, object.faces.size());
-		OutputDebugStringA(debugStream);*/
+		initialized = true;
+		
+		parentObject.Scale(CG::vec4(500, 500, 500));
+
+		camera.projection = CG::Camera::Ortho(-1, 1, -1, 1, 0.1, 100);
+		//camera.projection = CG::Camera::Perspective(90, 1, 0.1, 1);
+		camera.LookAt(CG::vec4(10, 10, 10, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
+	}
+
+	int i = 0;
+	for (auto const& object : parentObject.children)
+	{
+		CG::mat4 finalProjection = camera.projection * camera.cInverse * parentObject.wTransform * parentObject.mTransform * object.wTransform * object.mTransform;
 
 		for (auto const& face : object.faces)
 		{
-			/* debugging* /
-			/*sprintf_s(debugStream, "	vertices %d:\n", face.vertices.size());
-			OutputDebugStringA(debugStream);*/
-
 			CG::Vertex prevVertex = face.vertices.back();
-			CG::MoveTo((int)(prevVertex.localPosition.x * 1000) + 600, (int)(prevVertex.localPosition.y * 1000) + 200);
+			CG::vec4 prevCoords = finalProjection * prevVertex.localPosition;
+			//printMat(CG::mat4(prevCoords, prevCoords, prevCoords, prevCoords));
+			prevCoords = CG::HomogeneousToEuclidean(prevCoords);
+			//printMat(CG::mat4(prevCoords, prevCoords, prevCoords, prevCoords));
+			CG::MoveTo((int)prevCoords.x + r.Width() / 2, -(int)prevCoords.y + r.Height() / 2);
 			for (auto const& vertex : face.vertices)
 			{
-				/* debugging* /
-				/*sprintf_s(debugStream, "		(%d, %d, %d)\n", vertex.globalPosition, vertex.globalPosition.x, vertex.globalPosition.y);
-				OutputDebugStringA(debugStream);*/
-
-				CG::LineTo(pDCToUse, (int)(vertex.localPosition.x * 1000) + 600, (int)(vertex.localPosition.y * 1000) + 200);
+				CG::vec4 coords = finalProjection * vertex.localPosition;
+				coords = CG::HomogeneousToEuclidean(coords);
+				CG::LineTo(pDCToUse, (int)coords.x + r.Width() / 2, -(int)coords.y + r.Height() / 2);
 			}
 		}
 		i++;

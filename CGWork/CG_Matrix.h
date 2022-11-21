@@ -1,6 +1,8 @@
 #ifndef CG_MATRIX
 #define CG_MATRIX
 
+#define DEG_TO_RAD 0.0174532925;
+
 namespace CG
 {
 	class vec3 {
@@ -32,7 +34,7 @@ namespace CG
 		vec4 operator/(const double s) const;
 		vec4 operator-(const vec4& other) const;
 		vec4 operator-() const;
-		vec4 normalize() const;
+		vec4 normalized() const;
 		static double dot(const vec4& u, const vec4& v);
 		static vec4 cross(const vec4& u, const vec4& v);
 	};

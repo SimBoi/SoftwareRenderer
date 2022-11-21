@@ -81,7 +81,7 @@ namespace CG
 		return *this * -1;
 	}
 
-	vec4 vec4::normalize() const
+	vec4 vec4::normalized() const
 	{
 		double length = sqrt(x * x + y * y + z * z);
 		return *this / length;
@@ -221,6 +221,7 @@ namespace CG
 
 	mat4 mat4::RotateX(double angle)
 	{
+		angle *= DEG_TO_RAD;
 		return mat4(
 			1, 0, 0, 0,
 			0, cos(angle), -sin(angle), 0,
@@ -230,6 +231,7 @@ namespace CG
 	
 	mat4 mat4::RotateY(double angle)
 	{
+		angle *= DEG_TO_RAD;
 		return mat4(
 			cos(angle), 0, sin(angle), 0,
 			0, 1, 0, 0,
@@ -239,6 +241,7 @@ namespace CG
 	
 	mat4 mat4::RotateZ(double angle)
 	{
+		angle *= DEG_TO_RAD;
 		return mat4(
 			cos(angle), -sin(angle), 0, 1,
 			sin(angle), cos(angle), 0, 0,

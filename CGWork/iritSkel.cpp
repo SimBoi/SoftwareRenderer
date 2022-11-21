@@ -12,7 +12,9 @@
 
 // global variable to hold data contained in the currently open .itd file
 using namespace CG;
-std::list<Object> objects;
+Object parentObject;
+bool initialized = false;
+Camera camera;
 
 IPFreeformConvStateStruct CGSkelFFCState = {
 	FALSE,          /* Talkative */
@@ -50,8 +52,10 @@ IPFreeformConvStateStruct CGSkelFFCState = {
 *****************************************************************************/
 bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 {
-	// delete objects from previous file and prepare to store data from the new file
-	objects.clear();
+	// delete objects from previous file and reset the camera in preparation to store data from the new file
+	parentObject = Object();
+	initialized = false;
+	camera = Camera();
 
 	IPObjectStruct *PObjects;
 	IrtHmgnMatType CrntViewMat;
@@ -125,7 +129,7 @@ void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj,
 bool CGSkelStoreData(IPObjectStruct *PObj)
 {
 	// create new Object
-	Object object;
+	Object childObject;
 
 	int i;
 	const char *Str;
@@ -145,7 +149,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 
 	if (CGSkelGetObjectColor(PObj, RGB))
 	{
-		object.color = COLORREF(RGB);
+		childObject.color = COLORREF(RGB);
 	}
 	if (CGSkelGetObjectTransp(PObj, &Transp))
 	{
@@ -220,11 +224,11 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 		}
 
 		// add face to object
-		object.faces.push_back(face);
+		childObject.faces.push_back(face);
 	}
 	
 	// add object to objects list
-	objects.push_back(object);
+	parentObject.children.push_back(childObject);
 
 	return true;
 }

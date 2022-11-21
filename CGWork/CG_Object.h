@@ -7,6 +7,8 @@
 
 namespace CG
 {
+	vec4 HomogeneousToEuclidean(vec4 coords);
+
 	class Vertex
 	{
 	public:
@@ -28,8 +30,10 @@ namespace CG
 		mat4 wTransform;
 		std::list<Face> faces;
 		COLORREF color;
+		std::list<Object> children;
 
-		vec4 Center();
+		vec4 mPosition();
+		vec4 wPosition();
 		void Translate(vec4 amount);
 		void LocalTranslate(vec4 amount);
 		void RotateX(double angle);
