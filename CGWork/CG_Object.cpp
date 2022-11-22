@@ -149,23 +149,41 @@ namespace CG
 
 	mat4 Camera::Perspective(double fovY, double aspectRatio, double zNear, double zFar)
 	{
-		// perspective warp
-		mat4 warp = mat4(
-			1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, zFar / (zFar - zNear), zNear * zFar / (zFar - zNear),
-			0, 0, -1 / zFar, 0
-		);
-
-		// calculate new camera volume after warp
 		double angle = fovY / 2;
 		angle *= DEG_TO_RAD;
-		double top = zFar * tan(angle);
-		double bottom = -top;
-		double right = top * aspectRatio;
-		double left = -right;
+		
+		//// perspective warp
+		//mat4 warp = mat4(
+		//	1, 0, 0, 0,
+		//	0, 1, 0, 0,
+		//	0, 0, zFar / (zFar - zNear), zNear * zFar / (zFar - zNear),
+		//	0, 0, -1 / zFar, 0
+		//);
 
-		// convert to default camera volume
-		return Ortho(left, right, bottom, top, 0, zFar) * warp;
+		//// calculate new camera volume after warp
+		//double top = zFar * tan(angle);
+		//double bottom = -top;
+		//double right = top * aspectRatio;
+		//double left = -right;
+
+		//// convert to default camera volume
+		//return Ortho(left, right, bottom, top, 0, zFar) * warp;
+
+		return mat4(
+			1 / (aspectRatio * tan(angle)), 0, 0, 0,
+			0, 1 / tan(angle), 0, 0,
+			0, 0, -(zFar - zNear) / (zFar - zNear), -2 * zFar * zNear / (zFar - zNear),
+			0, 0, -1, 0
+		);
+	}
+
+	mat4 Camera::ToScreenSpace(double width, double height)
+	{
+		return mat4(
+			width / 2, 0, 0, width / 2,
+			0, -height / 2, 0, height / 2,
+			0, 0, 1, 0,
+			0, 0, 0, 1
+		);
 	}
 }

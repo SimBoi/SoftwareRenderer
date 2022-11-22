@@ -271,31 +271,47 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	{
 		initialized = true;
 		
-		parentObject.Scale(CG::vec4(500, 500, 500));
-
-		camera.projection = CG::Camera::Ortho(-1, 1, -1, 1, 0.1, 100);
-		//camera.projection = CG::Camera::Perspective(90, 1, 0.1, 1);
-		camera.LookAt(CG::vec4(10, 10, 10, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
+		parentObject.Scale(CG::vec4(400, 400, 400));
+		double aspectRatio = 16.0 / 9;
+		//camera.projection = CG::Camera::Ortho(-100 * aspectRatio, 100 * aspectRatio, -100, 100, 0.1, 1000);
+		camera.projection = CG::Camera::Perspective(90, aspectRatio, 0.1, 1000);
+		camera.LookAt(CG::vec4(300, 100, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
 	}
 
+	parentObject.Translate(CG::vec4(0, 0, -1));
+	parentObject.RotateY(30);
+	camera.LookAt(CG::vec4(300, 300, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
+
 	int i = 0;
-	for (auto const& object : parentObject.children)
+	for (auto &object : parentObject.children)
 	{
-		CG::mat4 finalProjection = camera.projection * camera.cInverse * parentObject.wTransform * parentObject.mTransform * object.wTransform * object.mTransform;
+		CG::mat4 finalProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection * camera.cInverse * parentObject.wTransform * parentObject.mTransform * object.wTransform * object.mTransform;
 
 		for (auto const& face : object.faces)
 		{
-			CG::Vertex prevVertex = face.vertices.back();
-			CG::vec4 prevCoords = finalProjection * prevVertex.localPosition;
-			//printMat(CG::mat4(prevCoords, prevCoords, prevCoords, prevCoords));
-			prevCoords = CG::HomogeneousToEuclidean(prevCoords);
-			//printMat(CG::mat4(prevCoords, prevCoords, prevCoords, prevCoords));
-			CG::MoveTo((int)prevCoords.x + r.Width() / 2, -(int)prevCoords.y + r.Height() / 2);
+			// dont render faces outside the clip volume
+			bool outsideBounds = false;
 			for (auto const& vertex : face.vertices)
 			{
 				CG::vec4 coords = finalProjection * vertex.localPosition;
 				coords = CG::HomogeneousToEuclidean(coords);
-				CG::LineTo(pDCToUse, (int)coords.x + r.Width() / 2, -(int)coords.y + r.Height() / 2);
+				if (coords.x < 0 || coords.x > r.Width() || coords.y < 0 || coords.y > r.Height() || coords.z < -1 || coords.z > 1)
+				{
+					outsideBounds = true;
+					break;
+				}
+			}
+			if (outsideBounds) break;
+
+			CG::Vertex prevVertex = face.vertices.back();
+			CG::vec4 prevCoords = finalProjection * prevVertex.localPosition;
+			prevCoords = CG::HomogeneousToEuclidean(prevCoords);
+			CG::MoveTo((int)prevCoords.x, (int)prevCoords.y);
+			for (auto const& vertex : face.vertices)
+			{
+				CG::vec4 coords = finalProjection * vertex.localPosition;
+				coords = CG::HomogeneousToEuclidean(coords);
+				CG::LineTo(pDCToUse, (int)coords.x, (int)coords.y);
 			}
 		}
 		i++;

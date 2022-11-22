@@ -56,6 +56,7 @@ namespace CG
 		void LookAt(vec4& eye, vec4& at, vec4& up);
 		static mat4 Ortho(double left, double right, double bottom, double top, double zNear, double zFar);
 		static mat4 Perspective(double fovY, double aspectRatio, double zNear, double zFar);
+		static mat4 ToScreenSpace(double width, double height);
 	};
 }
 
