@@ -14,6 +14,8 @@ namespace CG
 	public:
 		vec4 localPosition;
 		vec4 normal;
+
+		Vertex(vec4 pos = vec4(), vec4 normal = vec4());
 	};
 
 	class Face
@@ -30,6 +32,10 @@ namespace CG
 		mat4 wTransform;
 		std::list<Face> faces;
 		COLORREF color;
+		double minX, maxX, minY, maxY, minZ, maxZ; // used for bounding box calculation
+		bool hasShape = false; // true if the object has at least one vertex, this value should be manually set
+		Face boundingBox[6];
+		CG::Object* parent = NULL;
 		std::list<Object> children;
 
 		vec4 mPosition();
@@ -44,6 +50,11 @@ namespace CG
 		void LocalRotateZ(double angle);
 		void Scale(vec4 amount);
 		void LocalScale(vec4 amount);
+		void CalcBoundingBox();
+		void ReCalcBoundingBox(const Object& alteredChild); // if a child transforms relative to the parent, the parent should recalculate its bounding box
+
+	private:
+		void GenerateBoundingBoxArray();
 	};
 
 	class Camera

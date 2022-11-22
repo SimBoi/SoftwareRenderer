@@ -253,6 +253,35 @@ void printMat(CG::mat4 mat)
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView drawing
 /////////////////////////////////////////////////////////////////////////////
+
+void DrawFace(CDC* pDCToUse, CRect r, CG::Face face, CG::mat4 finalProjection)
+{
+	if (face.vertices.size() <= 0) return;
+
+	// dont render faces outside the clip volume
+	for (auto const& vertex : face.vertices)
+	{
+		CG::vec4 coords = finalProjection * vertex.localPosition;
+		coords = CG::HomogeneousToEuclidean(coords);
+		if (coords.x < 0 || coords.x > r.Width() || coords.y < 0 || coords.y > r.Height() || coords.z < -1 || coords.z > 1)
+		{
+			return;
+		}
+	}
+
+	// draw face
+	CG::Vertex prevVertex = face.vertices.back();
+	CG::vec4 prevCoords = finalProjection * prevVertex.localPosition;
+	prevCoords = CG::HomogeneousToEuclidean(prevCoords);
+	CG::MoveTo((int)prevCoords.x, (int)prevCoords.y);
+	for (auto const& vertex : face.vertices)
+	{
+		CG::vec4 coords = finalProjection * vertex.localPosition;
+		coords = CG::HomogeneousToEuclidean(coords);
+		CG::LineTo(pDCToUse, (int)coords.x, (int)coords.y);
+	}
+}
+
 void CCGWorkView::OnDraw(CDC* pDC)
 {
 	CCGWorkDoc* pDoc = GetDocument();
@@ -271,52 +300,45 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	{
 		initialized = true;
 		
-		parentObject.Scale(CG::vec4(400, 400, 400));
 		double aspectRatio = 16.0 / 9;
-		//camera.projection = CG::Camera::Ortho(-100 * aspectRatio, 100 * aspectRatio, -100, 100, 0.1, 1000);
+		//camera.projection = CG::Camera::Ortho(-1000 * aspectRatio, 1000 * aspectRatio, -1000, 1000, 0.1, 1000);
 		camera.projection = CG::Camera::Perspective(90, aspectRatio, 0.1, 1000);
-		camera.LookAt(CG::vec4(300, 100, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
+		camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
+		
+		parentObject.Scale(CG::vec4(400, 400, 400));
 	}
 
 	parentObject.Translate(CG::vec4(0, 0, -1));
 	parentObject.RotateY(30);
-	camera.LookAt(CG::vec4(300, 300, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
+	camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
+	
+	CG::mat4 parentProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection * camera.cInverse * parentObject.wTransform * parentObject.mTransform;
 
 	int i = 0;
 	for (auto &object : parentObject.children)
 	{
-		CG::mat4 finalProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection * camera.cInverse * parentObject.wTransform * parentObject.mTransform * object.wTransform * object.mTransform;
+		CG::mat4 finalProjection = parentProjection * object.wTransform * object.mTransform;
 
+		// draw object faces
 		for (auto const& face : object.faces)
 		{
-			// dont render faces outside the clip volume
-			bool outsideBounds = false;
-			for (auto const& vertex : face.vertices)
-			{
-				CG::vec4 coords = finalProjection * vertex.localPosition;
-				coords = CG::HomogeneousToEuclidean(coords);
-				if (coords.x < 0 || coords.x > r.Width() || coords.y < 0 || coords.y > r.Height() || coords.z < -1 || coords.z > 1)
-				{
-					outsideBounds = true;
-					break;
-				}
-			}
-			if (outsideBounds) break;
-
-			CG::Vertex prevVertex = face.vertices.back();
-			CG::vec4 prevCoords = finalProjection * prevVertex.localPosition;
-			prevCoords = CG::HomogeneousToEuclidean(prevCoords);
-			CG::MoveTo((int)prevCoords.x, (int)prevCoords.y);
-			for (auto const& vertex : face.vertices)
-			{
-				CG::vec4 coords = finalProjection * vertex.localPosition;
-				coords = CG::HomogeneousToEuclidean(coords);
-				CG::LineTo(pDCToUse, (int)coords.x, (int)coords.y);
-			}
+			DrawFace(pDCToUse, r, face, finalProjection);
 		}
+
+		//// draw child object bounding box
+		//for (auto const& face : object.boundingBox)
+		//{
+		//	DrawFace(pDCToUse, r, face, finalProjection);
+		//}
+
 		i++;
 	}
 	
+	// draw parent object bounding box
+	for (auto const& face : parentObject.boundingBox)
+	{
+		DrawFace(pDCToUse, r, face, parentProjection);
+	}
 	
 	if (pDCToUse != m_pDC) 
 	{

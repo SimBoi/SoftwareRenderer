@@ -130,6 +130,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 {
 	// create new Object
 	Object childObject;
+	childObject.hasShape = true;
 
 	int i;
 	const char *Str;
@@ -226,9 +227,13 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 		// add face to object
 		childObject.faces.push_back(face);
 	}
-	
-	// add object to objects list
+
+	// add child object to the parents children list
 	parentObject.children.push_back(childObject);
+	
+	// calculate child and parent bounding box
+	childObject.CalcBoundingBox();
+	parentObject.ReCalcBoundingBox(childObject);
 
 	return true;
 }

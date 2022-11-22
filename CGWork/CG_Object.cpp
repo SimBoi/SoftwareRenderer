@@ -3,6 +3,12 @@
 
 namespace CG
 {
+	Vertex::Vertex(vec4 pos, vec4 normal)
+	{
+		localPosition = pos;
+		this->normal = normal;
+	}
+
 	vec4 HomogeneousToEuclidean(vec4 coords)
 	{
 		return coords / coords.w;
@@ -21,11 +27,13 @@ namespace CG
 	void Object::Translate(vec4 amount)
 	{
 		wTransform = mat4::Translate(amount) * wTransform;
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
 	void Object::LocalTranslate(vec4 amount)
 	{
 		mTransform = mat4::Translate(amount) * mTransform;
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
 	// translates the object to the origin, rotates, and translates back
@@ -51,6 +59,7 @@ namespace CG
 		vec4 p = wPosition();
 		mat4 r = mat4::RotateX(angle);
 		wTransform = RotateFromOrigin(p, r) * wTransform;
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
 	void Object::RotateY(double angle)
@@ -58,6 +67,7 @@ namespace CG
 		vec4 p = wPosition();
 		mat4 r = mat4::RotateY(angle);
 		wTransform = RotateFromOrigin(p, r) * wTransform;
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
 	void Object::RotateZ(double angle)
@@ -65,6 +75,7 @@ namespace CG
 		vec4 p = wPosition();
 		mat4 r = mat4::RotateZ(angle);
 		wTransform = RotateFromOrigin(p, r) * wTransform;
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
 	void Object::LocalRotateX(double angle)
@@ -72,6 +83,7 @@ namespace CG
 		vec4 p = mPosition();
 		mat4 r = mat4::RotateX(angle);
 		mTransform = RotateFromOrigin(p, r) * mTransform;
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 	
 	void Object::LocalRotateY(double angle)
@@ -79,6 +91,7 @@ namespace CG
 		vec4 p = mPosition();
 		mat4 r = mat4::RotateY(angle);
 		mTransform = RotateFromOrigin(p, r) * mTransform;
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 	
 	void Object::LocalRotateZ(double angle)
@@ -86,6 +99,7 @@ namespace CG
 		vec4 p = mPosition();
 		mat4 r = mat4::RotateZ(angle);
 		mTransform = RotateFromOrigin(p, r) * mTransform;
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
 	void Object::Scale(vec4 amount)
@@ -104,6 +118,7 @@ namespace CG
 			0, 0, 0, 1
 		);
 		wTransform = t2 * mat4::Scale(amount) * t1 * wTransform;
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
 	void Object::LocalScale(vec4 amount)
@@ -122,8 +137,134 @@ namespace CG
 			0, 0, 0, 1
 		);
 		mTransform = t2 * mat4::Scale(amount) * t1 * mTransform;
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
+	void Object::CalcBoundingBox()
+	{
+		bool firstVertex = true;
+
+		// object vertices
+		for (auto const& face : faces)
+		{
+			for (auto const& vertex : face.vertices)
+			{
+				if (firstVertex)
+				{
+					minX = vertex.localPosition.x;
+					maxX = vertex.localPosition.x;
+					minY = vertex.localPosition.y;
+					maxY = vertex.localPosition.y;
+					minZ = vertex.localPosition.z;
+					maxZ = vertex.localPosition.z;
+					firstVertex = false;
+				}
+
+				minX = vertex.localPosition.x < minX ? vertex.localPosition.x : minX;
+				maxX = vertex.localPosition.x > maxX ? vertex.localPosition.x : maxX;
+				minY = vertex.localPosition.y < minY ? vertex.localPosition.y : minY;
+				maxY = vertex.localPosition.y > maxY ? vertex.localPosition.y : maxY;
+				minZ = vertex.localPosition.z < minZ ? vertex.localPosition.z : minZ;
+				maxZ = vertex.localPosition.z > maxZ ? vertex.localPosition.z : maxZ;
+			}
+		}
+
+		// children vertices
+		for (auto const& child : children)
+		{
+			mat4 childTransform = child.wTransform * child.mTransform;
+			for (auto const& face : child.faces)
+			{
+				for (auto const& vertex : face.vertices)
+				{
+					vec4 coords = childTransform * vertex.localPosition;
+
+					if (firstVertex)
+					{
+						minX = coords.x;
+						maxX = coords.x;
+						minY = coords.y;
+						maxY = coords.y;
+						minZ = coords.z;
+						maxZ = coords.z;
+						firstVertex = false;
+					}
+
+					minX = coords.x < minX ? coords.x : minX;
+					maxX = coords.x > maxX ? coords.x : maxX;
+					minY = coords.y < minY ? coords.y : minY;
+					maxY = coords.y > maxY ? coords.y : maxY;
+					minZ = coords.z < minZ ? coords.z : minZ;
+					maxZ = coords.z > maxZ ? coords.z : maxZ;
+				}
+			}
+		}
+
+		GenerateBoundingBoxArray();
+	}
+
+	void Object::ReCalcBoundingBox(const Object& alteredChild)
+	{
+		if (!hasShape && children.size() <= 1) CalcBoundingBox();
+
+		mat4 childTransform = alteredChild.wTransform * alteredChild.mTransform;
+		for (auto const& face : alteredChild.faces)
+		{
+			for (auto const& vertex : face.vertices)
+			{
+				vec4 coords = childTransform * vertex.localPosition;
+
+				minX = coords.x < minX ? coords.x : minX;
+				maxX = coords.x > maxX ? coords.x : maxX;
+				minY = coords.y < minY ? coords.y : minY;
+				maxY = coords.y > maxY ? coords.y : maxY;
+				minZ = coords.z < minZ ? coords.z : minZ;
+				maxZ = coords.z > maxZ ? coords.z : maxZ;
+			}
+		}
+
+		GenerateBoundingBoxArray();
+	}
+
+	void Object::GenerateBoundingBoxArray()
+	{
+		boundingBox[0].vertices.clear();
+		boundingBox[1].vertices.clear();
+		boundingBox[2].vertices.clear();
+		boundingBox[3].vertices.clear();
+		boundingBox[4].vertices.clear();
+		boundingBox[5].vertices.clear();
+
+		boundingBox[0].vertices.push_back(Vertex(vec4(minX, minY, minZ, 1)));
+		boundingBox[0].vertices.push_back(Vertex(vec4(minX, maxY, minZ, 1)));
+		boundingBox[0].vertices.push_back(Vertex(vec4(maxX, maxY, minZ, 1)));
+		boundingBox[0].vertices.push_back(Vertex(vec4(maxX, minY, minZ, 1)));
+
+		boundingBox[1].vertices.push_back(Vertex(vec4(minX, minY, maxZ, 1)));
+		boundingBox[1].vertices.push_back(Vertex(vec4(minX, maxY, maxZ, 1)));
+		boundingBox[1].vertices.push_back(Vertex(vec4(maxX, maxY, maxZ, 1)));
+		boundingBox[1].vertices.push_back(Vertex(vec4(maxX, minY, maxZ, 1)));
+
+		boundingBox[2].vertices.push_back(Vertex(vec4(minX, minY, minZ, 1)));
+		boundingBox[2].vertices.push_back(Vertex(vec4(minX, minY, maxZ, 1)));
+		boundingBox[2].vertices.push_back(Vertex(vec4(maxX, minY, maxZ, 1)));
+		boundingBox[2].vertices.push_back(Vertex(vec4(maxX, minY, minZ, 1)));
+
+		boundingBox[3].vertices.push_back(Vertex(vec4(minX, maxY, minZ, 1)));
+		boundingBox[3].vertices.push_back(Vertex(vec4(minX, maxY, maxZ, 1)));
+		boundingBox[3].vertices.push_back(Vertex(vec4(maxX, maxY, maxZ, 1)));
+		boundingBox[3].vertices.push_back(Vertex(vec4(maxX, maxY, minZ, 1)));
+
+		boundingBox[4].vertices.push_back(Vertex(vec4(minX, minY, minZ, 1)));
+		boundingBox[4].vertices.push_back(Vertex(vec4(minX, minY, maxZ, 1)));
+		boundingBox[4].vertices.push_back(Vertex(vec4(minX, maxY, maxZ, 1)));
+		boundingBox[4].vertices.push_back(Vertex(vec4(minX, maxY, minZ, 1)));
+
+		boundingBox[5].vertices.push_back(Vertex(vec4(maxX, minY, minZ, 1)));
+		boundingBox[5].vertices.push_back(Vertex(vec4(maxX, minY, maxZ, 1)));
+		boundingBox[5].vertices.push_back(Vertex(vec4(maxX, maxY, maxZ, 1)));
+		boundingBox[5].vertices.push_back(Vertex(vec4(maxX, maxY, minZ, 1)));
+	}
 
 	void Camera::LookAt(vec4& eye, vec4& at, vec4& up)
 	{
