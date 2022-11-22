@@ -115,6 +115,11 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+
+	// CG1::HW2 Functions:
+	void doAction(int val);
+	afx_msg void OnOptionsMouseSensitivity();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

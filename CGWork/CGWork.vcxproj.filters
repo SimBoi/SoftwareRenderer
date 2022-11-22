@@ -45,13 +45,16 @@
     <ClCompile Include="StdAfx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CG_Matrix.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CG_Line.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CG_Matrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="CG_Object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MouseSensitivityDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -166,13 +169,16 @@
     <ClInclude Include="..\include\user_lib.h">
       <Filter>Header Files\irit</Filter>
     </ClInclude>
+    <ClInclude Include="CG_Line.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="CG_Matrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CG_Object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CG_Line.h">
+    <ClInclude Include="MouseSensitivityDialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

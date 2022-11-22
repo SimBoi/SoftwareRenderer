@@ -27,6 +27,11 @@ static char THIS_FILE[] = __FILE__;
 
 // our own MoveTo and LineTo implementation
 #include "CG_Line.h"
+#include "CG_Matrix.h"
+#include "CG_Object.h"
+#include "MouseSensitivityDialog.h"
+#include <string>
+using namespace CG;
 
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
@@ -67,6 +72,8 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
+	ON_WM_MOUSEMOVE()
+	ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, &CCGWorkView::OnOptionsMouseSensitivity)
 END_MESSAGE_MAP()
 
 
@@ -200,6 +207,9 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	// this will keep all dimension scales equal
 	m_AspectRatio = (GLdouble)m_WindowWidth/(GLdouble)m_WindowHeight;
 
+	// enlarge or reduce parentObject when window is resized
+	parentObject.Scale(vec4(m_AspectRatio, m_AspectRatio, m_AspectRatio, m_AspectRatio));
+
 	CRect r;
 	GetClientRect(&r);
 	DeleteObject(m_pDbBitMap);
@@ -282,6 +292,7 @@ void DrawFace(CDC* pDCToUse, CRect r, CG::Face face, CG::mat4 finalProjection)
 	}
 }
 
+int x_location = 0;
 void CCGWorkView::OnDraw(CDC* pDC)
 {
 	CCGWorkDoc* pDoc = GetDocument();
@@ -339,6 +350,10 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	{
 		DrawFace(pDCToUse, r, face, parentProjection);
 	}
+
+	// for testing
+	const CString text = std::to_string(x_location).c_str();
+	pDC->DrawText(text, -1, &r, DT_CENTER);
 	
 	if (pDCToUse != m_pDC) 
 	{
@@ -394,7 +409,34 @@ void CCGWorkView::OnFileLoad()
 
 }
 
+void CCGWorkView::doAction(int val)
+{
+	if (m_nAction == ID_ACTION_ROTATE)
+	{
+		//val = val * parentObject.rotate_sensitivity;
+		val = val % 360;
+		/*if (m_nAxis = ID_AXIS_X)
+		{
+			objects.RotateX(val);
+		}
+		else if (m_nAxis = ID_AXIS_Y)
+		{
+			parentObject.RotateY(val);
+		}
+		else if (m_nAxis = ID_AXIS_Z)
+		{
+			objects.RotateZ(val);
+		}*/
+	}
+	else if (m_nAction == ID_ACTION_TRANSLATE)
+	{
 
+	}
+	else if (m_nAction == ID_ACTION_SCALE)
+	{
+
+	}
+}
 
 
 
@@ -568,4 +610,41 @@ void CCGWorkView::OnTimer(UINT_PTR nIDEvent)
 	CView::OnTimer(nIDEvent);
 	if (nIDEvent == 1)
 		Invalidate();
+}
+
+
+void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
+{
+	// TODO: Add your message handler code here and/or call default
+
+	CView::OnMouseMove(nFlags, point);
+	if (nFlags == MK_LBUTTON)
+	{
+		// ONLY The left mouse button is down.
+		x_location = point.x;
+		// parent transformations
+		//doAction(point.x);
+	}
+	else if ((nFlags == (MK_LBUTTON | MK_CONTROL)) || (nFlags == MK_RBUTTON))
+	{
+		// The left mouse button and the CTRL key are down,
+		// OR The right mouse button is down.
+		x_location = point.x * -1;
+		// child transformation
+		// add selection mechanism
+	}
+}
+
+void CCGWorkView::OnOptionsMouseSensitivity()
+{
+	MouseSensitivityDialog dialog;
+	/*dialog.m_translation_slider = parentObject.translation_sensitivity;
+	dialog.m_rotation_slider = parentObject.rotation_sensitivity;
+	dialog.m_scale_slider = parentObject.scale_sensitivity;*/
+	if (dialog.DoModal() == IDOK)
+	{
+		/*parentObject.translation_sensitivity = dialog.m_translation_slider;
+		parentObject.rotation_sensitivity = dialog.m_rotation_slider;
+		parentObject.scale_sensitivity = dialog.m_scale_slider;*/
+	}
 }

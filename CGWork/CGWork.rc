@@ -13,13 +13,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -29,7 +27,9 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\CGWork.ico"
+
 IDR_CGWorkTYPE          ICON                    "res\\CGWorkDoc.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -38,12 +38,13 @@ IDR_CGWorkTYPE          ICON                    "res\\CGWorkDoc.ico"
 
 IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Toolbar
 //
 
-IDR_MAINFRAME TOOLBAR  16, 16
+IDR_MAINFRAME TOOLBAR 16, 16
 BEGIN
     BUTTON      ID_FILE_LOAD
     SEPARATOR
@@ -65,7 +66,7 @@ END
 // Menu
 //
 
-IDR_MAINFRAME MENU 
+IDR_MAINFRAME MENU
 BEGIN
     POPUP "&File"
     BEGIN
@@ -118,7 +119,7 @@ END
 // Accelerator
 //
 
-IDR_MAINFRAME ACCELERATORS 
+IDR_MAINFRAME ACCELERATORS
 BEGIN
     "N",            ID_FILE_NEW,            VIRTKEY, CONTROL
     "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL
@@ -150,8 +151,8 @@ BEGIN
     LTEXT           "Computer Graphics, MFC with CGWork",IDC_STATIC,40,10,119,8,SS_NOPREFIX
     LTEXT           "Skeleton by: Dani Brunstein",IDC_STATIC,40,23,119,8
     DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
-    LTEXT           "Implemented by: <your name>",IDC_STATIC,40,36,119,8
-    LTEXT           "                   and: <your name>",IDC_STATIC,40,49,119,8
+    LTEXT           "Implemented by: Mohammad Heeb",IDC_STATIC,40,36,119,8
+    LTEXT           "                   and: Hamza Odeh",IDC_STATIC,40,49,119,8
 END
 
 IDD_LIGHTS_DLG DIALOGEX 0, 0, 355, 218
@@ -226,6 +227,24 @@ BEGIN
     GROUPBOX        "Texture Mapping",IDC_STATIC,118,7,182,91
 END
 
+IDD_MOUSE_SENSITIVITY_DIALOG DIALOGEX 0, 0, 269, 136
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Set Mouse Sensitivity"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,49,114,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,169,114,50,14
+    CONTROL         "",IDC_TRANSLATION_SLIDER,"msctls_trackbar32",TBS_TOP | TBS_NOTICKS | TBS_ENABLESELRANGE | WS_TABSTOP,60,30,186,17,WS_EX_TRANSPARENT
+    LTEXT           "Low",IDC_STATIC_LOW,66,12,14,8
+    LTEXT           "High",IDC_STATIC_High,234,12,14,8
+    LTEXT           "Translation:",IDC_STATIC_TRANSLATION,12,30,42,8
+    LTEXT           "Rotation:",IDC_STATIC_ROTATION,12,60,42,8
+    LTEXT           "Scale:",IDC_STATIC_SCALE,12,90,42,8
+    CONTROL         "",IDC_ROTATION_SLIDER,"msctls_trackbar32",TBS_TOP | TBS_NOTICKS | TBS_ENABLESELRANGE | WS_TABSTOP,60,60,186,17,WS_EX_TRANSPARENT
+    CONTROL         "",IDC_SCALE_SLIDER,"msctls_trackbar32",TBS_TOP | TBS_NOTICKS | TBS_ENABLESELRANGE | WS_TABSTOP,60,90,186,17,WS_EX_TRANSPARENT
+    DEFPUSHBUTTON   "Defaults",IDDEFAULTS,109,114,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -271,7 +290,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_ABOUTBOX, DIALOG
     BEGIN
@@ -295,6 +314,15 @@ BEGIN
         RIGHTMARGIN, 300
         TOPMARGIN, 7
         BOTTOMMARGIN, 131
+    END
+
+    IDD_MOUSE_SENSITIVITY_DIALOG, DIALOG
+    BEGIN
+        MOCKUP, 0, 50, 0, 0, "..\..\..\..\..\..\..\Folder\Technion\AL21_02_01_7923-2.jpg"
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 262
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 129
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -323,21 +351,48 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_MOUSE_SENSITIVITY_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    10, 0, 100, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    1, 0, 100, 0,
+    1, 0, 100, 0,
+    0, 0, 0, 0
+END
+
+IDD_ABOUTBOX AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // String Table
 //
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDR_MAINFRAME           "CGWork\n\nCGWork\n\n\nCGWork.Document\nCGWork Document"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     AFX_IDS_APP_TITLE       "CGWork"
     AFX_IDS_IDLEMESSAGE     "Ready"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_INDICATOR_EXT        "EXT"
     ID_INDICATOR_CAPS       "CAP"
@@ -347,7 +402,7 @@ BEGIN
     ID_INDICATOR_REC        "REC"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_FILE_NEW             "Create a new document\nNew"
     ID_FILE_OPEN            "Open an existing document\nOpen"
@@ -356,13 +411,13 @@ BEGIN
     ID_FILE_SAVE_AS         "Save the active document with a new name\nSave As"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_APP_ABOUT            "Display program information, version number and copyright\nAbout"
     ID_APP_EXIT             "Quit the application; prompts to save documents\nExit"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_FILE_MRU_FILE1       "Open this document"
     ID_FILE_MRU_FILE2       "Open this document"
@@ -382,18 +437,18 @@ BEGIN
     ID_FILE_MRU_FILE16      "Open this document"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_NEXT_PANE            "Switch to the next window pane\nNext Pane"
     ID_PREV_PANE            "Switch back to the previous window pane\nPrevious Pane"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_WINDOW_SPLIT         "Split the active window into panes\nSplit"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_EDIT_CLEAR           "Erase the selection\nErase"
     ID_EDIT_CLEAR_ALL       "Erase everything\nErase All"
@@ -408,13 +463,13 @@ BEGIN
     ID_EDIT_REDO            "Redo the previously undone action\nRedo"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_VIEW_TOOLBAR         "Show or hide the toolbar\nToggle ToolBar"
     ID_VIEW_STATUS_BAR      "Show or hide the status bar\nToggle StatusBar"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     AFX_IDS_SCSIZE          "Change the window size"
     AFX_IDS_SCMOVE          "Change the window position"
@@ -425,13 +480,13 @@ BEGIN
     AFX_IDS_SCCLOSE         "Close the active window and prompts to save the documents"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     AFX_IDS_SCRESTORE       "Restore the window to normal size"
     AFX_IDS_SCTASKLIST      "Activate Task List"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_FILE_LOAD            "Load a IRIT Data File\nLoad IRIT Data File"
     ID_VIEW_ORTHOGRAPHIC    "View Orthographic Projection\nOrthographic"
@@ -444,23 +499,21 @@ BEGIN
     ID_AXIS_Z               "Z Axis\nZ Axis"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_BUTTON_SUBDIVIDE     "Run Subdivision Scheme\nSubdivide"
 END
 
-#endif    // English (U.S.) resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// Hebrew resources
+// Hebrew (Israel) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_HEB)
-#ifdef _WIN32
 LANGUAGE LANG_HEBREW, SUBLANG_DEFAULT
 #pragma code_page(1255)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -498,7 +551,7 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
-#endif    // Hebrew resources
+#endif    // Hebrew (Israel) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
