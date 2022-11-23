@@ -97,6 +97,7 @@ CCGWorkView::CCGWorkView()
 	m_nAction = ID_ACTION_ROTATE;
 	m_nView = ID_VIEW_ORTHOGRAPHIC;	
 	m_bIsPerspective = false;
+	m_nSpace = VIEW;
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
@@ -319,6 +320,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
 		
 		parentObject.Scale(CG::vec4(50, 50, 50));
+
 	}
 
 	//parentObject.Translate(CG::vec4(0, 0, -1));
@@ -354,8 +356,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	}
 
 	// for testing
-	const CString text = std::to_string(x_location).c_str();
-	pDC->DrawText(text, -1, &r, DT_CENTER);
+	//const CString text = std::to_string(x_location).c_str();
+	//pDC->DrawText(text, -1, &r, DT_CENTER);
 	
 	if (pDCToUse != m_pDC) 
 	{
@@ -432,7 +434,6 @@ void CCGWorkView::doAction(int val)
 static double calcRotateValue(int val)
 {
 	val = val * parentObject.rotation_sensitivity;
-	val = val % 360; // ??
 	return val;
 }
 
@@ -442,30 +443,30 @@ void CCGWorkView::doRotate(int val)
 
 	if (m_nSpace == VIEW)
 	{
-		if (m_nAxis = ID_AXIS_X)
+		if (m_nAxis == ID_AXIS_X)
 		{
 			parentObject.RotateX(rotate_value);
 		}
-		else if (m_nAxis = ID_AXIS_Y)
+		else if (m_nAxis == ID_AXIS_Y)
 		{
 			parentObject.RotateY(rotate_value);
 		}
-		else if (m_nAxis = ID_AXIS_Z)
+		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.RotateZ(rotate_value);
 		}
 	}
 	else if (m_nSpace == OBJECT)
 	{
-		if (m_nAxis = ID_AXIS_X)
+		if (m_nAxis == ID_AXIS_X)
 		{
 			parentObject.LocalRotateX(rotate_value);
 		}
-		else if (m_nAxis = ID_AXIS_Y)
+		else if (m_nAxis == ID_AXIS_Y)
 		{
 			parentObject.LocalRotateY(rotate_value);
 		}
-		else if (m_nAxis = ID_AXIS_Z)
+		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.LocalRotateZ(rotate_value);
 		}
@@ -485,30 +486,30 @@ void CCGWorkView::doTranslate(int val)
 
 	if (m_nSpace == VIEW)
 	{
-		if (m_nAxis = ID_AXIS_X)
+		if (m_nAxis == ID_AXIS_X)
 		{
 			parentObject.Translate(vec4(translate_value, 0, 0));
 		}
-		else if (m_nAxis = ID_AXIS_Y)
+		else if (m_nAxis == ID_AXIS_Y)
 		{
 			parentObject.Translate(vec4(0, translate_value, 0));
 		}
-		else if (m_nAxis = ID_AXIS_Z)
+		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.Translate(vec4(0, 0, translate_value));
 		}
 	}
 	else if (m_nSpace == OBJECT)
 	{
-		if (m_nAxis = ID_AXIS_X)
+		if (m_nAxis == ID_AXIS_X)
 		{
 			parentObject.LocalTranslate(vec4(translate_value, 0, 0));
 		}
-		else if (m_nAxis = ID_AXIS_Y)
+		else if (m_nAxis == ID_AXIS_Y)
 		{
 			parentObject.LocalTranslate(vec4(0, translate_value, 0));
 		}
-		else if (m_nAxis = ID_AXIS_Z)
+		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.LocalTranslate(vec4(0, 0, translate_value));
 		}
@@ -519,7 +520,7 @@ void CCGWorkView::doTranslate(int val)
 static double calcScaleValue(int val)
 {
 	val = val * parentObject.scale_sensitivity;
-	double s = (val >= 0) ? val : (1.0 / val);
+	double s = (val >= 0) ? val : (-1.0 / val);
 	return s;
 }
 
@@ -529,30 +530,30 @@ void CCGWorkView::doScale(int val)
 
 	if (m_nSpace == VIEW)
 	{
-		if (m_nAxis = ID_AXIS_X)
+		if (m_nAxis == ID_AXIS_X)
 		{
 			parentObject.Scale(vec4(scale_value, 0, 0));
 		}
-		else if (m_nAxis = ID_AXIS_Y)
+		else if (m_nAxis == ID_AXIS_Y)
 		{
 			parentObject.Scale(vec4(0, scale_value, 0));
 		}
-		else if (m_nAxis = ID_AXIS_Z)
+		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.Scale(vec4(0, 0, scale_value));
 		}
 	}
 	else if (m_nSpace == OBJECT)
 	{
-		if (m_nAxis = ID_AXIS_X)
+		if (m_nAxis == ID_AXIS_X)
 		{
 			parentObject.LocalScale(vec4(scale_value, 0, 0));
 		}
-		else if (m_nAxis = ID_AXIS_Y)
+		else if (m_nAxis == ID_AXIS_Y)
 		{
 			parentObject.LocalScale(vec4(0, scale_value, 0));
 		}
-		else if (m_nAxis = ID_AXIS_Z)
+		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.LocalScale(vec4(0, 0, scale_value));
 		}
