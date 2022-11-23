@@ -235,6 +235,9 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	childObject.CalcBoundingBox();
 	parentObject.ReCalcBoundingBox(childObject);
 
+	// set intuitive sensitivity
+	parentObject.setDefaultSensitivity();
+
 	return true;
 }
 

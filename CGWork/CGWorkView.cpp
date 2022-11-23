@@ -208,7 +208,7 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	m_AspectRatio = (GLdouble)m_WindowWidth/(GLdouble)m_WindowHeight;
 
 	// enlarge or reduce parentObject when window is resized
-	parentObject.Scale(vec4(m_AspectRatio, m_AspectRatio, m_AspectRatio, m_AspectRatio));
+	//parentObject.Scale(vec4(m_AspectRatio, m_AspectRatio, m_AspectRatio, m_AspectRatio));
 
 	CRect r;
 	GetClientRect(&r);
@@ -316,11 +316,11 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		camera.projection = CG::Camera::Perspective(90, aspectRatio, 0.1, 1000);
 		camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
 		
-		parentObject.Scale(CG::vec4(400, 400, 400));
+		parentObject.Scale(CG::vec4(50, 50, 50));
 	}
 
-	parentObject.Translate(CG::vec4(0, 0, -1));
-	parentObject.RotateY(30);
+	//parentObject.Translate(CG::vec4(0, 0, -1));
+	//parentObject.RotateY(30);
 	camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
 	
 	CG::mat4 parentProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection * camera.cInverse * parentObject.wTransform * parentObject.mTransform;
@@ -409,32 +409,75 @@ void CCGWorkView::OnFileLoad()
 
 }
 
+static double calcRotateValue(int val)
+{
+	val = val * parentObject.rotation_sensitivity;
+	val = val % 360; // ??
+	return val;
+}
+
+static double calcTranslateValue(int val)
+{
+	val = val * parentObject.translation_sensitivity;
+	return val;
+}
+
+static double calcScaleValue(int val)
+{
+	val = val * parentObject.scale_sensitivity;
+	double s = (val >= 0) ? val : (1.0 / val);
+	return s;
+}
+
 void CCGWorkView::doAction(int val)
 {
 	if (m_nAction == ID_ACTION_ROTATE)
 	{
-		//val = val * parentObject.rotate_sensitivity;
-		val = val % 360;
-		/*if (m_nAxis = ID_AXIS_X)
+		double rotate_value = calcRotateValue(val);
+		if (m_nAxis = ID_AXIS_X)
 		{
-			objects.RotateX(val);
+			parentObject.RotateX(rotate_value);
 		}
 		else if (m_nAxis = ID_AXIS_Y)
 		{
-			parentObject.RotateY(val);
+			parentObject.RotateY(rotate_value);
 		}
 		else if (m_nAxis = ID_AXIS_Z)
 		{
-			objects.RotateZ(val);
-		}*/
+			parentObject.RotateZ(rotate_value);
+		}
 	}
 	else if (m_nAction == ID_ACTION_TRANSLATE)
 	{
-
+		double translate_value = calcTranslateValue(val);
+		if (m_nAxis = ID_AXIS_X)
+		{
+			parentObject.Translate(vec4(translate_value, 0, 0));
+		}
+		else if (m_nAxis = ID_AXIS_Y)
+		{
+			parentObject.Translate(vec4(0, translate_value, 0));
+		}
+		else if (m_nAxis = ID_AXIS_Z)
+		{
+			parentObject.Translate(vec4(0, 0, translate_value));
+		}
 	}
 	else if (m_nAction == ID_ACTION_SCALE)
 	{
-
+		double scale_value = calcScaleValue(val);
+		if (m_nAxis = ID_AXIS_X)
+		{
+			parentObject.Scale(vec4(scale_value, 0, 0));
+		}
+		else if (m_nAxis = ID_AXIS_Y)
+		{
+			parentObject.Scale(vec4(0, scale_value, 0));
+		}
+		else if (m_nAxis = ID_AXIS_Z)
+		{
+			parentObject.Scale(vec4(0, 0, scale_value));
+		}
 	}
 }
 
@@ -618,12 +661,15 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 	// TODO: Add your message handler code here and/or call default
 
 	CView::OnMouseMove(nFlags, point);
+	int current_x_position = point.x;
+	int value = (current_x_position - old_x_position) > 0 ? 1 : -1;
 	if (nFlags == MK_LBUTTON)
 	{
 		// ONLY The left mouse button is down.
+		// parent transformations		
+		doAction(value);
+
 		x_location = point.x;
-		// parent transformations
-		//doAction(point.x);
 	}
 	else if ((nFlags == (MK_LBUTTON | MK_CONTROL)) || (nFlags == MK_RBUTTON))
 	{
@@ -633,18 +679,22 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 		// child transformation
 		// add selection mechanism
 	}
+
+	old_x_position = current_x_position;
+	Invalidate();
+	UpdateWindow();
 }
 
 void CCGWorkView::OnOptionsMouseSensitivity()
 {
 	MouseSensitivityDialog dialog;
-	/*dialog.m_translation_slider = parentObject.translation_sensitivity;
+	dialog.m_translation_slider = parentObject.translation_sensitivity;
 	dialog.m_rotation_slider = parentObject.rotation_sensitivity;
-	dialog.m_scale_slider = parentObject.scale_sensitivity;*/
+	dialog.m_scale_slider = parentObject.scale_sensitivity;
 	if (dialog.DoModal() == IDOK)
 	{
-		/*parentObject.translation_sensitivity = dialog.m_translation_slider;
+		parentObject.translation_sensitivity = dialog.m_translation_slider;
 		parentObject.rotation_sensitivity = dialog.m_rotation_slider;
-		parentObject.scale_sensitivity = dialog.m_scale_slider;*/
+		parentObject.scale_sensitivity = dialog.m_scale_slider;
 	}
 }

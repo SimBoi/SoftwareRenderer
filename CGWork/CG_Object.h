@@ -37,6 +37,8 @@ namespace CG
 		Face boundingBox[6];
 		CG::Object* parent = NULL;
 		std::list<Object> children;
+		// mouse sensitivity
+		int translation_sensitivity, rotation_sensitivity, scale_sensitivity;
 
 		vec4 mPosition();
 		vec4 wPosition();
@@ -52,6 +54,7 @@ namespace CG
 		void LocalScale(vec4 amount);
 		void CalcBoundingBox();
 		void ReCalcBoundingBox(const Object& alteredChild); // if a child transforms relative to the parent, the parent should recalculate its bounding box
+		void setDefaultSensitivity();
 
 	private:
 		void GenerateBoundingBoxArray();

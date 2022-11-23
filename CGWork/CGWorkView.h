@@ -78,6 +78,7 @@ protected:
 	int m_WindowWidth;		// hold the windows width
 	int m_WindowHeight;		// hold the windows height
 	double m_AspectRatio;		// hold the fixed Aspect Ration
+	int old_x_position;		// to save the old mouse position
 
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;

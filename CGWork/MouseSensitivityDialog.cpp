@@ -33,11 +33,14 @@ void MouseSensitivityDialog::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	DDX_Slider(pDX, IDC_TRANSLATION_SLIDER, m_translation_slider);
-	DDV_MinMaxInt(pDX, m_translation_slider, 0, 100);
+	DDV_MinMaxInt(pDX, m_translation_slider, MIN_SENSITIVITY, MAX_SENSITIVITY);
 	DDX_Slider(pDX, IDC_ROTATION_SLIDER, m_rotation_slider);
-	DDV_MinMaxInt(pDX, m_rotation_slider, 0, 100);
+	DDV_MinMaxInt(pDX, m_rotation_slider, MIN_SENSITIVITY, MAX_SENSITIVITY);
 	DDX_Slider(pDX, IDC_SCALE_SLIDER, m_scale_slider);
-	DDV_MinMaxInt(pDX, m_scale_slider, 0, 100);
+	DDV_MinMaxInt(pDX, m_scale_slider, MIN_SENSITIVITY, MAX_SENSITIVITY);
+	DDX_Control(pDX, IDC_TRANSLATION_SLIDER, m_translation_slider_ctrl);
+	DDX_Control(pDX, IDC_ROTATION_SLIDER, m_rotation_slider_ctrl);
+	DDX_Control(pDX, IDC_SCALE_SLIDER, m_scale_slider_ctrl);
 }
 
 
@@ -51,8 +54,24 @@ END_MESSAGE_MAP()
 
 void MouseSensitivityDialog::OnBnClickedDefaults()
 {
-	/*parentObject.setDefaultSensitivity();
+	parentObject.setDefaultSensitivity();
 	this->m_translation_slider = parentObject.translation_sensitivity;
 	this->m_rotation_slider = parentObject.rotation_sensitivity;
-	this->m_scale_slider = parentObject.scale_sensitivity;*/
+	this->m_scale_slider = parentObject.scale_sensitivity;
+
+	UpdateData(FALSE);
+}
+
+
+BOOL MouseSensitivityDialog::OnInitDialog()
+{
+	CDialog::OnInitDialog();
+
+	// TODO:  Add extra initialization here
+	m_translation_slider_ctrl.SetRange(MIN_SENSITIVITY, MAX_SENSITIVITY, TRUE);
+	m_rotation_slider_ctrl.SetRange(MIN_SENSITIVITY, MAX_SENSITIVITY, TRUE);
+	m_scale_slider_ctrl.SetRange(MIN_SENSITIVITY, MAX_SENSITIVITY, TRUE);
+
+	return TRUE;  // return TRUE unless you set the focus to a control
+	// EXCEPTION: OCX Property Pages should return FALSE
 }
