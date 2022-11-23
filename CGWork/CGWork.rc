@@ -58,6 +58,8 @@ BEGIN
     BUTTON      ID_AXIS_X
     BUTTON      ID_AXIS_Y
     BUTTON      ID_AXIS_Z
+    BUTTON      ID_VIEW_SPACE
+    BUTTON      ID_OBJECT_SPACE
 END
 
 
@@ -502,6 +504,12 @@ END
 STRINGTABLE
 BEGIN
     ID_BUTTON_SUBDIVIDE     "Run Subdivision Scheme\nSubdivide"
+END
+
+STRINGTABLE
+BEGIN
+    ID_VIEW_SPACE           "View Space\nView Space"
+    ID_OBJECT_SPACE         "Object Space\nObject Space"
 END
 
 #endif    // English (United States) resources

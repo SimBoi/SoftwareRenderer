@@ -74,6 +74,8 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_WM_TIMER()
 	ON_WM_MOUSEMOVE()
 	ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, &CCGWorkView::OnOptionsMouseSensitivity)
+	ON_COMMAND(ID_VIEW_SPACE, &CCGWorkView::OnViewSpace)
+	ON_COMMAND(ID_OBJECT_SPACE, &CCGWorkView::OnObjectSpace)
 END_MESSAGE_MAP()
 
 
@@ -409,6 +411,24 @@ void CCGWorkView::OnFileLoad()
 
 }
 
+
+void CCGWorkView::doAction(int val)
+{
+	if (m_nAction == ID_ACTION_ROTATE)
+	{
+		doRotate(val);
+	}
+	else if (m_nAction == ID_ACTION_TRANSLATE)
+	{
+		doTranslate(val);
+	}
+	else if (m_nAction == ID_ACTION_SCALE)
+	{
+		doScale(val);
+	}
+}
+
+
 static double calcRotateValue(int val)
 {
 	val = val * parentObject.rotation_sensitivity;
@@ -416,24 +436,12 @@ static double calcRotateValue(int val)
 	return val;
 }
 
-static double calcTranslateValue(int val)
+void CCGWorkView::doRotate(int val)
 {
-	val = val * parentObject.translation_sensitivity;
-	return val;
-}
+	double rotate_value = calcRotateValue(val);
 
-static double calcScaleValue(int val)
-{
-	val = val * parentObject.scale_sensitivity;
-	double s = (val >= 0) ? val : (1.0 / val);
-	return s;
-}
-
-void CCGWorkView::doAction(int val)
-{
-	if (m_nAction == ID_ACTION_ROTATE)
+	if (m_nSpace == VIEW)
 	{
-		double rotate_value = calcRotateValue(val);
 		if (m_nAxis = ID_AXIS_X)
 		{
 			parentObject.RotateX(rotate_value);
@@ -447,9 +455,36 @@ void CCGWorkView::doAction(int val)
 			parentObject.RotateZ(rotate_value);
 		}
 	}
-	else if (m_nAction == ID_ACTION_TRANSLATE)
+	else if (m_nSpace == OBJECT)
 	{
-		double translate_value = calcTranslateValue(val);
+		if (m_nAxis = ID_AXIS_X)
+		{
+			parentObject.LocalRotateX(rotate_value);
+		}
+		else if (m_nAxis = ID_AXIS_Y)
+		{
+			parentObject.LocalRotateY(rotate_value);
+		}
+		else if (m_nAxis = ID_AXIS_Z)
+		{
+			parentObject.LocalRotateZ(rotate_value);
+		}
+	}
+}
+
+
+static double calcTranslateValue(int val)
+{
+	val = val * parentObject.translation_sensitivity;
+	return val;
+}
+
+void CCGWorkView::doTranslate(int val)
+{
+	double translate_value = calcTranslateValue(val);
+
+	if (m_nSpace == VIEW)
+	{
 		if (m_nAxis = ID_AXIS_X)
 		{
 			parentObject.Translate(vec4(translate_value, 0, 0));
@@ -463,9 +498,37 @@ void CCGWorkView::doAction(int val)
 			parentObject.Translate(vec4(0, 0, translate_value));
 		}
 	}
-	else if (m_nAction == ID_ACTION_SCALE)
+	else if (m_nSpace == OBJECT)
 	{
-		double scale_value = calcScaleValue(val);
+		if (m_nAxis = ID_AXIS_X)
+		{
+			parentObject.LocalTranslate(vec4(translate_value, 0, 0));
+		}
+		else if (m_nAxis = ID_AXIS_Y)
+		{
+			parentObject.LocalTranslate(vec4(0, translate_value, 0));
+		}
+		else if (m_nAxis = ID_AXIS_Z)
+		{
+			parentObject.LocalTranslate(vec4(0, 0, translate_value));
+		}
+	}
+}
+
+
+static double calcScaleValue(int val)
+{
+	val = val * parentObject.scale_sensitivity;
+	double s = (val >= 0) ? val : (1.0 / val);
+	return s;
+}
+
+void CCGWorkView::doScale(int val)
+{
+	double scale_value = calcScaleValue(val);
+
+	if (m_nSpace == VIEW)
+	{
 		if (m_nAxis = ID_AXIS_X)
 		{
 			parentObject.Scale(vec4(scale_value, 0, 0));
@@ -477,6 +540,21 @@ void CCGWorkView::doAction(int val)
 		else if (m_nAxis = ID_AXIS_Z)
 		{
 			parentObject.Scale(vec4(0, 0, scale_value));
+		}
+	}
+	else if (m_nSpace == OBJECT)
+	{
+		if (m_nAxis = ID_AXIS_X)
+		{
+			parentObject.LocalScale(vec4(scale_value, 0, 0));
+		}
+		else if (m_nAxis = ID_AXIS_Y)
+		{
+			parentObject.LocalScale(vec4(0, scale_value, 0));
+		}
+		else if (m_nAxis = ID_AXIS_Z)
+		{
+			parentObject.LocalScale(vec4(0, 0, scale_value));
 		}
 	}
 }
@@ -593,8 +671,16 @@ void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
 }
 
 
+void CCGWorkView::OnViewSpace()
+{
+	m_nSpace = VIEW;
+}
 
 
+void CCGWorkView::OnObjectSpace()
+{
+	m_nSpace = OBJECT;
+}
 
 // OPTIONS HANDLERS ///////////////////////////////////////////
 
@@ -698,3 +784,5 @@ void CCGWorkView::OnOptionsMouseSensitivity()
 		parentObject.scale_sensitivity = dialog.m_scale_slider;
 	}
 }
+
+
