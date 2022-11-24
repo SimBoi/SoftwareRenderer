@@ -308,16 +308,16 @@ bool ClipLine(CG::vec4& from, CG::vec4& to, const CG::Camera& camera)
 }
 
 // renders line between two points in camera frame
-void DrawLine(CDC* pDCToUse, CG::vec4 from, CG::vec4 to, const CG::Camera& camera, const CG::mat4& screenProjection)
+void DrawLine(CDC* pDCToUse, CG::vec4 from, CG::vec4 to, const CG::Camera& camera, const CG::mat4& screenProjection, COLORREF& color)
 {
 	if (!ClipLine(from, to, camera)) return; // ClipLine will return false if line is out of frustum
 	from = CG::HomogeneousToEuclidean(screenProjection * from);
 	to = CG::HomogeneousToEuclidean(screenProjection * to);
 	CG::MoveTo(from.x, from.y);
-	CG::LineTo(pDCToUse, to.x, to.y);
+	CG::LineTo(pDCToUse, to.x, to.y, color);
 }
 
-void DrawFace(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection)
+void DrawFace(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, COLORREF& color)
 {
 	if (face.vertices.size() <= 1) return;
 
@@ -327,7 +327,7 @@ void DrawFace(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, con
 	for (auto const& vertex : face.vertices)
 	{
 		CG::vec4 coords = modelToCameraFrame * vertex.localPosition;
-		DrawLine(pDCToUse, prevCoords, coords, camera, screenProjection);
+		DrawLine(pDCToUse, prevCoords, coords, camera, screenProjection, color);
 		prevCoords = coords;
 	}
 }
@@ -345,7 +345,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	CDC *pDCToUse = /*m_pDC*/m_pDbDC;
 	
 	// set background color
-	pDCToUse->FillSolidRect(&r, RGB(255, 255, 0));
+	pDCToUse->FillSolidRect(&r, RGB(0, 0, 0));
 
 	if (!initialized)
 	{
@@ -353,16 +353,15 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		
 		double aspectRatio = 16.0 / 9;
 		//camera.Ortho(-1000 * aspectRatio, 1000 * aspectRatio, -1000, 1000, 0.1, 1000);
-		camera.Perspective(90, aspectRatio, 0.1, 1000);
+		camera.Perspective(90, aspectRatio, 50, 1000);
 		camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
 		
-		parentObject.Scale(CG::vec4(50, 50, 50));
-
+		parentObject.Scale(CG::vec4(400, 400, 400));
 	}
 
 	//parentObject.Translate(CG::vec4(0, 0, -1));
 	//parentObject.RotateY(30);
-	camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
+	//camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
 	
 	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
 	CG::mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
@@ -375,7 +374,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
-			DrawFace(pDCToUse, face, camera, childToCameraFrame, screenProjection);
+			DrawFace(pDCToUse, face, camera, childToCameraFrame, screenProjection, child.color);
 		}
 
 		//// draw child object bounding box
@@ -388,9 +387,10 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	}
 	
 	// draw parent object bounding box
+	COLORREF boxColor = RGB(255, 0, 0);
 	for (auto const& face : parentObject.boundingBox)
 	{
-		DrawFace(pDCToUse, face, camera, parentToCameraFrame, screenProjection);
+		DrawFace(pDCToUse, face, camera, parentToCameraFrame, screenProjection, boxColor);
 	}
 
 	// for testing

@@ -15,7 +15,6 @@ namespace CG
 		scale_sensitivity = 25;
 	}
 
-
 	vec4 HomogeneousToEuclidean(vec4& coords)
 	{
 		return coords / coords.w;
