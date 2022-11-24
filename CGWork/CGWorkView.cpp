@@ -27,6 +27,11 @@ static char THIS_FILE[] = __FILE__;
 
 // our own MoveTo and LineTo implementation
 #include "CG_Line.h"
+#include "CG_Matrix.h"
+#include "CG_Object.h"
+#include "MouseSensitivityDialog.h"
+#include <string>
+using namespace CG;
 
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
@@ -67,6 +72,10 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
+	ON_WM_MOUSEMOVE()
+	ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, &CCGWorkView::OnOptionsMouseSensitivity)
+	ON_COMMAND(ID_VIEW_SPACE, &CCGWorkView::OnViewSpace)
+	ON_COMMAND(ID_OBJECT_SPACE, &CCGWorkView::OnObjectSpace)
 END_MESSAGE_MAP()
 
 
@@ -88,6 +97,7 @@ CCGWorkView::CCGWorkView()
 	m_nAction = ID_ACTION_ROTATE;
 	m_nView = ID_VIEW_ORTHOGRAPHIC;	
 	m_bIsPerspective = false;
+	m_nSpace = VIEW;
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
@@ -199,6 +209,9 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	// compute the aspect ratio
 	// this will keep all dimension scales equal
 	m_AspectRatio = (GLdouble)m_WindowWidth/(GLdouble)m_WindowHeight;
+
+	// enlarge or reduce parentObject when window is resized
+	//parentObject.Scale(vec4(m_AspectRatio, m_AspectRatio, m_AspectRatio, m_AspectRatio));
 
 	CRect r;
 	GetClientRect(&r);
@@ -319,6 +332,7 @@ void DrawFace(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, con
 	}
 }
 
+int x_location = 0;
 void CCGWorkView::OnDraw(CDC* pDC)
 {
 	CCGWorkDoc* pDoc = GetDocument();
@@ -342,11 +356,12 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		camera.Perspective(90, aspectRatio, 0.1, 1000);
 		camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
 		
-		parentObject.Scale(CG::vec4(400, 400, 400));
+		parentObject.Scale(CG::vec4(50, 50, 50));
+
 	}
 
-	parentObject.Translate(CG::vec4(0, 0, -1));
-	parentObject.RotateY(30);
+	//parentObject.Translate(CG::vec4(0, 0, -1));
+	//parentObject.RotateY(30);
 	camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
 	
 	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
@@ -377,6 +392,10 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	{
 		DrawFace(pDCToUse, face, camera, parentToCameraFrame, screenProjection);
 	}
+
+	// for testing
+	//const CString text = std::to_string(x_location).c_str();
+	//pDC->DrawText(text, -1, &r, DT_CENTER);
 	
 	if (pDCToUse != m_pDC) 
 	{
@@ -433,6 +452,151 @@ void CCGWorkView::OnFileLoad()
 }
 
 
+void CCGWorkView::doAction(int val)
+{
+	if (m_nAction == ID_ACTION_ROTATE)
+	{
+		doRotate(val);
+	}
+	else if (m_nAction == ID_ACTION_TRANSLATE)
+	{
+		doTranslate(val);
+	}
+	else if (m_nAction == ID_ACTION_SCALE)
+	{
+		doScale(val);
+	}
+}
+
+
+static double calcRotateValue(int val)
+{
+	val = val * parentObject.rotation_sensitivity;
+	return val;
+}
+
+void CCGWorkView::doRotate(int val)
+{
+	double rotate_value = calcRotateValue(val);
+
+	if (m_nSpace == VIEW)
+	{
+		if (m_nAxis == ID_AXIS_X)
+		{
+			parentObject.RotateX(rotate_value);
+		}
+		else if (m_nAxis == ID_AXIS_Y)
+		{
+			parentObject.RotateY(rotate_value);
+		}
+		else if (m_nAxis == ID_AXIS_Z)
+		{
+			parentObject.RotateZ(rotate_value);
+		}
+	}
+	else if (m_nSpace == OBJECT)
+	{
+		if (m_nAxis == ID_AXIS_X)
+		{
+			parentObject.LocalRotateX(rotate_value);
+		}
+		else if (m_nAxis == ID_AXIS_Y)
+		{
+			parentObject.LocalRotateY(rotate_value);
+		}
+		else if (m_nAxis == ID_AXIS_Z)
+		{
+			parentObject.LocalRotateZ(rotate_value);
+		}
+	}
+}
+
+
+static double calcTranslateValue(int val)
+{
+	val = val * parentObject.translation_sensitivity;
+	return val;
+}
+
+void CCGWorkView::doTranslate(int val)
+{
+	double translate_value = calcTranslateValue(val);
+
+	if (m_nSpace == VIEW)
+	{
+		if (m_nAxis == ID_AXIS_X)
+		{
+			parentObject.Translate(vec4(translate_value, 0, 0));
+		}
+		else if (m_nAxis == ID_AXIS_Y)
+		{
+			parentObject.Translate(vec4(0, translate_value, 0));
+		}
+		else if (m_nAxis == ID_AXIS_Z)
+		{
+			parentObject.Translate(vec4(0, 0, translate_value));
+		}
+	}
+	else if (m_nSpace == OBJECT)
+	{
+		if (m_nAxis == ID_AXIS_X)
+		{
+			parentObject.LocalTranslate(vec4(translate_value, 0, 0));
+		}
+		else if (m_nAxis == ID_AXIS_Y)
+		{
+			parentObject.LocalTranslate(vec4(0, translate_value, 0));
+		}
+		else if (m_nAxis == ID_AXIS_Z)
+		{
+			parentObject.LocalTranslate(vec4(0, 0, translate_value));
+		}
+	}
+}
+
+
+static double calcScaleValue(int val)
+{
+	val = val * parentObject.scale_sensitivity;
+	double s = (val >= 0) ? val : (-1.0 / val);
+	return s;
+}
+
+void CCGWorkView::doScale(int val)
+{
+	double scale_value = calcScaleValue(val);
+
+	if (m_nSpace == VIEW)
+	{
+		if (m_nAxis == ID_AXIS_X)
+		{
+			parentObject.Scale(vec4(scale_value, 0, 0));
+		}
+		else if (m_nAxis == ID_AXIS_Y)
+		{
+			parentObject.Scale(vec4(0, scale_value, 0));
+		}
+		else if (m_nAxis == ID_AXIS_Z)
+		{
+			parentObject.Scale(vec4(0, 0, scale_value));
+		}
+	}
+	else if (m_nSpace == OBJECT)
+	{
+		if (m_nAxis == ID_AXIS_X)
+		{
+			parentObject.LocalScale(vec4(scale_value, 0, 0));
+		}
+		else if (m_nAxis == ID_AXIS_Y)
+		{
+			parentObject.LocalScale(vec4(0, scale_value, 0));
+		}
+		else if (m_nAxis == ID_AXIS_Z)
+		{
+			parentObject.LocalScale(vec4(0, 0, scale_value));
+		}
+	}
+}
 
 
 
@@ -546,8 +710,16 @@ void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
 }
 
 
+void CCGWorkView::OnViewSpace()
+{
+	m_nSpace = VIEW;
+}
 
 
+void CCGWorkView::OnObjectSpace()
+{
+	m_nSpace = OBJECT;
+}
 
 // OPTIONS HANDLERS ///////////////////////////////////////////
 
@@ -607,3 +779,49 @@ void CCGWorkView::OnTimer(UINT_PTR nIDEvent)
 	if (nIDEvent == 1)
 		Invalidate();
 }
+
+
+void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
+{
+	// TODO: Add your message handler code here and/or call default
+
+	CView::OnMouseMove(nFlags, point);
+	int current_x_position = point.x;
+	int value = (current_x_position - old_x_position) > 0 ? 1 : -1;
+	if (nFlags == MK_LBUTTON)
+	{
+		// ONLY The left mouse button is down.
+		// parent transformations		
+		doAction(value);
+
+		x_location = point.x;
+	}
+	else if ((nFlags == (MK_LBUTTON | MK_CONTROL)) || (nFlags == MK_RBUTTON))
+	{
+		// The left mouse button and the CTRL key are down,
+		// OR The right mouse button is down.
+		x_location = point.x * -1;
+		// child transformation
+		// add selection mechanism
+	}
+
+	old_x_position = current_x_position;
+	Invalidate();
+	UpdateWindow();
+}
+
+void CCGWorkView::OnOptionsMouseSensitivity()
+{
+	MouseSensitivityDialog dialog;
+	dialog.m_translation_slider = parentObject.translation_sensitivity;
+	dialog.m_rotation_slider = parentObject.rotation_sensitivity;
+	dialog.m_scale_slider = parentObject.scale_sensitivity;
+	if (dialog.DoModal() == IDOK)
+	{
+		parentObject.translation_sensitivity = dialog.m_translation_slider;
+		parentObject.rotation_sensitivity = dialog.m_rotation_slider;
+		parentObject.scale_sensitivity = dialog.m_scale_slider;
+	}
+}
+
+

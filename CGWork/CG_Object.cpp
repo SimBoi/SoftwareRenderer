@@ -226,6 +226,14 @@ namespace CG
 		GenerateBoundingBoxArray();
 	}
 
+	void Object::setDefaultSensitivity()
+	{
+		// need to calc in an intuitive way
+		translation_sensitivity = 25;
+		rotation_sensitivity = 25;
+		scale_sensitivity = 25;
+	}
+
 	void Object::GenerateBoundingBoxArray()
 	{
 		boundingBox[0].vertices.clear();

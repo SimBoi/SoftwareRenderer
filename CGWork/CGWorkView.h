@@ -16,6 +16,9 @@
 
 #include "Light.h"
 
+typedef enum SpaceType { VIEW, OBJECT } TSpace;
+
+
 class CCGWorkView : public CView
 {
 protected: // create from serialization only
@@ -33,7 +36,8 @@ private:
 	int m_nAxis;				// Axis of Action, X Y or Z
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
-	bool m_bIsPerspective;			// is the view perspective
+	bool m_bIsPerspective;		// is the view perspective
+	TSpace m_nSpace;			// view/ object space	
 	
 	CString m_strItdFileName;		// file name of IRIT data
 
@@ -78,6 +82,7 @@ protected:
 	int m_WindowWidth;		// hold the windows width
 	int m_WindowHeight;		// hold the windows height
 	double m_AspectRatio;		// hold the fixed Aspect Ration
+	int old_x_position;		// to save the old mouse position
 
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;
@@ -115,6 +120,17 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+
+	// CG1::HW2 Functions:
+	void doAction(int val);
+	void doRotate(int val);
+	void doTranslate(int val);
+	void doScale(int val);
+
+	afx_msg void OnOptionsMouseSensitivity();
+	afx_msg void OnViewSpace();
+	afx_msg void OnObjectSpace();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

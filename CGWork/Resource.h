@@ -2,11 +2,13 @@
 // Microsoft Visual C++ generated include file.
 // Used by CGWork.rc
 //
+#define IDDEFAULTS                      3
 #define IDD_ABOUTBOX                    100
 #define IDR_MAINFRAME                   128
 #define IDR_CGWorkTYPE                  129
 #define IDD_LIGHTS_DLG                  134
 #define IDD_MATERIAL_DLG                136
+#define IDD_MOUSE_SENSITIVITY_DIALOG    139
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -34,6 +36,14 @@
 #define IDC_MATERIAL_DIFFUSE            1040
 #define IDC_MATERIAL_SHININESS          1041
 #define IDC_MATERIAL_SPECULAR           1042
+#define IDC_TRANSLATION_SLIDER          1042
+#define IDC_STATIC_LOW                  1043
+#define IDC_STATIC_High                 1044
+#define IDC_STATIC_TRANSLATION          1045
+#define IDC_STATIC_ROTATION             1046
+#define IDC_STATIC_SCALE                1047
+#define IDC_ROTATION_SLIDER             1048
+#define IDC_SCALE_SLIDER                1049
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -52,14 +62,17 @@
 #define ID_BUTTON_SUBDIVIDE             32797
 #define ID_OPTIONS_PERSPECTIVECONTROL   32798
 #define ID_OPTIONS_MOUSESENSITIVITY     32799
+#define ID_VIEW_SPACE                   32802
+#define ID_OBJECT_SPACE                 32804
+#define ID_BUTTON32805                  32805
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        139
-#define _APS_NEXT_COMMAND_VALUE         32801
-#define _APS_NEXT_CONTROL_VALUE         1040
+#define _APS_NEXT_RESOURCE_VALUE        144
+#define _APS_NEXT_COMMAND_VALUE         32806
+#define _APS_NEXT_CONTROL_VALUE         1044
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

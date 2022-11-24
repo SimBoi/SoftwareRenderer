@@ -83,6 +83,9 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 	TraversState.ApplyFunc = (IPApplyObjFuncType) CGSkelDumpOneTraversedObject;
 	IRIT_GEN_COPY(TraversState.Mat, CrntViewMat, sizeof(IrtHmgnMatType));
 	IPTraverseObjListHierarchy(PObjects, &TraversState);
+
+	// set intuitive sensitivity
+	parentObject.setDefaultSensitivity();
 	return true;
 }
 
@@ -234,6 +237,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	// calculate child and parent bounding box
 	childObject.CalcBoundingBox();
 	parentObject.ReCalcBoundingBox(childObject);
+
 
 	return true;
 }
