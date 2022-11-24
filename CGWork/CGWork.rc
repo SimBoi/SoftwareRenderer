@@ -58,6 +58,9 @@ BEGIN
     BUTTON      ID_AXIS_X
     BUTTON      ID_AXIS_Y
     BUTTON      ID_AXIS_Z
+    BUTTON      ID_AXIS_XY
+    BUTTON      ID_AXIS_XYZ
+    BUTTON      ID_BUTTON32810
     BUTTON      ID_VIEW_SPACE
     BUTTON      ID_OBJECT_SPACE
 END
@@ -94,6 +97,8 @@ BEGIN
         MENUITEM "&X",                          ID_AXIS_X
         MENUITEM "&Y",                          ID_AXIS_Y
         MENUITEM "&Z",                          ID_AXIS_Z
+        MENUITEM "XY",                          ID_AXIS_XY
+        MENUITEM "XYZ",                         ID_AXIS_XYZ
     END
     POPUP "&Options"
     BEGIN
@@ -510,6 +515,9 @@ STRINGTABLE
 BEGIN
     ID_VIEW_SPACE           "View Space\nView Space"
     ID_OBJECT_SPACE         "Object Space\nObject Space"
+    ID_AXIS_XY              "mixed XY\nmixed XY"
+    ID_AXIS_XYZ             "uniform XYZ\nuniform XYZ"
+    ID_AXIS_MIXEDXY         "mixed XY\nmixed XY"
 END
 
 #endif    // English (United States) resources

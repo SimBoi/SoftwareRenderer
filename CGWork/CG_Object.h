@@ -14,9 +14,9 @@
 
 namespace CG
 {
-	extern double rotation_sensitivity;
-	extern double translation_sensitivity;
-	extern double scale_sensitivity;
+	extern int rotation_sensitivity;
+	extern int translation_sensitivity;
+	extern int scale_sensitivity;
 
 	void setDefaultSensitivity();
 

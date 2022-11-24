@@ -33,7 +33,7 @@ public:
 public:
 
 private:
-	int m_nAxis;				// Axis of Action, X Y or Z
+	int m_nAxis;				// Axis of Action, X Y or Z, XY, XYZ
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
 	bool m_bIsPerspective;		// is the view perspective
@@ -83,6 +83,7 @@ protected:
 	int m_WindowHeight;		// hold the windows height
 	double m_AspectRatio;		// hold the fixed Aspect Ration
 	int old_x_position;		// to save the old mouse position
+	int old_y_position;		// to save the old mouse position
 
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;
@@ -123,14 +124,18 @@ public:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 
 	// CG1::HW2 Functions:
-	void doAction(int val);
-	void doRotate(int val);
-	void doTranslate(int val);
-	void doScale(int val);
+	void doAction(int x_val, int y_val);
+	void doRotate(int x_val, int y_val);
+	void doTranslate(int x_val, int y_val);
+	void doScale(int x_val, int y_val);
 
 	afx_msg void OnOptionsMouseSensitivity();
 	afx_msg void OnViewSpace();
 	afx_msg void OnObjectSpace();
+	afx_msg void OnAxisXY();
+	afx_msg void OnUpdateAxisXY(CCmdUI* pCmdUI);
+	afx_msg void OnAxisXYZ();
+	afx_msg void OnUpdateAxisXYZ(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

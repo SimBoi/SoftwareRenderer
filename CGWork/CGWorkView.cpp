@@ -76,6 +76,10 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, &CCGWorkView::OnOptionsMouseSensitivity)
 	ON_COMMAND(ID_VIEW_SPACE, &CCGWorkView::OnViewSpace)
 	ON_COMMAND(ID_OBJECT_SPACE, &CCGWorkView::OnObjectSpace)
+	ON_COMMAND(ID_AXIS_XY, &CCGWorkView::OnAxisXY)
+	ON_UPDATE_COMMAND_UI(ID_AXIS_XY, &CCGWorkView::OnUpdateAxisXY)
+	ON_COMMAND(ID_AXIS_XYZ, &CCGWorkView::OnAxisXYZ)
+	ON_UPDATE_COMMAND_UI(ID_AXIS_XYZ, &CCGWorkView::OnUpdateAxisXYZ)
 END_MESSAGE_MAP()
 
 
@@ -448,32 +452,31 @@ void CCGWorkView::OnFileLoad()
 }
 
 
-void CCGWorkView::doAction(int val)
+void CCGWorkView::doAction(int x_val, int y_val)
 {
 	if (m_nAction == ID_ACTION_ROTATE)
 	{
-		doRotate(val);
+		doRotate(x_val, y_val);
 	}
 	else if (m_nAction == ID_ACTION_TRANSLATE)
 	{
-		doTranslate(val);
+		doTranslate(x_val, y_val);
 	}
 	else if (m_nAction == ID_ACTION_SCALE)
 	{
-		doScale(val);
+		doScale(x_val, y_val);
 	}
 }
 
 
 static double calcRotateValue(int val)
 {
-	val = val * rotation_sensitivity;
-	return val;
+	return (val * rotation_sensitivity);
 }
 
-void CCGWorkView::doRotate(int val)
+void CCGWorkView::doRotate(int x_val, int y_val)
 {
-	double rotate_value = calcRotateValue(val);
+	double rotate_value = calcRotateValue(x_val);
 
 	if (m_nSpace == VIEW)
 	{
@@ -488,6 +491,12 @@ void CCGWorkView::doRotate(int val)
 		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.RotateZ(rotate_value);
+		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double rotate_y_value = calcRotateValue(y_val);
+			parentObject.RotateX(rotate_value);
+			parentObject.RotateY(rotate_y_value);
 		}
 	}
 	else if (m_nSpace == OBJECT)
@@ -504,19 +513,24 @@ void CCGWorkView::doRotate(int val)
 		{
 			parentObject.LocalRotateZ(rotate_value);
 		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double rotate_y_value = calcRotateValue(y_val);
+			parentObject.LocalRotateX(rotate_value);
+			parentObject.LocalRotateY(rotate_y_value);
+		}
 	}
 }
 
 
 static double calcTranslateValue(int val)
 {
-	val = val * translation_sensitivity;
-	return val;
+	return (val * translation_sensitivity);
 }
 
-void CCGWorkView::doTranslate(int val)
+void CCGWorkView::doTranslate(int x_val, int y_val)
 {
-	double translate_value = calcTranslateValue(val);
+	double translate_value = calcTranslateValue(x_val);
 
 	if (m_nSpace == VIEW)
 	{
@@ -531,6 +545,11 @@ void CCGWorkView::doTranslate(int val)
 		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.Translate(vec4(0, 0, translate_value));
+		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double translate_y_value = calcTranslateValue(y_val);
+			parentObject.Translate(vec4(translate_value, translate_y_value, 0));
 		}
 	}
 	else if (m_nSpace == OBJECT)
@@ -547,20 +566,24 @@ void CCGWorkView::doTranslate(int val)
 		{
 			parentObject.LocalTranslate(vec4(0, 0, translate_value));
 		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double translate_y_value = calcTranslateValue(y_val);
+			parentObject.LocalTranslate(vec4(translate_value, translate_y_value, 0));
+		}
 	}
 }
 
 
 static double calcScaleValue(int val)
 {
-	val = val * scale_sensitivity;
-	double s = (val >= 0) ? val : (-1.0 / val);
-	return s;
+	double s = val * scale_sensitivity;
+	return ((val >= 0) ? s : (-1.0 / s));
 }
 
-void CCGWorkView::doScale(int val)
+void CCGWorkView::doScale(int x_val, int y_val)
 {
-	double scale_value = calcScaleValue(val);
+	double scale_value = calcScaleValue(x_val);
 
 	if (m_nSpace == VIEW)
 	{
@@ -576,6 +599,15 @@ void CCGWorkView::doScale(int val)
 		{
 			parentObject.Scale(vec4(0, 0, scale_value));
 		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double scale_y_value = calcScaleValue(y_val);
+			parentObject.Scale(vec4(scale_value, scale_y_value, 0));
+		}
+		else if (m_nAxis == ID_AXIS_XYZ)
+		{
+			parentObject.Scale(vec4(scale_value, scale_value, scale_value));
+		}
 	}
 	else if (m_nSpace == OBJECT)
 	{
@@ -590,6 +622,15 @@ void CCGWorkView::doScale(int val)
 		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.LocalScale(vec4(0, 0, scale_value));
+		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double scale_y_value = calcScaleValue(y_val);
+			parentObject.LocalScale(vec4(scale_value, scale_y_value, 0));
+		}
+		else if (m_nAxis == ID_AXIS_XYZ)
+		{
+			parentObject.LocalScale(vec4(scale_value, scale_value, scale_value));
 		}
 	}
 }
@@ -706,6 +747,35 @@ void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
 }
 
 
+void CCGWorkView::OnAxisXY()
+{
+	m_nAxis = ID_AXIS_XY;
+}
+
+void CCGWorkView::OnUpdateAxisXY(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_nAxis == ID_AXIS_XY);
+}
+
+
+void CCGWorkView::OnAxisXYZ()
+{
+	m_nAxis = ID_AXIS_XYZ;
+}
+
+void CCGWorkView::OnUpdateAxisXYZ(CCmdUI* pCmdUI)
+{
+	// uniform XYZ for scale only
+	if ((m_nAxis == ID_AXIS_XYZ) && (m_nAction != ID_ACTION_SCALE))
+	{
+		m_nAxis = ID_AXIS_X;
+	}
+	pCmdUI->Enable(m_nAction == ID_ACTION_SCALE);
+
+	pCmdUI->SetCheck(m_nAxis == ID_AXIS_XYZ);
+}
+
+
 void CCGWorkView::OnViewSpace()
 {
 	m_nSpace = VIEW;
@@ -783,12 +853,16 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 
 	CView::OnMouseMove(nFlags, point);
 	int current_x_position = point.x;
-	int value = (current_x_position - old_x_position) > 0 ? 1 : -1;
+	int current_y_position = point.y;
+
+	int x_value = (current_x_position - old_x_position) > 0 ? 1 : -1;
+	int y_value = (current_y_position - old_y_position) > 0 ? -1 : 1; // ??
+
 	if (nFlags == MK_LBUTTON)
 	{
 		// ONLY The left mouse button is down.
 		// parent transformations		
-		doAction(value);
+		doAction(x_value, y_value);
 
 		x_location = point.x;
 	}
@@ -802,6 +876,7 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 	}
 
 	old_x_position = current_x_position;
+	old_y_position = current_y_position;
 	Invalidate();
 	UpdateWindow();
 }

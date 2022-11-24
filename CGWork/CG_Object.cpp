@@ -3,9 +3,9 @@
 
 namespace CG
 {
-	double rotation_sensitivity;
-	double translation_sensitivity;
-	double scale_sensitivity;
+	int rotation_sensitivity;
+	int translation_sensitivity;
+	int scale_sensitivity;
 
 	void setDefaultSensitivity()
 	{

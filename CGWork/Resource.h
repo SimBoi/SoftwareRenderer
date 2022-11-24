@@ -64,14 +64,18 @@
 #define ID_OPTIONS_MOUSESENSITIVITY     32799
 #define ID_VIEW_SPACE                   32802
 #define ID_OBJECT_SPACE                 32804
-#define ID_BUTTON32805                  32805
+#define ID_AXIS_XY                      32807
+#define ID_AXIS_XYZ                     32808
+#define ID_BUTTON32810                  32810
+#define ID_AXIS_MIXEDXY                 32811
+#define ID_AXIS_UNIFORMXYZ              32812
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        144
-#define _APS_NEXT_COMMAND_VALUE         32806
+#define _APS_NEXT_COMMAND_VALUE         32813
 #define _APS_NEXT_CONTROL_VALUE         1044
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
