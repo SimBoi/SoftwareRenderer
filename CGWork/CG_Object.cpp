@@ -15,11 +15,6 @@ namespace CG
 		scale_sensitivity = 25;
 	}
 
-	vec4 HomogeneousToEuclidean(vec4& coords)
-	{
-		return coords / coords.w;
-	}
-
 	Vertex::Vertex(vec4& pos, vec4& normal)
 	{
 		localPosition = pos;
@@ -280,6 +275,7 @@ namespace CG
 
 	void Camera::LookAt(vec4& eye, vec4& at, vec4& up)
 	{
+		up.w = 0;
 		vec4 n = (eye - at).normalized();
 		vec4 u = (vec4::cross(up, n)).normalized();
 		vec4 v = (vec4::cross(n, u)).normalized();

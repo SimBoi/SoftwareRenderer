@@ -20,8 +20,6 @@ namespace CG
 
 	void setDefaultSensitivity();
 
-	vec4 HomogeneousToEuclidean(vec4& coords);
-
 	class Vertex
 	{
 	public:
@@ -36,6 +34,7 @@ namespace CG
 	public:
 		std::list<Vertex> vertices;
 		vec4 normal;
+		vec4 center;
 	};
 
 	class Object

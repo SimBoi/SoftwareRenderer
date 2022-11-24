@@ -308,16 +308,30 @@ bool ClipLine(CG::vec4& from, CG::vec4& to, const CG::Camera& camera)
 }
 
 // renders line between two points in camera frame
-void DrawLine(CDC* pDCToUse, CG::vec4 from, CG::vec4 to, const CG::Camera& camera, const CG::mat4& screenProjection, COLORREF& color)
+void DrawLine(CDC* pDCToUse, CG::vec4 from, CG::vec4 to, const CG::Camera& camera, const CG::mat4& screenProjection, const COLORREF& color)
 {
 	if (!ClipLine(from, to, camera)) return; // ClipLine will return false if line is out of frustum
-	from = CG::HomogeneousToEuclidean(screenProjection * from);
-	to = CG::HomogeneousToEuclidean(screenProjection * to);
+	from = screenProjection * from;
+	to = screenProjection * to;
 	CG::MoveTo(from.x, from.y);
 	CG::LineTo(pDCToUse, to.x, to.y, color);
 }
 
-void DrawFace(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, COLORREF& color)
+void DrawFaceNormal(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color)
+{
+	vec4 from = modelToCameraFrame * face.center;
+	vec4 to = modelToCameraFrame * (face.center + face.normal);
+	DrawLine(pDCToUse, from, to, camera, screenProjection, color);
+}
+
+void DrawVertexNormal(CDC* pDCToUse, const CG::Vertex& vertex, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color)
+{
+	vec4 from = modelToCameraFrame * vertex.localPosition;
+	vec4 to = modelToCameraFrame * (vertex.localPosition + vertex.normal);
+	DrawLine(pDCToUse, from, to, camera, screenProjection, color);
+}
+
+void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& normalColor)
 {
 	if (face.vertices.size() <= 1) return;
 
@@ -328,8 +342,11 @@ void DrawFace(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, con
 	{
 		CG::vec4 coords = modelToCameraFrame * vertex.localPosition;
 		DrawLine(pDCToUse, prevCoords, coords, camera, screenProjection, color);
+		if (drawVertexNormal) DrawVertexNormal(pDCToUse, vertex, camera, modelToCameraFrame, screenProjection, normalColor);
 		prevCoords = coords;
 	}
+
+	if (drawFaceNormal) DrawFaceNormal(pDCToUse, face, camera, modelToCameraFrame, screenProjection, normalColor);
 }
 
 int x_location = 0;
@@ -361,6 +378,9 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	
 	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
 	CG::mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
+	
+	COLORREF boxColor = RGB(255, 0, 0);
+	COLORREF normalColor = RGB(255, 0, 255);
 
 	int i = 0;
 	for (auto &child : parentObject.children)
@@ -370,7 +390,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
-			DrawFace(pDCToUse, face, camera, childToCameraFrame, screenProjection, child.color);
+			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child.color, normalColor);
 		}
 
 		//// draw child object bounding box
@@ -383,10 +403,9 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	}
 	
 	// draw parent object bounding box
-	COLORREF boxColor = RGB(255, 0, 0);
 	for (auto const& face : parentObject.boundingBox)
 	{
-		DrawFace(pDCToUse, face, camera, parentToCameraFrame, screenProjection, boxColor);
+		DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, boxColor, normalColor);
 	}
 
 	// for testing
