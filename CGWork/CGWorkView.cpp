@@ -254,31 +254,68 @@ void printMat(CG::mat4 mat)
 // CCGWorkView drawing
 /////////////////////////////////////////////////////////////////////////////
 
-void DrawFace(CDC* pDCToUse, CRect r, CG::Face face, CG::mat4 finalProjection)
+// returns false if line is out of frustum
+bool ClipLine(CG::vec4& from, CG::vec4& to, const CG::Camera& camera)
 {
-	if (face.vertices.size() <= 0) return;
-
-	// dont render faces outside the clip volume
-	for (auto const& vertex : face.vertices)
+	if (camera.IsInsideFrustum(from))
 	{
-		CG::vec4 coords = finalProjection * vertex.localPosition;
-		coords = CG::HomogeneousToEuclidean(coords);
-		if (coords.x < 0 || coords.x > r.Width() || coords.y < 0 || coords.y > r.Height() || coords.z < -1 || coords.z > 1)
+		if (camera.IsInsideFrustum(to)) return true; // both ends of the line are inside the frustum, no need to clip the line
+
+		CG::Line line = CG::Line(from, to); // t(from) = 0, t(to) = 1
+		double t;
+		for (int i = 0; i < 6; i++)
 		{
-			return;
+			CG::vec4 intersection = camera.clipPlanes[i].Intersection(line, t);
+			if (t > 0 && t < 1)
+			{
+				to = intersection;
+				break;
+			}
 		}
 	}
+	else if (camera.IsInsideFrustum(to))
+	{
+		CG::Line line = CG::Line(from, to); // t(from) = 0, t(to) = 1
+		double t;
+		for (int i = 0; i < 6; i++)
+		{
+			CG::vec4 intersection = camera.clipPlanes[i].Intersection(line, t);
+			if (t > 0 && t < 1)
+			{
+				from = intersection;
+				break;
+			}
+		}
+	}
+	else
+	{
+		return false;
+	}
+	return true;
+}
+
+// renders line between two points in camera frame
+void DrawLine(CDC* pDCToUse, CG::vec4 from, CG::vec4 to, const CG::Camera& camera, const CG::mat4& screenProjection)
+{
+	if (!ClipLine(from, to, camera)) return; // ClipLine will return false if line is out of frustum
+	from = CG::HomogeneousToEuclidean(screenProjection * from);
+	to = CG::HomogeneousToEuclidean(screenProjection * to);
+	CG::MoveTo(from.x, from.y);
+	CG::LineTo(pDCToUse, to.x, to.y);
+}
+
+void DrawFace(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection)
+{
+	if (face.vertices.size() <= 1) return;
 
 	// draw face
 	CG::Vertex prevVertex = face.vertices.back();
-	CG::vec4 prevCoords = finalProjection * prevVertex.localPosition;
-	prevCoords = CG::HomogeneousToEuclidean(prevCoords);
-	CG::MoveTo((int)prevCoords.x, (int)prevCoords.y);
+	CG::vec4 prevCoords = modelToCameraFrame * prevVertex.localPosition;
 	for (auto const& vertex : face.vertices)
 	{
-		CG::vec4 coords = finalProjection * vertex.localPosition;
-		coords = CG::HomogeneousToEuclidean(coords);
-		CG::LineTo(pDCToUse, (int)coords.x, (int)coords.y);
+		CG::vec4 coords = modelToCameraFrame * vertex.localPosition;
+		DrawLine(pDCToUse, prevCoords, coords, camera, screenProjection);
+		prevCoords = coords;
 	}
 }
 
@@ -301,8 +338,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		initialized = true;
 		
 		double aspectRatio = 16.0 / 9;
-		//camera.projection = CG::Camera::Ortho(-1000 * aspectRatio, 1000 * aspectRatio, -1000, 1000, 0.1, 1000);
-		camera.projection = CG::Camera::Perspective(90, aspectRatio, 0.1, 1000);
+		//camera.Ortho(-1000 * aspectRatio, 1000 * aspectRatio, -1000, 1000, 0.1, 1000);
+		camera.Perspective(90, aspectRatio, 0.1, 1000);
 		camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
 		
 		parentObject.Scale(CG::vec4(400, 400, 400));
@@ -312,21 +349,22 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	parentObject.RotateY(30);
 	camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
 	
-	CG::mat4 parentProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection * camera.cInverse * parentObject.wTransform * parentObject.mTransform;
+	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
+	CG::mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
 
 	int i = 0;
-	for (auto &object : parentObject.children)
+	for (auto &child : parentObject.children)
 	{
-		CG::mat4 finalProjection = parentProjection * object.wTransform * object.mTransform;
+		CG::mat4 childToCameraFrame = parentToCameraFrame * child.wTransform * child.mTransform;
 
-		// draw object faces
-		for (auto const& face : object.faces)
+		// draw child object faces
+		for (auto const& face : child.faces)
 		{
-			DrawFace(pDCToUse, r, face, finalProjection);
+			DrawFace(pDCToUse, face, camera, childToCameraFrame, screenProjection);
 		}
 
 		//// draw child object bounding box
-		//for (auto const& face : object.boundingBox)
+		//for (auto const& face : child.boundingBox)
 		//{
 		//	DrawFace(pDCToUse, r, face, finalProjection);
 		//}
@@ -337,7 +375,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	// draw parent object bounding box
 	for (auto const& face : parentObject.boundingBox)
 	{
-		DrawFace(pDCToUse, r, face, parentProjection);
+		DrawFace(pDCToUse, face, camera, parentToCameraFrame, screenProjection);
 	}
 	
 	if (pDCToUse != m_pDC) 

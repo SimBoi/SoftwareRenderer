@@ -69,11 +69,33 @@ namespace CG
 		mat4 operator*(const double s) const;
 		mat4 operator*(const mat4& m) const;
 		vec4 operator*(const vec4& u) const;
-		static mat4 Translate(vec4 amount);
+		static mat4 Translate(vec4& amount);
 		static mat4 RotateX(double angle);
 		static mat4 RotateY(double angle);
 		static mat4 RotateZ(double angle);
-		static mat4 Scale(vec4 amount);
+		static mat4 Scale(vec4& amount);
+	};
+
+	class Line
+	{
+	public:
+		vec4 p0;
+		vec4 v;
+		Line(vec4& p1, vec4& p2);
+		double GetT(vec4& p); // returns, for point p, the equavelant t in the equation p = p0 + t*v
+	};
+
+	class Plane
+	{
+		double A, B, C, D;
+		vec4 p0;
+		vec4 n;
+	public:
+		Plane(double A = 1, double B = 1, double C = 1, double D = 1);
+		Plane(vec4& p, vec4& n);
+		Plane(vec4& p, vec4& u, vec4& v);
+		double SignedDistance(vec4& p) const;
+		vec4 Intersection(Line line, double& t) const; // find intersection point between line and plane, returns point and updates the reference to t
 	};
 }
 

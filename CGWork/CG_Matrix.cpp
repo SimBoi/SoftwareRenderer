@@ -210,7 +210,7 @@ namespace CG
 		return v;
 	}
 
-	mat4 mat4::Translate(vec4 amount)
+	mat4 mat4::Translate(vec4& amount)
 	{
 		mat4 t = mat4(1);
 		t[0][3] = amount.x;
@@ -249,7 +249,7 @@ namespace CG
 			0, 0, 0, 1);
 	}
 
-	mat4 mat4::Scale(vec4 amount)
+	mat4 mat4::Scale(vec4& amount)
 	{
 		mat4 t;
 		t[0][0] = amount.x;
@@ -257,5 +257,51 @@ namespace CG
 		t[2][2] = amount.z;
 		t[3][3] = 1;
 		return t;
+	}
+
+	Line::Line(vec4& p1, vec4& p2)
+	{
+		p0 = p1;
+		v = p2 - p1;
+	}
+
+	double Line::GetT(vec4& p)
+	{
+		if (v.x != 0) return (p.x - p0.x) / v.x;
+		else if (v.y != 0) return (p.y - p0.y) / v.y;
+		else return (p.z - p0.z) / v.z;
+	}
+
+	Plane::Plane(double A, double B, double C, double D) : A(A), B(B), C(C), D(D) { }
+
+	Plane::Plane(vec4& p, vec4& n)
+	{
+		this->n = n.normalized();
+		A = this->n.x;
+		B = this->n.y;
+		C = this->n.z;
+		D = -A * p.x - B * p.y - C * p.z;
+		p0 = p;
+	}
+
+	Plane::Plane(vec4& p, vec4& u, vec4& v)
+	{
+		n = vec4::cross(u, v).normalized();
+		A = n.x;
+		B = n.y;
+		C = n.z;
+		D = -A * p.x - B * p.y - C * p.z;
+		p0 = p;
+	}
+
+	double Plane::SignedDistance(vec4& p) const
+	{
+		return vec4::dot(p - p0, n);
+	}
+
+	vec4 Plane::Intersection(Line line, double& t) const
+	{
+		t = -(vec4::dot(n, line.p0) + D) / (vec4::dot(n, line.v));
+		return line.p0 + line.v * t;
 	}
 }

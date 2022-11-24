@@ -5,9 +5,16 @@
 #include <list>
 #include <windows.h>
 
+#define FAR_PLANE 0
+#define NEAR_PLANE 1
+#define TOP_PLANE 2
+#define BOTTOM_PLANE 3
+#define RIGHT_PLANE 4
+#define LEFT_PLANE 5
+
 namespace CG
 {
-	vec4 HomogeneousToEuclidean(vec4 coords);
+	vec4 HomogeneousToEuclidean(vec4& coords);
 
 	class Vertex
 	{
@@ -15,7 +22,7 @@ namespace CG
 		vec4 localPosition;
 		vec4 normal;
 
-		Vertex(vec4 pos = vec4(), vec4 normal = vec4());
+		Vertex(vec4& pos = vec4(), vec4& normal = vec4());
 	};
 
 	class Face
@@ -38,18 +45,18 @@ namespace CG
 		CG::Object* parent = NULL;
 		std::list<Object> children;
 
-		vec4 mPosition();
-		vec4 wPosition();
-		void Translate(vec4 amount);
-		void LocalTranslate(vec4 amount);
+		vec4 mPosition() const;
+		vec4 wPosition() const;
+		void Translate(vec4& amount);
+		void LocalTranslate(vec4& amount);
 		void RotateX(double angle);
 		void RotateY(double angle);
 		void RotateZ(double angle);
 		void LocalRotateX(double angle);
 		void LocalRotateY(double angle);
 		void LocalRotateZ(double angle);
-		void Scale(vec4 amount);
-		void LocalScale(vec4 amount);
+		void Scale(vec4& amount);
+		void LocalScale(vec4& amount);
 		void CalcBoundingBox();
 		void ReCalcBoundingBox(const Object& alteredChild); // if a child transforms relative to the parent, the parent should recalculate its bounding box
 
@@ -63,11 +70,13 @@ namespace CG
 		mat4 cTransform;
 		mat4 cInverse;
 		mat4 projection;
+		Plane clipPlanes[6];
 
 		void LookAt(vec4& eye, vec4& at, vec4& up);
-		static mat4 Ortho(double left, double right, double bottom, double top, double zNear, double zFar);
-		static mat4 Perspective(double fovY, double aspectRatio, double zNear, double zFar);
+		void Ortho(double left, double right, double bottom, double top, double zNear, double zFar);
+		void Perspective(double fovY, double aspectRatio, double zNear, double zFar);
 		static mat4 ToScreenSpace(double width, double height);
+		bool IsInsideFrustum(vec4& p) const;
 	};
 }
 

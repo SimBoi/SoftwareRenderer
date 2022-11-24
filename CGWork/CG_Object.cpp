@@ -3,41 +3,41 @@
 
 namespace CG
 {
-	Vertex::Vertex(vec4 pos, vec4 normal)
+	vec4 HomogeneousToEuclidean(vec4& coords)
+	{
+		return coords / coords.w;
+	}
+
+	Vertex::Vertex(vec4& pos, vec4& normal)
 	{
 		localPosition = pos;
 		this->normal = normal;
 	}
 
-	vec4 HomogeneousToEuclidean(vec4 coords)
-	{
-		return coords / coords.w;
-	}
-
-	vec4 Object::mPosition()
+	vec4 Object::mPosition() const
 	{
 		return mTransform * vec4(0, 0, 0, 1);
 	}
 
-	vec4 Object::wPosition()
+	vec4 Object::wPosition() const
 	{
 		return wTransform * mTransform * vec4(0, 0, 0, 1);
 	}
 
-	void Object::Translate(vec4 amount)
+	void Object::Translate(vec4& amount)
 	{
 		wTransform = mat4::Translate(amount) * wTransform;
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
-	void Object::LocalTranslate(vec4 amount)
+	void Object::LocalTranslate(vec4& amount)
 	{
 		mTransform = mat4::Translate(amount) * mTransform;
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
 	// translates the object to the origin, rotates, and translates back
-	mat4 RotateFromOrigin(vec4 p, mat4 r)
+	mat4 RotateFromOrigin(vec4& p, mat4& r)
 	{
 		mat4 t1 = mat4(
 			1, 0, 0, -p.x,
@@ -102,7 +102,7 @@ namespace CG
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
-	void Object::Scale(vec4 amount)
+	void Object::Scale(vec4& amount)
 	{
 		vec4 p = wPosition();
 		mat4 t1 = mat4(
@@ -121,7 +121,7 @@ namespace CG
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
-	void Object::LocalScale(vec4 amount)
+	void Object::LocalScale(vec4& amount)
 	{
 		vec4 p = mPosition();
 		mat4 t1 = mat4(
@@ -280,37 +280,36 @@ namespace CG
 		cInverse = mat4(u, v, n, t) * mat4::Translate(-eye);
 	}
 
-	mat4 Camera::Ortho(double left, double right, double bottom, double top, double zNear, double zFar)
+	void Camera::Ortho(double left, double right, double bottom, double top, double zNear, double zFar)
 	{
+		clipPlanes[FAR_PLANE] = Plane(vec4(0, 0, -zFar), vec4(0, 0, 1));
+		clipPlanes[NEAR_PLANE] = Plane(vec4(0, 0, -zNear), vec4(0, 0, -1));
+		clipPlanes[TOP_PLANE] = Plane(vec4(0, top, 0), vec4(0, -1, 0));
+		clipPlanes[BOTTOM_PLANE] = Plane(vec4(0, bottom, 0), vec4(0, 1, 0));
+		clipPlanes[RIGHT_PLANE] = Plane(vec4(right, 0, 0), vec4(-1, 0, 0));
+		clipPlanes[LEFT_PLANE] = Plane(vec4(left, 0, 0), vec4(1, 0, 0));
+
 		// convert to default camera volume
-		mat4 t = mat4::Translate(vec4(-left - right, -bottom - top, zNear + zFar) / 2);
-		t = mat4::Scale(vec4(2 / (right - left), 2 / (top - bottom), 2 / (zFar - zNear))) * t;
-		return t;
+		projection = mat4::Translate(vec4(-left - right, -bottom - top, zNear + zFar) / 2);
+		projection = mat4::Scale(vec4(2 / (right - left), 2 / (top - bottom), 2 / (zFar - zNear))) * projection;
 	}
 
-	mat4 Camera::Perspective(double fovY, double aspectRatio, double zNear, double zFar)
+	void Camera::Perspective(double fovY, double aspectRatio, double zNear, double zFar)
 	{
 		double angle = fovY / 2;
 		angle *= DEG_TO_RAD;
 		
-		//// perspective warp
-		//mat4 warp = mat4(
-		//	1, 0, 0, 0,
-		//	0, 1, 0, 0,
-		//	0, 0, zFar / (zFar - zNear), zNear * zFar / (zFar - zNear),
-		//	0, 0, -1 / zFar, 0
-		//);
+		double yMax = zFar * tan(angle);
+		double xMax = aspectRatio * yMax;
 
-		//// calculate new camera volume after warp
-		//double top = zFar * tan(angle);
-		//double bottom = -top;
-		//double right = top * aspectRatio;
-		//double left = -right;
+		clipPlanes[FAR_PLANE] = Plane(vec4(0, 0, -zFar), vec4(0, 0, 1));
+		clipPlanes[NEAR_PLANE] = Plane(vec4(0, 0, -zNear), vec4(0, 0, -1));
+		clipPlanes[TOP_PLANE] = Plane(vec4(0, 0, 0), vec4(-xMax, yMax, -zFar), vec4(xMax, yMax, -zFar));
+		clipPlanes[BOTTOM_PLANE] = Plane(vec4(0, 0, 0), vec4(xMax, -yMax, -zFar), vec4(-xMax, -yMax, -zFar));
+		clipPlanes[RIGHT_PLANE] = Plane(vec4(0, 0, 0), vec4(xMax, yMax, -zFar), vec4(xMax, -yMax, -zFar));
+		clipPlanes[LEFT_PLANE] = Plane(vec4(0, 0, 0), vec4(-xMax, -yMax, -zFar), vec4(-xMax, yMax, -zFar));
 
-		//// convert to default camera volume
-		//return Ortho(left, right, bottom, top, 0, zFar) * warp;
-
-		return mat4(
+		projection = mat4(
 			1 / (aspectRatio * tan(angle)), 0, 0, 0,
 			0, 1 / tan(angle), 0, 0,
 			0, 0, -(zFar - zNear) / (zFar - zNear), -2 * zFar * zNear / (zFar - zNear),
@@ -326,5 +325,14 @@ namespace CG
 			0, 0, 1, 0,
 			0, 0, 0, 1
 		);
+	}
+
+	bool Camera::IsInsideFrustum(vec4& p) const
+	{
+		for (int i = 0; i < 6; i++)
+		{
+			if (clipPlanes[i].SignedDistance(p) < 0) return false;
+		}
+		return true;
 	}
 }
