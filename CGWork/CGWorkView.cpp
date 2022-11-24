@@ -351,17 +351,13 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	{
 		initialized = true;
 		
-		double aspectRatio = 16.0 / 9;
-		//camera.Ortho(-1000 * aspectRatio, 1000 * aspectRatio, -1000, 1000, 0.1, 1000);
-		camera.Perspective(90, aspectRatio, 50, 1000);
 		camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
-		
 		parentObject.Scale(CG::vec4(400, 400, 400));
 	}
 
-	//parentObject.Translate(CG::vec4(0, 0, -1));
-	//parentObject.RotateY(30);
-	//camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
+	double aspectRatio = (double)r.Width() / r.Height();
+	if (m_bIsPerspective) camera.Perspective(90, aspectRatio, 50, 1000);
+	else camera.Ortho(-1000 * aspectRatio, 1000 * aspectRatio, -1000, 1000, 0.1, 1000);
 	
 	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
 	CG::mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
