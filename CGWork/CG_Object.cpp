@@ -3,6 +3,19 @@
 
 namespace CG
 {
+	double rotation_sensitivity;
+	double translation_sensitivity;
+	double scale_sensitivity;
+
+	void setDefaultSensitivity()
+	{
+		// need to calc in an intuitive way
+		translation_sensitivity = 25;
+		rotation_sensitivity = 25;
+		scale_sensitivity = 25;
+	}
+
+
 	vec4 HomogeneousToEuclidean(vec4& coords)
 	{
 		return coords / coords.w;
@@ -224,14 +237,6 @@ namespace CG
 		}
 
 		GenerateBoundingBoxArray();
-	}
-
-	void Object::setDefaultSensitivity()
-	{
-		// need to calc in an intuitive way
-		translation_sensitivity = 25;
-		rotation_sensitivity = 25;
-		scale_sensitivity = 25;
 	}
 
 	void Object::GenerateBoundingBoxArray()

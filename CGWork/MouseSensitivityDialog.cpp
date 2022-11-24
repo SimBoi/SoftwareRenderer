@@ -10,6 +10,7 @@
 #include "MouseSensitivityDialog.h"
 
 #include "iritSkel.h"
+#include "CG_Object.h"
 
 
 // MouseSensitivityDialog dialog
@@ -54,10 +55,10 @@ END_MESSAGE_MAP()
 
 void MouseSensitivityDialog::OnBnClickedDefaults()
 {
-	parentObject.setDefaultSensitivity();
-	this->m_translation_slider = parentObject.translation_sensitivity;
-	this->m_rotation_slider = parentObject.rotation_sensitivity;
-	this->m_scale_slider = parentObject.scale_sensitivity;
+	CG::setDefaultSensitivity();
+	this->m_translation_slider = CG::translation_sensitivity;
+	this->m_rotation_slider = CG::rotation_sensitivity;
+	this->m_scale_slider = CG::scale_sensitivity;
 
 	UpdateData(FALSE);
 }

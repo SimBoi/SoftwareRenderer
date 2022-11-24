@@ -471,7 +471,7 @@ void CCGWorkView::doAction(int val)
 
 static double calcRotateValue(int val)
 {
-	val = val * parentObject.rotation_sensitivity;
+	val = val * rotation_sensitivity;
 	return val;
 }
 
@@ -514,7 +514,7 @@ void CCGWorkView::doRotate(int val)
 
 static double calcTranslateValue(int val)
 {
-	val = val * parentObject.translation_sensitivity;
+	val = val * translation_sensitivity;
 	return val;
 }
 
@@ -557,7 +557,7 @@ void CCGWorkView::doTranslate(int val)
 
 static double calcScaleValue(int val)
 {
-	val = val * parentObject.scale_sensitivity;
+	val = val * scale_sensitivity;
 	double s = (val >= 0) ? val : (-1.0 / val);
 	return s;
 }
@@ -813,14 +813,14 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 void CCGWorkView::OnOptionsMouseSensitivity()
 {
 	MouseSensitivityDialog dialog;
-	dialog.m_translation_slider = parentObject.translation_sensitivity;
-	dialog.m_rotation_slider = parentObject.rotation_sensitivity;
-	dialog.m_scale_slider = parentObject.scale_sensitivity;
+	dialog.m_translation_slider = translation_sensitivity;
+	dialog.m_rotation_slider = rotation_sensitivity;
+	dialog.m_scale_slider = scale_sensitivity;
 	if (dialog.DoModal() == IDOK)
 	{
-		parentObject.translation_sensitivity = dialog.m_translation_slider;
-		parentObject.rotation_sensitivity = dialog.m_rotation_slider;
-		parentObject.scale_sensitivity = dialog.m_scale_slider;
+		translation_sensitivity = dialog.m_translation_slider;
+		rotation_sensitivity = dialog.m_rotation_slider;
+		scale_sensitivity = dialog.m_scale_slider;
 	}
 }
 

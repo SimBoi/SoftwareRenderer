@@ -85,7 +85,7 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 	IPTraverseObjListHierarchy(PObjects, &TraversState);
 
 	// set intuitive sensitivity
-	parentObject.setDefaultSensitivity();
+	setDefaultSensitivity();
 	return true;
 }
 
