@@ -37,8 +37,8 @@ private:
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
 	bool m_bIsPerspective;		// is the view perspective
-	bool m_drawFaceNormals;		// draw face normals or not
-	bool m_drawVertexNormals;	// draw vertex normals or not
+	bool m_drawFaceNormals = false;		// draw face normals or not
+	bool m_drawVertexNormals = false;	// draw vertex normals or not
 	TSpace m_nSpace;			// view/ object space	
 	
 	CString m_strItdFileName;		// file name of IRIT data
