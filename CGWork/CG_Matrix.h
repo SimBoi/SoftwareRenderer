@@ -5,6 +5,7 @@
 
 namespace CG
 {
+
 	class vec3 {
 	public:
 		double x;
@@ -30,13 +31,18 @@ namespace CG
 		double operator[](int i) const;
 		double& operator[](int i);
 		vec4 operator+(const vec4& v) const;
+		vec4& operator+=(const vec4& v);
 		vec4 operator*(const double s) const;
 		vec4 operator/(const double s) const;
 		vec4 operator-(const vec4& other) const;
 		vec4 operator-() const;
+		bool operator==(const vec4& other) const;
+		bool operator!=(const vec4& other) const;
 		vec4 normalized() const;
 		static double dot(const vec4& u, const vec4& v);
 		static vec4 cross(const vec4& u, const vec4& v);
+		static bool AreParallel(const vec4& u, const vec4& v);
+		static vec4 HomogeneousToEuclidean(vec4& coords);
 	};
 
 	class mat3 {

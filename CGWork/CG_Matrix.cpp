@@ -61,6 +61,15 @@ namespace CG
 		return vec4(x + v.x, y + v.y, z + v.z, w + v.w);
 	}
 
+	vec4& vec4::operator+=(const vec4& v)
+	{
+		x += v.x;
+		y += v.y;
+		z += v.z;
+		w += v.w;
+		return *this;
+	}
+
 	vec4 vec4::operator*(const double s) const
 	{
 		return vec4(s * x, s * y, s * z, s * w);
@@ -81,6 +90,16 @@ namespace CG
 		return *this * -1;
 	}
 
+	bool vec4::operator==(const vec4& other) const
+	{
+		return (x == other.x && y == other.y && z == other.z);
+	}
+
+	bool vec4::operator!=(const vec4& other) const
+	{
+		return !(*this == other);
+	}
+
 	vec4 vec4::normalized() const
 	{
 		double length = sqrt(x * x + y * y + z * z);
@@ -94,7 +113,19 @@ namespace CG
 
 	vec4 vec4::cross(const vec4& u, const vec4& v)
 	{
-		return vec4(u.y * v.z - u.z * v.y, u.z * v.x - u.x * v.z, u.x * v.y - u.y * v.x, 1);
+		return vec4(u.y * v.z - u.z * v.y, u.z * v.x - u.x * v.z, u.x * v.y - u.y * v.x, 0);
+	}
+
+	bool vec4::AreParallel(const vec4& u, const vec4& v)
+	{
+		vec4 n1 = u.normalized();
+		vec4 n2 = v.normalized();
+		return (n1 == n2 || n1 == -n2);
+	}
+
+	vec4 vec4::HomogeneousToEuclidean(vec4& coords)
+	{
+		return coords / coords.w;
 	}
 
 	///////////// mat3
@@ -207,7 +238,7 @@ namespace CG
 		for (int i = 0; i < 4; ++i)
 			for (int j = 0; j < 4; ++j)
 				v[i] += _m[i][j] * u[j];
-		return v;
+		return vec4::HomogeneousToEuclidean(v);
 	}
 
 	mat4 mat4::Translate(vec4& amount)
@@ -259,10 +290,13 @@ namespace CG
 		return t;
 	}
 
+	///////////// Line
+
 	Line::Line(vec4& p1, vec4& p2)
 	{
 		p0 = p1;
 		v = p2 - p1;
+		v.w = 0;
 	}
 
 	double Line::GetT(vec4& p)
@@ -271,6 +305,8 @@ namespace CG
 		else if (v.y != 0) return (p.y - p0.y) / v.y;
 		else return (p.z - p0.z) / v.z;
 	}
+
+	///////////// Plane
 
 	Plane::Plane(double A, double B, double C, double D) : A(A), B(B), C(C), D(D) { }
 

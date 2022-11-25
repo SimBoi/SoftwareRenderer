@@ -182,7 +182,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	{
 		// create new face
 		Face face;
-
+		
 		if (PPolygon->PVertex == NULL) {
 			AfxMessageBox(_T("Dump: Attemp to dump empty polygon"));
 			return false;
@@ -203,7 +203,11 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 				vertex.normal.x = PVertex->Normal[0];
 				vertex.normal.y = PVertex->Normal[1];
 				vertex.normal.z = PVertex->Normal[2];
-				vertex.normal.w = 1;
+				vertex.normal.w = 0;
+			}
+			else
+			{
+				// issue error message once
 			}
 
 			// store vertex position
@@ -223,12 +227,43 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			face.normal.x = PPolygon->Plane[0];
 			face.normal.y = PPolygon->Plane[1];
 			face.normal.z = PPolygon->Plane[2];
-			face.normal.w = 1;
+			face.normal.w = 0;
 		}
-		else
+		else // calculate face normal
 		{
-			// calculate face normal
+			vec4 u, v;
+			// calculate u
+			Vertex prevVertex = face.vertices.back();
+			for (auto& vertex : face.vertices)
+			{
+				if (prevVertex.localPosition != vertex.localPosition)
+				{
+					u = vertex.localPosition - prevVertex.localPosition;
+					break;
+				}
+				prevVertex = vertex;
+			}
+			// calculate v
+			prevVertex = face.vertices.back();
+			for (auto& vertex : face.vertices)
+			{
+				if (prevVertex.localPosition != vertex.localPosition)
+				{
+					v = vertex.localPosition - prevVertex.localPosition;
+					if (!vec4::AreParallel(u, v)) break;
+				}
+				prevVertex = vertex;
+			}
+
+			face.normal = vec4::cross(u, v).normalized();
 		}
+
+		// calculate center of face (the point will be used to render the normal from)
+		for (auto& vertex : face.vertices)
+		{
+			face.center += vertex.localPosition;
+		}
+		face.center = face.center / face.vertices.size();
 
 		// add face to object
 		childObject.faces.push_back(face);
