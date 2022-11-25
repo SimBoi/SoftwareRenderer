@@ -60,7 +60,7 @@ BEGIN
     BUTTON      ID_AXIS_Z
     BUTTON      ID_AXIS_XY
     BUTTON      ID_AXIS_XYZ
-    BUTTON      ID_BUTTON32810
+    BUTTON      ID_OPTIONS_COLORPICKER
     BUTTON      ID_VIEW_SPACE
     BUTTON      ID_OBJECT_SPACE
 END
@@ -104,6 +104,7 @@ BEGIN
     BEGIN
         MENUITEM "Perspective Control...",      ID_OPTIONS_PERSPECTIVECONTROL
         MENUITEM "Mouse Sensitivity...",        ID_OPTIONS_MOUSESENSITIVITY
+        MENUITEM "Color Picker",                ID_OPTIONS_COLORPICKER
     END
     POPUP "&Light"
     BEGIN
@@ -252,6 +253,26 @@ BEGIN
     DEFPUSHBUTTON   "Defaults",IDDEFAULTS,109,114,50,14
 END
 
+IDD_COLOR_PICKER_DIALOG DIALOGEX 0, 0, 204, 168
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Color Picker"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Cancel",IDCANCEL,147,147,50,14
+    LTEXT           "Background Color",IDC_BACKGROUND_COLOR_STATIC,16,17,64,8
+    LTEXT           "Bounding Box Color",IDC_BOUNDINGBOX_COLOR_STATIC,16,40,64,8
+    LTEXT           "Vertex Normal Color",IDC_VERTIX_NORMAL_COLOR_STATIC,16,63,64,8
+    LTEXT           "Face Normal Color",IDC_FACENORMAL_COLOR_STATIC,16,86,64,8
+    LTEXT           "Model Color",IDC_MODEL_COLOR_STATIC,16,109,64,8
+    DEFPUSHBUTTON   "Default Colors",ID_DEFAULT_COLORS_BUTTON,7,147,71,14
+    PUSHBUTTON      "Pick Color",IDC_BOUNDINGBOX_COLOR_BUTTON,85,39,50,14
+    PUSHBUTTON      "Pick Color",IDC_BACKGROUND_COLOR_BUTTON,85,16,50,14
+    PUSHBUTTON      "Pick Color",IDC_VERTIX_NORMAL_COLOR_BUTTON,85,62,50,14
+    PUSHBUTTON      "Pick Color",IDC_FACENORMAL_COLOR_BUTTON,85,85,50,14
+    PUSHBUTTON      "Pick Color",IDC_MODEL_COLOR_BUTTON,85,108,50,14
+    PUSHBUTTON      "Original Color",IDC_ORIGINAL_MODEL_COLOR_BUTTON,143,108,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -331,6 +352,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 129
     END
+
+    IDD_COLOR_PICKER_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 197
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 161
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -378,6 +407,11 @@ BEGIN
 END
 
 IDD_ABOUTBOX AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_COLOR_PICKER_DIALOG AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
@@ -518,6 +552,7 @@ BEGIN
     ID_AXIS_XY              "mixed XY\nmixed XY"
     ID_AXIS_XYZ             "uniform XYZ\nuniform XYZ"
     ID_AXIS_MIXEDXY         "mixed XY\nmixed XY"
+    ID_OPTIONS_COLORPICKER  "Color Picker\nColor Picker"
 END
 
 #endif    // English (United States) resources

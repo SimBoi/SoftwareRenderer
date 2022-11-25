@@ -15,6 +15,8 @@
 
 
 #include "Light.h"
+#include "CG_Matrix.h"
+#include "CG_Object.h"
 
 typedef enum SpaceType { VIEW, OBJECT } TSpace;
 
@@ -131,6 +133,9 @@ public:
 	void doTranslate(int x_val, int y_val);
 	void doScale(int x_val, int y_val);
 
+	void DrawFace1(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& faceColor);
+
+
 	afx_msg void OnOptionsMouseSensitivity();
 	afx_msg void OnViewSpace();
 	afx_msg void OnObjectSpace();
@@ -138,6 +143,7 @@ public:
 	afx_msg void OnUpdateAxisXY(CCmdUI* pCmdUI);
 	afx_msg void OnAxisXYZ();
 	afx_msg void OnUpdateAxisXYZ(CCmdUI* pCmdUI);
+	afx_msg void OnOptionsColorpicker();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

@@ -29,6 +29,7 @@ static char THIS_FILE[] = __FILE__;
 #include "CG_Line.h"
 #include "CG_Matrix.h"
 #include "CG_Object.h"
+#include "ColorPickerDialog.h"
 #include "MouseSensitivityDialog.h"
 #include <string>
 using namespace CG;
@@ -39,6 +40,7 @@ using namespace CG;
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView
+
 
 IMPLEMENT_DYNCREATE(CCGWorkView, CView)
 
@@ -80,6 +82,7 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_AXIS_XY, &CCGWorkView::OnUpdateAxisXY)
 	ON_COMMAND(ID_AXIS_XYZ, &CCGWorkView::OnAxisXYZ)
 	ON_UPDATE_COMMAND_UI(ID_AXIS_XYZ, &CCGWorkView::OnUpdateAxisXYZ)
+	ON_COMMAND(ID_OPTIONS_COLORPICKER, &CCGWorkView::OnOptionsColorpicker)
 END_MESSAGE_MAP()
 
 
@@ -102,6 +105,14 @@ CCGWorkView::CCGWorkView()
 	m_nView = ID_VIEW_ORTHOGRAPHIC;	
 	m_bIsPerspective = false;
 	m_nSpace = VIEW;
+	m_drawFaceNormals = false;
+	m_drawVertexNormals = false;
+
+	old_x_position = 0;
+	old_y_position = 0;
+
+	// default colors
+	setDefaultColors();
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
@@ -317,6 +328,13 @@ void DrawLine(CDC* pDCToUse, CG::vec4 from, CG::vec4 to, const CG::Camera& camer
 	if (!ClipLine(from, to, camera)) return; // ClipLine will return false if line is out of frustum
 	from = screenProjection * from;
 	to = screenProjection * to;
+
+
+	// for faster testing only
+	//pDCToUse->MoveTo(from.x, from.y);
+	//pDCToUse->LineTo(to.x, to.y);
+
+	// use this in final submission
 	CG::MoveTo(from.x, from.y);
 	CG::LineTo(pDCToUse, to.x, to.y, color);
 }
@@ -333,6 +351,30 @@ void DrawVertexNormal(CDC* pDCToUse, const CG::Vertex& vertex, const CG::Camera&
 	vec4 from = modelToCameraFrame * vertex.localPosition;
 	vec4 to = modelToCameraFrame * (vertex.localPosition + vertex.normal);
 	DrawLine(pDCToUse, from, to, camera, screenProjection, color);
+}
+
+void CCGWorkView::DrawFace1(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& faceColor)
+{
+	if (face.vertices.size() <= 1) return;
+
+	// draw face
+	CG::Vertex prevVertex = face.vertices.back();
+	CG::vec4 prevCoords = modelToCameraFrame * prevVertex.localPosition;
+	for (auto const& vertex : face.vertices)
+	{
+		CG::vec4 coords = modelToCameraFrame * vertex.localPosition;
+		DrawLine(pDCToUse, prevCoords, coords, camera, screenProjection, faceColor);
+		if (m_drawVertexNormals)
+		{
+			DrawVertexNormal(pDCToUse, vertex, camera, modelToCameraFrame, screenProjection, VertexNormalColor);
+		}
+		prevCoords = coords;
+	}
+
+	if (m_drawFaceNormals)
+	{
+		DrawFaceNormal(pDCToUse, face, camera, modelToCameraFrame, screenProjection, FaceNormalColor);
+	}
 }
 
 void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& normalColor)
@@ -366,14 +408,14 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	CDC *pDCToUse = /*m_pDC*/m_pDbDC;
 	
 	// set background color
-	pDCToUse->FillSolidRect(&r, RGB(0, 0, 0));
+	pDCToUse->FillSolidRect(&r, BackgroundColor);
 
 	if (!initialized)
 	{
 		initialized = true;
 		
 		camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
-		parentObject.Scale(CG::vec4(400, 400, 400));
+		parentObject.Scale(CG::vec4(300, 300, 300));
 	}
 
 	double aspectRatio = (double)r.Width() / r.Height();
@@ -383,9 +425,6 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
 	CG::mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
 	
-	COLORREF boxColor = RGB(255, 0, 0);
-	COLORREF normalColor = RGB(255, 0, 255);
-
 	int i = 0;
 	for (auto &child : parentObject.children)
 	{
@@ -394,7 +433,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
-			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child.color, normalColor);
+			COLORREF child_color = (bIsModelColor ? ModelColor : child.color);
+			DrawFace1(pDCToUse, face, camera, childToCameraFrame, screenProjection, child_color);
 		}
 
 		//// draw child object bounding box
@@ -409,7 +449,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	// draw parent object bounding box
 	for (auto const& face : parentObject.boundingBox)
 	{
-		DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, boxColor, normalColor);
+		DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor);
 	}
 
 	// for testing
@@ -912,6 +952,15 @@ void CCGWorkView::OnOptionsMouseSensitivity()
 		rotation_sensitivity = dialog.m_rotation_slider;
 		scale_sensitivity = dialog.m_scale_slider;
 	}
+	Invalidate();
 }
 
 
+
+
+void CCGWorkView::OnOptionsColorpicker()
+{
+	ColorPickerDialog dialog;
+	dialog.DoModal();
+	Invalidate();
+}

@@ -193,6 +193,7 @@
     <ClCompile Include="CG_Line.cpp" />
     <ClCompile Include="CG_Matrix.cpp" />
     <ClCompile Include="CG_Object.cpp" />
+    <ClCompile Include="ColorPickerDialog.cpp" />
     <ClCompile Include="iritSkel.cpp" />
     <ClCompile Include="LightDialog.cpp" />
     <ClCompile Include="MainFrm.cpp">
@@ -231,6 +232,7 @@
     <ClInclude Include="CG_Line.h" />
     <ClInclude Include="CG_Matrix.h" />
     <ClInclude Include="CG_Object.h" />
+    <ClInclude Include="ColorPickerDialog.h" />
     <ClInclude Include="iritSkel.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="LightDialog.h" />

@@ -15,6 +15,23 @@ namespace CG
 		scale_sensitivity = 25;
 	}
 
+	COLORREF BackgroundColor;		// background color
+	COLORREF BoundingBoxColor;	// bounding box color
+	COLORREF VertexNormalColor;	// vertex normals color
+	COLORREF FaceNormalColor;		// face normals color
+	COLORREF ModelColor;			// model color
+	bool bIsModelColor;			// is model color set
+
+	void setDefaultColors()
+	{
+		BackgroundColor = RGB(0, 0, 0);
+		BoundingBoxColor = RGB(255, 0, 0);
+		VertexNormalColor = RGB(255, 0, 255);
+		FaceNormalColor = RGB(255, 0, 255);
+		ModelColor = RGB(255, 255, 255);
+		bIsModelColor = false;
+	}
+
 	Vertex::Vertex(vec4& pos, vec4& normal)
 	{
 		localPosition = pos;
