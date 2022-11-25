@@ -20,6 +20,7 @@
 extern CG::Object parentObject;
 extern bool initialized;
 extern CG::Camera camera;
+extern int polygonal_fineness;
 
 bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles);
 void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj, IrtHmgnMatType Mat, void *Data);

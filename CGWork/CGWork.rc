@@ -63,6 +63,7 @@ BEGIN
     BUTTON      ID_OPTIONS_COLORPICKER
     BUTTON      ID_VIEW_SPACE
     BUTTON      ID_OBJECT_SPACE
+    BUTTON      ID_OPTIONS_POLYGONALFINENESS
 END
 
 
@@ -105,6 +106,7 @@ BEGIN
         MENUITEM "Perspective Control...",      ID_OPTIONS_PERSPECTIVECONTROL
         MENUITEM "Mouse Sensitivity...",        ID_OPTIONS_MOUSESENSITIVITY
         MENUITEM "Color Picker",                ID_OPTIONS_COLORPICKER
+        MENUITEM "Polygonal FineNess",          ID_OPTIONS_POLYGONALFINENESS
     END
     POPUP "&Light"
     BEGIN
@@ -273,6 +275,18 @@ BEGIN
     PUSHBUTTON      "Original Color",IDC_ORIGINAL_MODEL_COLOR_BUTTON,143,108,50,14
 END
 
+IDD_FINENESS_DIALOG DIALOGEX 0, 0, 192, 94
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Polygonal FineNess"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,7,73,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,135,73,50,14
+    CONTROL         "",IDC_FINENESS_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | TBS_ENABLESELRANGE | WS_TABSTOP,19,45,153,15
+    LTEXT           "FineNess",IDC_FINENESS_STATIC,19,24,153,15
+    DEFPUSHBUTTON   "Default",ID_DEFAULT_FINENESS,71,73,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -360,6 +374,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 161
     END
+
+    IDD_FINENESS_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 185
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 87
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -395,7 +417,7 @@ BEGIN
     0,
     0, 0, 0, 0,
     0, 0, 0, 0,
-    10, 0, 100, 0,
+    1, 0, 100, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -414,6 +436,16 @@ END
 IDD_COLOR_PICKER_DIALOG AFX_DIALOG_LAYOUT
 BEGIN
     0
+END
+
+IDD_FINENESS_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    1, 0, 100, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
 END
 
 
@@ -553,6 +585,7 @@ BEGIN
     ID_AXIS_XYZ             "uniform XYZ\nuniform XYZ"
     ID_AXIS_MIXEDXY         "mixed XY\nmixed XY"
     ID_OPTIONS_COLORPICKER  "Color Picker\nColor Picker"
+    ID_OPTIONS_POLYGONALFINENESS "Polygonal FineNess\nPolygonal FineNess"
 END
 
 #endif    // English (United States) resources

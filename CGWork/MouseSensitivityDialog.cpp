@@ -19,9 +19,9 @@ IMPLEMENT_DYNAMIC(MouseSensitivityDialog, CDialog)
 
 MouseSensitivityDialog::MouseSensitivityDialog(CWnd* pParent /*=nullptr*/)
 	: CDialog(IDD_MOUSE_SENSITIVITY_DIALOG, pParent)
-	, m_translation_slider(0)
-	, m_rotation_slider(0)
-	, m_scale_slider(0)
+	, m_translation_slider(1)
+	, m_rotation_slider(1)
+	, m_scale_slider(1)
 {
 
 }

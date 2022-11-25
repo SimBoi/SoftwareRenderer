@@ -3,8 +3,8 @@
 // Used by CGWork.rc
 //
 #define IDDEFAULTS                      3
-#define ID_DEFAULT                      3
 #define ID_DEFAULT_COLORS_BUTTON        3
+#define ID_DEFAULT_FINENESS             3
 #define IDD_ABOUTBOX                    100
 #define IDR_MAINFRAME                   128
 #define IDR_CGWorkTYPE                  129
@@ -12,6 +12,7 @@
 #define IDD_MATERIAL_DLG                136
 #define IDD_MOUSE_SENSITIVITY_DIALOG    139
 #define IDD_COLOR_PICKER_DIALOG         144
+#define IDD_FINENESS_DIALOG             146
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -54,7 +55,9 @@
 #define IDC_SCALE_SLIDER                1049
 #define IDC_BOUNDINGBOX_COLOR_BUTTON    1049
 #define IDC_BACKGROUND_COLOR_BUTTON     1050
+#define IDC_FINENESS_SLIDER             1050
 #define IDC_VERTIX_NORMAL_COLOR_BUTTON  1051
+#define IDC_FINENESS_STATIC             1051
 #define IDC_FACENORMAL_COLOR_BUTTON     1052
 #define IDC_MODEL_COLOR_BUTTON          1053
 #define IDC_ORIGINAL_MODEL_COLOR_BUTTON 1054
@@ -83,14 +86,16 @@
 #define ID_AXIS_MIXEDXY                 32811
 #define ID_AXIS_UNIFORMXYZ              32812
 #define ID_OPTIONS_COLORPICKER          32813
+#define ID_BUTTON                       32814
+#define ID_OPTIONS_POLYGONALFINENESS    32815
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        146
-#define _APS_NEXT_COMMAND_VALUE         32814
-#define _APS_NEXT_CONTROL_VALUE         1050
+#define _APS_NEXT_RESOURCE_VALUE        148
+#define _APS_NEXT_COMMAND_VALUE         32816
+#define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

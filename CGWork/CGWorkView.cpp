@@ -31,6 +31,8 @@ static char THIS_FILE[] = __FILE__;
 #include "CG_Object.h"
 #include "ColorPickerDialog.h"
 #include "MouseSensitivityDialog.h"
+#include "PolygonalFineNessDialog.h"
+
 #include <string>
 using namespace CG;
 
@@ -83,6 +85,7 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(ID_AXIS_XYZ, &CCGWorkView::OnAxisXYZ)
 	ON_UPDATE_COMMAND_UI(ID_AXIS_XYZ, &CCGWorkView::OnUpdateAxisXYZ)
 	ON_COMMAND(ID_OPTIONS_COLORPICKER, &CCGWorkView::OnOptionsColorpicker)
+	ON_COMMAND(ID_OPTIONS_POLYGONALFINENESS, &CCGWorkView::OnOptionsPolygonalFineness)
 END_MESSAGE_MAP()
 
 
@@ -937,7 +940,7 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 	old_x_position = current_x_position;
 	old_y_position = current_y_position;
 	Invalidate();
-	UpdateWindow();
+	//UpdateWindow();
 }
 
 void CCGWorkView::OnOptionsMouseSensitivity()
@@ -956,11 +959,21 @@ void CCGWorkView::OnOptionsMouseSensitivity()
 }
 
 
-
-
 void CCGWorkView::OnOptionsColorpicker()
 {
 	ColorPickerDialog dialog;
+	//CColorDialog dialog(CG::ModelColor);
 	dialog.DoModal();
+	Invalidate();
+}
+
+
+void CCGWorkView::OnOptionsPolygonalFineness()
+{
+	PolygonalFineNessDialog dialog;
+	if (dialog.DoModal() == IDOK)
+	{
+		polygonal_fineness = dialog.m_polygonal_fineness;
+	}
 	Invalidate();
 }

@@ -144,6 +144,7 @@ public:
 	afx_msg void OnAxisXYZ();
 	afx_msg void OnUpdateAxisXYZ(CCmdUI* pCmdUI);
 	afx_msg void OnOptionsColorpicker();
+	afx_msg void OnOptionsPolygonalFineness();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

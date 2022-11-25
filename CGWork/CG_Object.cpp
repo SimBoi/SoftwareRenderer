@@ -24,7 +24,7 @@ namespace CG
 
 	void setDefaultColors()
 	{
-		BackgroundColor = RGB(0, 0, 0);
+		BackgroundColor = RGB(0, 255, 0);
 		BoundingBoxColor = RGB(255, 0, 0);
 		VertexNormalColor = RGB(255, 0, 255);
 		FaceNormalColor = RGB(255, 0, 255);
