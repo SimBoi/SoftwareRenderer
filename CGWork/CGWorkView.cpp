@@ -75,9 +75,15 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
 	ON_WM_MOUSEMOVE()
-	ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, &CCGWorkView::OnOptionsMouseSensitivity)
-	ON_COMMAND(ID_VIEW_SPACE, &CCGWorkView::OnViewSpace)
-	ON_COMMAND(ID_OBJECT_SPACE, &CCGWorkView::OnObjectSpace)
+	ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, OnOptionsMouseSensitivity)
+	ON_COMMAND(ID_VIEW_SPACE, OnViewSpace)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_SPACE, OnUpdateViewSpace)
+	ON_COMMAND(ID_OBJECT_SPACE, OnObjectSpace)
+	ON_UPDATE_COMMAND_UI(ID_OBJECT_SPACE, OnUpdateObjectSpace)
+	ON_COMMAND(ID_FACE_NORMALS, OnFaceNormals)
+	ON_UPDATE_COMMAND_UI(ID_FACE_NORMALS, OnUpdateFaceNormals)
+	ON_COMMAND(ID_VERTEX_NORMALS, OnVertexNormals)
+	ON_UPDATE_COMMAND_UI(ID_VERTEX_NORMALS, OnUpdateVertexNormals)
 END_MESSAGE_MAP()
 
 
@@ -470,7 +476,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
-			DrawFace(pDCToUse, face, m_drawFaceNormals, true, camera, childToCameraFrame, screenProjection, child.color, normalColor);
+			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child.color, normalColor);
 		}
 
 		//// draw child object bounding box
@@ -782,7 +788,6 @@ void CCGWorkView::OnUpdateAxisX(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_X);
 }
 
-
 void CCGWorkView::OnAxisY() 
 {
 	m_nAxis = ID_AXIS_Y;
@@ -792,7 +797,6 @@ void CCGWorkView::OnUpdateAxisY(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Y);
 }
-
 
 void CCGWorkView::OnAxisZ() 
 {
@@ -804,16 +808,44 @@ void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Z);
 }
 
-
 void CCGWorkView::OnViewSpace()
 {
 	m_nSpace = VIEW;
 }
 
+void CCGWorkView::OnUpdateViewSpace(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_nSpace == VIEW);
+}
 
 void CCGWorkView::OnObjectSpace()
 {
 	m_nSpace = OBJECT;
+}
+
+void CCGWorkView::OnUpdateObjectSpace(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_nSpace == OBJECT);
+}
+
+void CCGWorkView::OnFaceNormals()
+{
+	m_drawFaceNormals = !m_drawFaceNormals;
+}
+
+void CCGWorkView::OnUpdateFaceNormals(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_drawFaceNormals);
+}
+
+void CCGWorkView::OnVertexNormals()
+{
+	m_drawVertexNormals = !m_drawVertexNormals;
+}
+
+void CCGWorkView::OnUpdateVertexNormals(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_drawVertexNormals);
 }
 
 // OPTIONS HANDLERS ///////////////////////////////////////////

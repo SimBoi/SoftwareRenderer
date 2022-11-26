@@ -9,6 +9,8 @@
 #define IDD_LIGHTS_DLG                  134
 #define IDD_MATERIAL_DLG                136
 #define IDD_MOUSE_SENSITIVITY_DIALOG    139
+#define IDR_FACE_NORMALS                144
+#define IDR_VERTEX_NORMALS              146
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -64,14 +66,15 @@
 #define ID_OPTIONS_MOUSESENSITIVITY     32799
 #define ID_VIEW_SPACE                   32802
 #define ID_OBJECT_SPACE                 32804
-#define ID_BUTTON32805                  32805
+#define ID_FACE_NORMALS                 32813
+#define ID_VERTEX_NORMALS               32814
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        144
-#define _APS_NEXT_COMMAND_VALUE         32806
+#define _APS_NEXT_RESOURCE_VALUE        148
+#define _APS_NEXT_COMMAND_VALUE         32815
 #define _APS_NEXT_CONTROL_VALUE         1044
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

@@ -132,7 +132,13 @@ public:
 
 	afx_msg void OnOptionsMouseSensitivity();
 	afx_msg void OnViewSpace();
+	afx_msg void OnUpdateViewSpace(CCmdUI* pCmdUI);
 	afx_msg void OnObjectSpace();
+	afx_msg void OnUpdateObjectSpace(CCmdUI* pCmdUI);
+	afx_msg void OnFaceNormals();
+	afx_msg void OnUpdateFaceNormals(CCmdUI* pCmdUI);
+	afx_msg void OnVertexNormals();
+	afx_msg void OnUpdateVertexNormals(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
