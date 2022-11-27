@@ -14,11 +14,20 @@
 
 namespace CG
 {
-	extern double rotation_sensitivity;
-	extern double translation_sensitivity;
-	extern double scale_sensitivity;
+	extern int rotation_sensitivity;
+	extern int translation_sensitivity;
+	extern int scale_sensitivity;
 
 	void setDefaultSensitivity();
+
+	extern COLORREF BackgroundColor;		// background color
+	extern COLORREF BoundingBoxColor;	// bounding box color
+	extern COLORREF VertexNormalColor;	// vertex normals color
+	extern COLORREF FaceNormalColor;		// face normals color
+	extern COLORREF ModelColor;			// model color
+	extern bool bIsModelColor;			// is model color set
+
+	void setDefaultColors();
 
 	class Vertex
 	{

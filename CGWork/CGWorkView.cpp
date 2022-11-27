@@ -29,7 +29,10 @@ static char THIS_FILE[] = __FILE__;
 #include "CG_Line.h"
 #include "CG_Matrix.h"
 #include "CG_Object.h"
+#include "ColorPickerDialog.h"
 #include "MouseSensitivityDialog.h"
+#include "PolygonalFineNessDialog.h"
+
 #include <string>
 #include <unordered_map>
 
@@ -41,6 +44,7 @@ using namespace CG;
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView
+
 
 IMPLEMENT_DYNCREATE(CCGWorkView, CView)
 
@@ -67,6 +71,10 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_AXIS_Y, OnUpdateAxisY)
 	ON_COMMAND(ID_AXIS_Z, OnAxisZ)
 	ON_UPDATE_COMMAND_UI(ID_AXIS_Z, OnUpdateAxisZ)
+	ON_COMMAND(ID_AXIS_XY, OnAxisXY)
+	ON_UPDATE_COMMAND_UI(ID_AXIS_XY, OnUpdateAxisXY)
+	ON_COMMAND(ID_AXIS_XYZ, OnAxisXYZ)
+	ON_UPDATE_COMMAND_UI(ID_AXIS_XYZ, OnUpdateAxisXYZ)
 	ON_COMMAND(ID_LIGHT_SHADING_FLAT, OnLightShadingFlat)
 	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_FLAT, OnUpdateLightShadingFlat)
 	ON_COMMAND(ID_LIGHT_SHADING_GOURAUD, OnLightShadingGouraud)
@@ -84,6 +92,8 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_FACE_NORMALS, OnUpdateFaceNormals)
 	ON_COMMAND(ID_VERTEX_NORMALS, OnVertexNormals)
 	ON_UPDATE_COMMAND_UI(ID_VERTEX_NORMALS, OnUpdateVertexNormals)
+	ON_COMMAND(ID_OPTIONS_COLORPICKER, OnOptionsColorpicker)
+	ON_COMMAND(ID_OPTIONS_POLYGONALFINENESS, OnOptionsPolygonalFineness)
 END_MESSAGE_MAP()
 
 
@@ -106,6 +116,14 @@ CCGWorkView::CCGWorkView()
 	m_nView = ID_VIEW_ORTHOGRAPHIC;	
 	m_bIsPerspective = false;
 	m_nSpace = VIEW;
+	m_drawFaceNormals = false;
+	m_drawVertexNormals = false;
+
+	old_x_position = 0;
+	old_y_position = 0;
+
+	// default colors
+	setDefaultColors();
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
@@ -321,6 +339,13 @@ void DrawLine(CDC* pDCToUse, CG::vec4 from, CG::vec4 to, const CG::Camera& camer
 	if (!ClipLine(from, to, camera)) return; // ClipLine will return false if line is out of frustum
 	from = screenProjection * from;
 	to = screenProjection * to;
+
+
+	// for faster testing only
+	//pDCToUse->MoveTo(from.x, from.y);
+	//pDCToUse->LineTo(to.x, to.y);
+
+	// use this in final submission
 	CG::MoveTo(from.x, from.y);
 	CG::LineTo(pDCToUse, to.x, to.y, color);
 }
@@ -443,14 +468,14 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	CCGWorkDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
-	    return;
+		return;
 	CRect r;
 
 	GetClientRect(&r);
-	CDC *pDCToUse = /*m_pDC*/m_pDbDC;
-	
+	CDC* pDCToUse = /*m_pDC*/m_pDbDC;
+
 	// set background color
-	pDCToUse->FillSolidRect(&r, RGB(0, 0, 0));
+	pDCToUse->FillSolidRect(&r, BackgroundColor);
 
 	if (!initialized)
 	{
@@ -461,44 +486,42 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	double aspectRatio = (double)r.Width() / r.Height();
 	if (m_bIsPerspective) camera.Perspective(90, aspectRatio, 100, 1000);
 	else camera.Ortho(-800 * aspectRatio, 800 * aspectRatio, -800, 800, 100, 1000);
-	
+
 	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
 	CG::mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
-	
-	COLORREF boxColor = RGB(255, 0, 0);
-	COLORREF normalColor = RGB(255, 0, 255);
 
 	int i = 0;
-	for (auto &child : parentObject.children)
+	for (auto& child : parentObject.children)
 	{
 		CG::mat4 childToCameraFrame = parentToCameraFrame * child.wTransform * child.mTransform;
+		COLORREF child_color = (bIsModelColor ? ModelColor : child.color);
 
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
-			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child.color, normalColor);
+			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor);
 		}
 
 		//// draw child object bounding box
 		//for (auto const& face : child.boundingBox)
 		//{
-		//	DrawFace(pDCToUse, r, face, finalProjection);
+		//	DrawFace(pDCToUse, face, false, false, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor);
 		//}
 
 		i++;
 	}
-	
+
 	// draw parent object bounding box
 	for (auto const& face : parentObject.boundingBox)
 	{
-		DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, boxColor, normalColor);
+		DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor);
 	}
 
 	// for testing
 	//const CString text = std::to_string(x_location).c_str();
 	//pDC->DrawText(text, -1, &r, DT_CENTER);
-	
-	if (pDCToUse != m_pDC) 
+
+	if (pDCToUse != m_pDC)
 	{
 		m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
 	}
@@ -553,32 +576,31 @@ void CCGWorkView::OnFileLoad()
 }
 
 
-void CCGWorkView::doAction(int val)
+void CCGWorkView::doAction(int x_val, int y_val)
 {
 	if (m_nAction == ID_ACTION_ROTATE)
 	{
-		doRotate(val);
+		doRotate(x_val, y_val);
 	}
 	else if (m_nAction == ID_ACTION_TRANSLATE)
 	{
-		doTranslate(val);
+		doTranslate(x_val, y_val);
 	}
 	else if (m_nAction == ID_ACTION_SCALE)
 	{
-		doScale(val);
+		doScale(x_val, y_val);
 	}
 }
 
 
 static double calcRotateValue(int val)
 {
-	val = val * rotation_sensitivity;
-	return val;
+	return (val * rotation_sensitivity);
 }
 
-void CCGWorkView::doRotate(int val)
+void CCGWorkView::doRotate(int x_val, int y_val)
 {
-	double rotate_value = calcRotateValue(val);
+	double rotate_value = calcRotateValue(x_val);
 
 	if (m_nSpace == VIEW)
 	{
@@ -593,6 +615,12 @@ void CCGWorkView::doRotate(int val)
 		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.RotateZ(rotate_value);
+		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double rotate_y_value = calcRotateValue(y_val);
+			parentObject.RotateX(rotate_value);
+			parentObject.RotateY(rotate_y_value);
 		}
 	}
 	else if (m_nSpace == OBJECT)
@@ -609,19 +637,24 @@ void CCGWorkView::doRotate(int val)
 		{
 			parentObject.LocalRotateZ(rotate_value);
 		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double rotate_y_value = calcRotateValue(y_val);
+			parentObject.LocalRotateX(rotate_value);
+			parentObject.LocalRotateY(rotate_y_value);
+		}
 	}
 }
 
 
 static double calcTranslateValue(int val)
 {
-	val = val * translation_sensitivity;
-	return val;
+	return (val * translation_sensitivity);
 }
 
-void CCGWorkView::doTranslate(int val)
+void CCGWorkView::doTranslate(int x_val, int y_val)
 {
-	double translate_value = calcTranslateValue(val);
+	double translate_value = calcTranslateValue(x_val);
 
 	if (m_nSpace == VIEW)
 	{
@@ -636,6 +669,11 @@ void CCGWorkView::doTranslate(int val)
 		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.Translate(vec4(0, 0, translate_value));
+		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double translate_y_value = calcTranslateValue(y_val);
+			parentObject.Translate(vec4(translate_value, translate_y_value, 0));
 		}
 	}
 	else if (m_nSpace == OBJECT)
@@ -652,20 +690,24 @@ void CCGWorkView::doTranslate(int val)
 		{
 			parentObject.LocalTranslate(vec4(0, 0, translate_value));
 		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double translate_y_value = calcTranslateValue(y_val);
+			parentObject.LocalTranslate(vec4(translate_value, translate_y_value, 0));
+		}
 	}
 }
 
 
 static double calcScaleValue(int val)
 {
-	val = val * scale_sensitivity;
-	double s = (val >= 0) ? val : (-1.0 / val);
-	return s;
+	double s = val * scale_sensitivity;
+	return ((val >= 0) ? s : (-1.0 / s));
 }
 
-void CCGWorkView::doScale(int val)
+void CCGWorkView::doScale(int x_val, int y_val)
 {
-	double scale_value = calcScaleValue(val);
+	double scale_value = calcScaleValue(x_val);
 
 	if (m_nSpace == VIEW)
 	{
@@ -681,6 +723,15 @@ void CCGWorkView::doScale(int val)
 		{
 			parentObject.Scale(vec4(0, 0, scale_value));
 		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double scale_y_value = calcScaleValue(y_val);
+			parentObject.Scale(vec4(scale_value, scale_y_value, 0));
+		}
+		else if (m_nAxis == ID_AXIS_XYZ)
+		{
+			parentObject.Scale(vec4(scale_value, scale_value, scale_value));
+		}
 	}
 	else if (m_nSpace == OBJECT)
 	{
@@ -695,6 +746,15 @@ void CCGWorkView::doScale(int val)
 		else if (m_nAxis == ID_AXIS_Z)
 		{
 			parentObject.LocalScale(vec4(0, 0, scale_value));
+		}
+		else if (m_nAxis == ID_AXIS_XY)
+		{
+			double scale_y_value = calcScaleValue(y_val);
+			parentObject.LocalScale(vec4(scale_value, scale_y_value, 0));
+		}
+		else if (m_nAxis == ID_AXIS_XYZ)
+		{
+			parentObject.LocalScale(vec4(scale_value, scale_value, scale_value));
 		}
 	}
 }
@@ -808,6 +868,33 @@ void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Z);
 }
 
+void CCGWorkView::OnAxisXY()
+{
+	m_nAxis = ID_AXIS_XY;
+}
+
+void CCGWorkView::OnUpdateAxisXY(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_nAxis == ID_AXIS_XY);
+}
+
+void CCGWorkView::OnAxisXYZ()
+{
+	m_nAxis = ID_AXIS_XYZ;
+}
+
+void CCGWorkView::OnUpdateAxisXYZ(CCmdUI* pCmdUI)
+{
+	// uniform XYZ for scale only
+	if ((m_nAxis == ID_AXIS_XYZ) && (m_nAction != ID_ACTION_SCALE))
+	{
+		m_nAxis = ID_AXIS_X;
+	}
+	pCmdUI->Enable(m_nAction == ID_ACTION_SCALE);
+
+	pCmdUI->SetCheck(m_nAxis == ID_AXIS_XYZ);
+}
+
 void CCGWorkView::OnViewSpace()
 {
 	m_nSpace = VIEW;
@@ -914,12 +1001,16 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 
 	CView::OnMouseMove(nFlags, point);
 	int current_x_position = point.x;
-	int value = (current_x_position - old_x_position) > 0 ? 1 : -1;
+	int current_y_position = point.y;
+
+	int x_value = (current_x_position - old_x_position) > 0 ? 1 : -1;
+	int y_value = (current_y_position - old_y_position) > 0 ? -1 : 1; // ??
+
 	if (nFlags == MK_LBUTTON)
 	{
 		// ONLY The left mouse button is down.
 		// parent transformations		
-		doAction(value);
+		doAction(x_value, y_value);
 
 		x_location = point.x;
 	}
@@ -933,8 +1024,9 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 	}
 
 	old_x_position = current_x_position;
+	old_y_position = current_y_position;
 	Invalidate();
-	UpdateWindow();
+	//UpdateWindow();
 }
 
 void CCGWorkView::OnOptionsMouseSensitivity()
@@ -949,6 +1041,25 @@ void CCGWorkView::OnOptionsMouseSensitivity()
 		rotation_sensitivity = dialog.m_rotation_slider;
 		scale_sensitivity = dialog.m_scale_slider;
 	}
+	Invalidate();
 }
 
 
+void CCGWorkView::OnOptionsColorpicker()
+{
+	ColorPickerDialog dialog;
+	//CColorDialog dialog(CG::ModelColor);
+	dialog.DoModal();
+	Invalidate();
+}
+
+
+void CCGWorkView::OnOptionsPolygonalFineness()
+{
+	PolygonalFineNessDialog dialog;
+	if (dialog.DoModal() == IDOK)
+	{
+		polygonal_fineness = dialog.m_polygonal_fineness;
+	}
+	Invalidate();
+}

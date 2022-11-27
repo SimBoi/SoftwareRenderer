@@ -193,6 +193,7 @@
     <ClCompile Include="CG_Line.cpp" />
     <ClCompile Include="CG_Matrix.cpp" />
     <ClCompile Include="CG_Object.cpp" />
+    <ClCompile Include="ColorPickerDialog.cpp" />
     <ClCompile Include="iritSkel.cpp" />
     <ClCompile Include="LightDialog.cpp" />
     <ClCompile Include="MainFrm.cpp">
@@ -208,6 +209,7 @@
     <ClCompile Include="MaterialDlg.cpp" />
     <ClCompile Include="MouseSensitivityDialog.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
+    <ClCompile Include="PolygonalFineNessDialog.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -231,6 +233,7 @@
     <ClInclude Include="CG_Line.h" />
     <ClInclude Include="CG_Matrix.h" />
     <ClInclude Include="CG_Object.h" />
+    <ClInclude Include="ColorPickerDialog.h" />
     <ClInclude Include="iritSkel.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="LightDialog.h" />
@@ -238,6 +241,7 @@
     <ClInclude Include="MaterialDlg.h" />
     <ClInclude Include="MouseSensitivityDialog.h" />
     <ClInclude Include="PngWrapper.h" />
+    <ClInclude Include="PolygonalFineNessDialog.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="StdAfx.h" />
     <ClInclude Include="..\include\allocate.h" />
