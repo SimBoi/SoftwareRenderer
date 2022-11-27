@@ -551,6 +551,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	}
 }
 
+
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView CGWork Finishing and clearing...
 
@@ -568,6 +569,8 @@ void CCGWorkView::OnDestroy()
 	}
 }
 
+
+
 /////////////////////////////////////////////////////////////////////////////
 // User Defined Functions
 
@@ -576,6 +579,7 @@ void CCGWorkView::RenderScene() {
 
 	return;
 }
+
 
 void CCGWorkView::OnFileLoad() 
 {
@@ -595,6 +599,7 @@ void CCGWorkView::OnFileLoad()
 
 }
 
+
 void CCGWorkView::doAction(int x_val, int y_val)
 {
 	if (m_nAction == ID_ACTION_ROTATE)
@@ -611,10 +616,15 @@ void CCGWorkView::doAction(int x_val, int y_val)
 	}
 }
 
+
+static double calcRotateValue(int val)
+{
+	return (val * rotation_sensitivity);
+}
+
 void CCGWorkView::doRotate(int x_val, int y_val)
 {
-	double rotate_value = x_val * rotation_sensitivity;
-	double rotate_y_value = y_val * rotation_sensitivity;
+	double rotate_value = calcRotateValue(x_val);
 
 	if (m_nSpace == VIEW)
 	{
@@ -632,6 +642,7 @@ void CCGWorkView::doRotate(int x_val, int y_val)
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
+			double rotate_y_value = calcRotateValue(y_val);
 			parentObject.RotateX(rotate_value);
 			parentObject.RotateY(rotate_y_value);
 		}
@@ -652,16 +663,22 @@ void CCGWorkView::doRotate(int x_val, int y_val)
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
+			double rotate_y_value = calcRotateValue(y_val);
 			parentObject.LocalRotateX(rotate_value);
 			parentObject.LocalRotateY(rotate_y_value);
 		}
 	}
 }
 
+
+static double calcTranslateValue(int val)
+{
+	return (val * translation_sensitivity);
+}
+
 void CCGWorkView::doTranslate(int x_val, int y_val)
 {
-	double translate_value = x_val * translation_sensitivity;
-	double translate_y_value = y_val * translation_sensitivity;
+	double translate_value = calcTranslateValue(x_val);
 
 	if (m_nSpace == VIEW)
 	{
@@ -679,6 +696,7 @@ void CCGWorkView::doTranslate(int x_val, int y_val)
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
+			double translate_y_value = calcTranslateValue(y_val);
 			parentObject.Translate(vec4(translate_value, translate_y_value, 0));
 		}
 	}
@@ -698,15 +716,22 @@ void CCGWorkView::doTranslate(int x_val, int y_val)
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
+			double translate_y_value = calcTranslateValue(y_val);
 			parentObject.LocalTranslate(vec4(translate_value, translate_y_value, 0));
 		}
 	}
 }
 
+
+static double calcScaleValue(int val)
+{
+	double s = val * scale_sensitivity;
+	return ((val >= 0) ? s : (-1.0 / s));
+}
+
 void CCGWorkView::doScale(int x_val, int y_val)
 {
-	double scale_value = (x_val >= 0) ? x_val * scale_sensitivity : (-1.0 / x_val * scale_sensitivity);
-	double scale_y_value = (y_val >= 0) ? y_val * scale_sensitivity : (-1.0 / y_val * scale_sensitivity);
+	double scale_value = calcScaleValue(x_val);
 
 	if (m_nSpace == VIEW)
 	{
@@ -724,6 +749,7 @@ void CCGWorkView::doScale(int x_val, int y_val)
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
+			double scale_y_value = calcScaleValue(y_val);
 			parentObject.Scale(vec4(scale_value, scale_y_value, 0));
 		}
 		else if (m_nAxis == ID_AXIS_XYZ)
@@ -747,6 +773,7 @@ void CCGWorkView::doScale(int x_val, int y_val)
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
+			double scale_y_value = calcScaleValue(y_val);
 			parentObject.LocalScale(vec4(scale_value, scale_y_value, 0));
 		}
 		else if (m_nAxis == ID_AXIS_XYZ)
@@ -755,6 +782,8 @@ void CCGWorkView::doScale(int x_val, int y_val)
 		}
 	}
 }
+
+
 
 // VIEW HANDLERS ///////////////////////////////////////////
 
@@ -784,6 +813,9 @@ void CCGWorkView::OnUpdateViewPerspective(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nView == ID_VIEW_PERSPECTIVE);
 }
+
+
+
 
 // ACTION HANDLERS ///////////////////////////////////////////
 
@@ -817,7 +849,11 @@ void CCGWorkView::OnUpdateActionScale(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_nAction == ID_ACTION_SCALE);
 }
 
+
+
+
 // AXIS HANDLERS ///////////////////////////////////////////
+
 
 // Gets calles when the X button is pressed or when the Axis->X menu is selected.
 // The only thing we do here is set the ChildView member variable m_nAxis to the 
