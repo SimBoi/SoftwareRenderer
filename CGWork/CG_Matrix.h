@@ -45,6 +45,15 @@ namespace CG
 		static vec4 HomogeneousToEuclidean(vec4& coords);
 	};
 
+	class vec4Hash
+	{
+	public:
+		size_t operator()(const vec4& v) const
+		{
+			return (unsigned int)(v.x + v.y + v.z);
+		}
+	};
+
 	class mat3 {
 		vec3 _m[3];
 	public:

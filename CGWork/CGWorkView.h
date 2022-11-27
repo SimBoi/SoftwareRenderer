@@ -39,8 +39,8 @@ private:
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
 	bool m_bIsPerspective;		// is the view perspective
-	bool m_drawFaceNormals;		// draw face normals or not
-	bool m_drawVertexNormals;	// draw vertex normals or not
+	bool m_drawFaceNormals = false;		// draw face normals or not
+	bool m_drawVertexNormals = false;	// draw vertex normals or not
 	TSpace m_nSpace;			// view/ object space	
 	
 	CString m_strItdFileName;		// file name of IRIT data
@@ -116,6 +116,10 @@ protected:
 	afx_msg void OnUpdateAxisY(CCmdUI* pCmdUI);
 	afx_msg void OnAxisZ();
 	afx_msg void OnUpdateAxisZ(CCmdUI* pCmdUI);
+	afx_msg void OnAxisXY();
+	afx_msg void OnUpdateAxisXY(CCmdUI* pCmdUI);
+	afx_msg void OnAxisXYZ();
+	afx_msg void OnUpdateAxisXYZ(CCmdUI* pCmdUI);
 	afx_msg void OnLightShadingFlat();
 	afx_msg void OnUpdateLightShadingFlat(CCmdUI* pCmdUI);
 	afx_msg void OnLightShadingGouraud();
@@ -138,11 +142,13 @@ public:
 
 	afx_msg void OnOptionsMouseSensitivity();
 	afx_msg void OnViewSpace();
+	afx_msg void OnUpdateViewSpace(CCmdUI* pCmdUI);
 	afx_msg void OnObjectSpace();
-	afx_msg void OnAxisXY();
-	afx_msg void OnUpdateAxisXY(CCmdUI* pCmdUI);
-	afx_msg void OnAxisXYZ();
-	afx_msg void OnUpdateAxisXYZ(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateObjectSpace(CCmdUI* pCmdUI);
+	afx_msg void OnFaceNormals();
+	afx_msg void OnUpdateFaceNormals(CCmdUI* pCmdUI);
+	afx_msg void OnVertexNormals();
+	afx_msg void OnUpdateVertexNormals(CCmdUI* pCmdUI);
 	afx_msg void OnOptionsColorpicker();
 	afx_msg void OnOptionsPolygonalFineness();
 };

@@ -274,7 +274,7 @@ namespace CG
 	{
 		angle *= DEG_TO_RAD;
 		return mat4(
-			cos(angle), -sin(angle), 0, 1,
+			cos(angle), -sin(angle), 0, 0,
 			sin(angle), cos(angle), 0, 0,
 			0, 0, 1, 0,
 			0, 0, 0, 1);

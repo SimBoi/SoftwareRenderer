@@ -58,6 +58,7 @@ namespace CG
 		Face boundingBox[6];
 		CG::Object* parent = NULL;
 		std::list<Object> children;
+		double normalScale;
 
 		vec4 mPosition() const;
 		vec4 wPosition() const;

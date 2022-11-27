@@ -34,6 +34,8 @@ static char THIS_FILE[] = __FILE__;
 #include "PolygonalFineNessDialog.h"
 
 #include <string>
+#include <unordered_map>
+
 using namespace CG;
 
 // Use this macro to display text messages in the status bar.
@@ -69,6 +71,10 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_AXIS_Y, OnUpdateAxisY)
 	ON_COMMAND(ID_AXIS_Z, OnAxisZ)
 	ON_UPDATE_COMMAND_UI(ID_AXIS_Z, OnUpdateAxisZ)
+	ON_COMMAND(ID_AXIS_XY, OnAxisXY)
+	ON_UPDATE_COMMAND_UI(ID_AXIS_XY, OnUpdateAxisXY)
+	ON_COMMAND(ID_AXIS_XYZ, OnAxisXYZ)
+	ON_UPDATE_COMMAND_UI(ID_AXIS_XYZ, OnUpdateAxisXYZ)
 	ON_COMMAND(ID_LIGHT_SHADING_FLAT, OnLightShadingFlat)
 	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_FLAT, OnUpdateLightShadingFlat)
 	ON_COMMAND(ID_LIGHT_SHADING_GOURAUD, OnLightShadingGouraud)
@@ -77,15 +83,17 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
 	ON_WM_MOUSEMOVE()
-	ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, &CCGWorkView::OnOptionsMouseSensitivity)
-	ON_COMMAND(ID_VIEW_SPACE, &CCGWorkView::OnViewSpace)
-	ON_COMMAND(ID_OBJECT_SPACE, &CCGWorkView::OnObjectSpace)
-	ON_COMMAND(ID_AXIS_XY, &CCGWorkView::OnAxisXY)
-	ON_UPDATE_COMMAND_UI(ID_AXIS_XY, &CCGWorkView::OnUpdateAxisXY)
-	ON_COMMAND(ID_AXIS_XYZ, &CCGWorkView::OnAxisXYZ)
-	ON_UPDATE_COMMAND_UI(ID_AXIS_XYZ, &CCGWorkView::OnUpdateAxisXYZ)
-	ON_COMMAND(ID_OPTIONS_COLORPICKER, &CCGWorkView::OnOptionsColorpicker)
-	ON_COMMAND(ID_OPTIONS_POLYGONALFINENESS, &CCGWorkView::OnOptionsPolygonalFineness)
+	ON_COMMAND(ID_OPTIONS_MOUSESENSITIVITY, OnOptionsMouseSensitivity)
+	ON_COMMAND(ID_VIEW_SPACE, OnViewSpace)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_SPACE, OnUpdateViewSpace)
+	ON_COMMAND(ID_OBJECT_SPACE, OnObjectSpace)
+	ON_UPDATE_COMMAND_UI(ID_OBJECT_SPACE, OnUpdateObjectSpace)
+	ON_COMMAND(ID_FACE_NORMALS, OnFaceNormals)
+	ON_UPDATE_COMMAND_UI(ID_FACE_NORMALS, OnUpdateFaceNormals)
+	ON_COMMAND(ID_VERTEX_NORMALS, OnVertexNormals)
+	ON_UPDATE_COMMAND_UI(ID_VERTEX_NORMALS, OnUpdateVertexNormals)
+	ON_COMMAND(ID_OPTIONS_COLORPICKER, OnOptionsColorpicker)
+	ON_COMMAND(ID_OPTIONS_POLYGONALFINENESS, OnOptionsPolygonalFineness)
 END_MESSAGE_MAP()
 
 
@@ -398,6 +406,86 @@ void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool dra
 	if (drawFaceNormal) DrawFaceNormal(pDCToUse, face, camera, modelToCameraFrame, screenProjection, normalColor);
 }
 
+vec4 coordsKey(vec4& coords, double range, double precision)
+{
+	vec4 key = coords / range; 
+	key.x = std::round(key.x / precision) * precision;
+	key.y = std::round(key.y / precision) * precision;
+	key.z = std::round(key.z / precision) * precision;
+	key.w = 1;
+	return key;
+}
+
+void InitializeView()
+{
+	double objectSize = max(parentObject.maxX - parentObject.minX, parentObject.maxY - parentObject.minY);
+	objectSize = max(objectSize, parentObject.maxZ - parentObject.minZ);
+	double scale = 400 / objectSize;
+	double normalScale = 0.05 * objectSize;
+ 	parentObject.Scale(CG::vec4(scale, scale, scale));
+
+	// calculate missing vertex normals
+	double precision = 0.001;
+	std::unordered_map<vec4, std::list<Face*>, vec4Hash> incidentFaces;
+	for (auto& child : parentObject.children)
+	{
+		for (auto& face : child.faces)
+		{
+			for (auto& vertex : face.vertices)
+			{
+				vec4 key = coordsKey(vertex.localPosition, objectSize, precision);
+				incidentFaces[key].push_back(&face);
+			}
+		}
+	}
+
+	for (auto& child : parentObject.children)
+	{
+		for (auto& face : child.faces)
+		{
+			for (auto& vertex : face.vertices)
+			{
+				vec4 key = coordsKey(vertex.localPosition, objectSize, precision);
+				incidentFaces[key].push_back(&face);
+			}
+		}
+	}
+
+	vec4 zeroVector = vec4();
+	for (auto& child : parentObject.children)
+	{
+		for (auto& face : child.faces)
+		{
+			for (auto& vertex : face.vertices)
+			{
+				if (vertex.normal != zeroVector) continue;
+				vec4 key = coordsKey(vertex.localPosition, objectSize, precision);
+				if (incidentFaces.count(key) == 0) continue;
+				for (Face* incidentFace : incidentFaces[key])
+				{
+					vertex.normal += incidentFace->normal;
+				}
+				vertex.normal = (vertex.normal / incidentFaces[key].size()).normalized();
+			}
+		}
+	}
+
+	// set scale for normals
+	for (auto& child : parentObject.children)
+	{
+		for (auto& face : child.faces)
+		{
+			face.normal = face.normal * normalScale;
+			for (auto& vertex : face.vertices)
+			{
+				vertex.normal = vertex.normal * normalScale;
+			}
+		}
+	}
+
+	camera.LookAt(CG::vec4(0, 0, 600, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
+}
+
 int x_location = 0;
 void CCGWorkView::OnDraw(CDC* pDC)
 {
@@ -416,14 +504,12 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	if (!initialized)
 	{
 		initialized = true;
-		
-		camera.LookAt(CG::vec4(0, 0, 300, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
-		parentObject.Scale(CG::vec4(300, 300, 300));
+		InitializeView();
 	}
 
 	double aspectRatio = (double)r.Width() / r.Height();
-	if (m_bIsPerspective) camera.Perspective(90, aspectRatio, 50, 1000);
-	else camera.Ortho(-1000 * aspectRatio, 1000 * aspectRatio, -1000, 1000, 0.1, 1000);
+	if (m_bIsPerspective) camera.Perspective(90, aspectRatio, 100, 1000);
+	else camera.Ortho(-800 * aspectRatio, 800 * aspectRatio, -800, 800, 100, 1000);
 	
 	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
 	CG::mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
@@ -786,7 +872,6 @@ void CCGWorkView::OnUpdateAxisX(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_X);
 }
 
-
 void CCGWorkView::OnAxisY() 
 {
 	m_nAxis = ID_AXIS_Y;
@@ -796,7 +881,6 @@ void CCGWorkView::OnUpdateAxisY(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Y);
 }
-
 
 void CCGWorkView::OnAxisZ() 
 {
@@ -808,7 +892,6 @@ void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Z);
 }
 
-
 void CCGWorkView::OnAxisXY()
 {
 	m_nAxis = ID_AXIS_XY;
@@ -818,7 +901,6 @@ void CCGWorkView::OnUpdateAxisXY(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_XY);
 }
-
 
 void CCGWorkView::OnAxisXYZ()
 {
@@ -837,16 +919,44 @@ void CCGWorkView::OnUpdateAxisXYZ(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_XYZ);
 }
 
-
 void CCGWorkView::OnViewSpace()
 {
 	m_nSpace = VIEW;
 }
 
+void CCGWorkView::OnUpdateViewSpace(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_nSpace == VIEW);
+}
 
 void CCGWorkView::OnObjectSpace()
 {
 	m_nSpace = OBJECT;
+}
+
+void CCGWorkView::OnUpdateObjectSpace(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_nSpace == OBJECT);
+}
+
+void CCGWorkView::OnFaceNormals()
+{
+	m_drawFaceNormals = !m_drawFaceNormals;
+}
+
+void CCGWorkView::OnUpdateFaceNormals(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_drawFaceNormals);
+}
+
+void CCGWorkView::OnVertexNormals()
+{
+	m_drawVertexNormals = !m_drawVertexNormals;
+}
+
+void CCGWorkView::OnUpdateVertexNormals(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_drawVertexNormals);
 }
 
 // OPTIONS HANDLERS ///////////////////////////////////////////

@@ -38,6 +38,10 @@ IDR_CGWorkTYPE          ICON                    "res\\CGWorkDoc.ico"
 
 IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
 
+IDR_FACE_NORMALS        BITMAP                  "res\\face_normals.bmp"
+
+IDR_VERTEX_NORMALS      BITMAP                  "res\\vertex_normals.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -60,9 +64,14 @@ BEGIN
     BUTTON      ID_AXIS_Z
     BUTTON      ID_AXIS_XY
     BUTTON      ID_AXIS_XYZ
-    BUTTON      ID_OPTIONS_COLORPICKER
+    SEPARATOR
     BUTTON      ID_VIEW_SPACE
     BUTTON      ID_OBJECT_SPACE
+    SEPARATOR
+    BUTTON      ID_FACE_NORMALS
+    BUTTON      ID_VERTEX_NORMALS
+    SEPARATOR
+    BUTTON      ID_OPTIONS_COLORPICKER
     BUTTON      ID_OPTIONS_POLYGONALFINENESS
 END
 
@@ -584,6 +593,8 @@ BEGIN
     ID_AXIS_XY              "mixed XY\nmixed XY"
     ID_AXIS_XYZ             "uniform XYZ\nuniform XYZ"
     ID_AXIS_MIXEDXY         "mixed XY\nmixed XY"
+    ID_FACE_NORMALS         "show/hide face normals"
+    ID_VERTEX_NORMALS       "show/hide vertex normals"
     ID_OPTIONS_COLORPICKER  "Color Picker\nColor Picker"
     ID_OPTIONS_POLYGONALFINENESS "Polygonal FineNess\nPolygonal FineNess"
 END
