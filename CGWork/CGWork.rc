@@ -593,10 +593,14 @@ BEGIN
     ID_AXIS_XY              "mixed XY\nmixed XY"
     ID_AXIS_XYZ             "uniform XYZ\nuniform XYZ"
     ID_AXIS_MIXEDXY         "mixed XY\nmixed XY"
-    ID_FACE_NORMALS         "show/hide face normals"
-    ID_VERTEX_NORMALS       "show/hide vertex normals"
     ID_OPTIONS_COLORPICKER  "Color Picker\nColor Picker"
     ID_OPTIONS_POLYGONALFINENESS "Polygonal FineNess\nPolygonal FineNess"
+END
+
+STRINGTABLE
+BEGIN
+    ID_FACE_NORMALS         "show/hide face normals"
+    ID_VERTEX_NORMALS       "show/hide vertex normals"
 END
 
 #endif    // English (United States) resources
