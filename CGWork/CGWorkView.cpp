@@ -364,30 +364,6 @@ void DrawVertexNormal(CDC* pDCToUse, const CG::Vertex& vertex, const CG::Camera&
 	DrawLine(pDCToUse, from, to, camera, screenProjection, color);
 }
 
-void CCGWorkView::DrawFace1(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& faceColor)
-{
-	if (face.vertices.size() <= 1) return;
-
-	// draw face
-	CG::Vertex prevVertex = face.vertices.back();
-	CG::vec4 prevCoords = modelToCameraFrame * prevVertex.localPosition;
-	for (auto const& vertex : face.vertices)
-	{
-		CG::vec4 coords = modelToCameraFrame * vertex.localPosition;
-		DrawLine(pDCToUse, prevCoords, coords, camera, screenProjection, faceColor);
-		if (m_drawVertexNormals)
-		{
-			DrawVertexNormal(pDCToUse, vertex, camera, modelToCameraFrame, screenProjection, VertexNormalColor);
-		}
-		prevCoords = coords;
-	}
-
-	if (m_drawFaceNormals)
-	{
-		DrawFaceNormal(pDCToUse, face, camera, modelToCameraFrame, screenProjection, FaceNormalColor);
-	}
-}
-
 void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& normalColor)
 {
 	if (face.vertices.size() <= 1) return;
