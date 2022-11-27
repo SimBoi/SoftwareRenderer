@@ -492,12 +492,12 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	CCGWorkDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
-	    return;
+		return;
 	CRect r;
 
 	GetClientRect(&r);
-	CDC *pDCToUse = /*m_pDC*/m_pDbDC;
-	
+	CDC* pDCToUse = /*m_pDC*/m_pDbDC;
+
 	// set background color
 	pDCToUse->FillSolidRect(&r, BackgroundColor);
 
@@ -510,31 +510,31 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	double aspectRatio = (double)r.Width() / r.Height();
 	if (m_bIsPerspective) camera.Perspective(90, aspectRatio, 100, 1000);
 	else camera.Ortho(-800 * aspectRatio, 800 * aspectRatio, -800, 800, 100, 1000);
-	
+
 	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
 	CG::mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
-	
+
 	int i = 0;
-	for (auto &child : parentObject.children)
+	for (auto& child : parentObject.children)
 	{
 		CG::mat4 childToCameraFrame = parentToCameraFrame * child.wTransform * child.mTransform;
+		COLORREF child_color = (bIsModelColor ? ModelColor : child.color);
 
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
-			COLORREF child_color = (bIsModelColor ? ModelColor : child.color);
-			DrawFace1(pDCToUse, face, camera, childToCameraFrame, screenProjection, child_color);
+			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor);
 		}
 
 		//// draw child object bounding box
 		//for (auto const& face : child.boundingBox)
 		//{
-		//	DrawFace(pDCToUse, r, face, finalProjection);
+		//	DrawFace(pDCToUse, face, false, false, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor);
 		//}
 
 		i++;
 	}
-	
+
 	// draw parent object bounding box
 	for (auto const& face : parentObject.boundingBox)
 	{
@@ -544,8 +544,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	// for testing
 	//const CString text = std::to_string(x_location).c_str();
 	//pDC->DrawText(text, -1, &r, DT_CENTER);
-	
-	if (pDCToUse != m_pDC) 
+
+	if (pDCToUse != m_pDC)
 	{
 		m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
 	}
