@@ -80,7 +80,7 @@ namespace CG
 		Plane(vec4& p, vec4& n);
 		Plane(vec4& p, vec4& u, vec4& v);
 		double SignedDistance(vec4& p) const;
-		vec4 Intersection(Line line, double& t) const; // find intersection point between line and plane, returns point and updates the reference to t
+		vec4 Intersection(const Line& line, double& t) const; // find intersection point between line and plane, returns point and updates the reference to t
 	};
 }
 
