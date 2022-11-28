@@ -275,6 +275,10 @@
     <None Include="res\Toolbar.bmp" />
     <None Include="ReadMe.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\face_normals.bmp" />
+    <Image Include="res\vertex_normals.bmp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
