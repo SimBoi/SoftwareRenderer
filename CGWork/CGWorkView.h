@@ -152,6 +152,7 @@ public:
 	afx_msg void OnOptionsColorpicker();
 	afx_msg void OnOptionsPolygonalFineness();
 	afx_msg void OnOptionsSelectObject();
+	afx_msg void OnPerspecctiveSettings();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

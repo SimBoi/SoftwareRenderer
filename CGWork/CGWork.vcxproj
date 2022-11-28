@@ -208,6 +208,7 @@
     </ClCompile>
     <ClCompile Include="MaterialDlg.cpp" />
     <ClCompile Include="MouseSensitivityDialog.cpp" />
+    <ClCompile Include="PerspectiveSettingsDialog.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
     <ClCompile Include="PolygonalFineNessDialog.cpp" />
     <ClCompile Include="SelectObjectDialog.cpp" />
@@ -241,6 +242,7 @@
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="MaterialDlg.h" />
     <ClInclude Include="MouseSensitivityDialog.h" />
+    <ClInclude Include="PerspectiveSettingsDialog.h" />
     <ClInclude Include="PngWrapper.h" />
     <ClInclude Include="PolygonalFineNessDialog.h" />
     <ClInclude Include="Resource.h" />

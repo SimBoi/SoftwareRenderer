@@ -33,10 +33,12 @@ static char THIS_FILE[] = __FILE__;
 #include "MouseSensitivityDialog.h"
 #include "PolygonalFineNessDialog.h"
 #include "SelectObjectDialog.h"
+#include "PerspectiveSettingsDialog.h"
 
 #include <string>
 #include <unordered_map>
 #include <list>
+
 
 using namespace CG;
 
@@ -97,6 +99,7 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(ID_OPTIONS_COLORPICKER, OnOptionsColorpicker)
 	ON_COMMAND(ID_OPTIONS_POLYGONALFINENESS, OnOptionsPolygonalFineness)
 	ON_COMMAND(ID_OPTIONS_SELECTOBJECT, &CCGWorkView::OnOptionsSelectObject)
+	ON_COMMAND(ID_PERSPECCTIVE_SETTINGS, OnPerspecctiveSettings)
 END_MESSAGE_MAP()
 
 
@@ -127,6 +130,7 @@ CCGWorkView::CCGWorkView()
 
 	// default colors
 	setDefaultColors();
+	SetDefaultPerspectiveSettings();
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
@@ -239,9 +243,6 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	// this will keep all dimension scales equal
 	m_AspectRatio = (GLdouble)m_WindowWidth/(GLdouble)m_WindowHeight;
 
-	// enlarge or reduce parentObject when window is resized
-	//parentObject.Scale(vec4(m_AspectRatio, m_AspectRatio, m_AspectRatio, m_AspectRatio));
-
 	CRect r;
 	GetClientRect(&r);
 	DeleteObject(m_pDbBitMap);
@@ -276,20 +277,6 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 	return true;
 }
 
-void printMat(CG::mat4 mat)
-{
-	char debugStream[100];
-	sprintf_s(debugStream, "heeeeeeeeeeeeeeeeeeeeeeeeeeeeq    printing mat:\n");
-	OutputDebugStringA(debugStream);
-	sprintf_s(debugStream, "heeeeeeeeeeeeeeeeeeeeeeeeeeeeq    %f  -  %f  -  %f  -  %f\n", mat[0][0], mat[0][1], mat[0][2], mat[0][3]);
-	OutputDebugStringA(debugStream);
-	sprintf_s(debugStream, "heeeeeeeeeeeeeeeeeeeeeeeeeeeeq    %f  -  %f  -  %f  -  %f\n", mat[1][0], mat[1][1], mat[1][2], mat[1][3]);
-	OutputDebugStringA(debugStream);
-	sprintf_s(debugStream, "heeeeeeeeeeeeeeeeeeeeeeeeeeeeq    %f  -  %f  -  %f  -  %f\n", mat[2][0], mat[2][1], mat[2][2], mat[2][3]);
-	OutputDebugStringA(debugStream);
-	sprintf_s(debugStream, "heeeeeeeeeeeeeeeeeeeeeeeeeeeeq    %f  -  %f  -  %f  -  %f\n", mat[3][0], mat[3][1], mat[3][2], mat[3][3]);
-	OutputDebugStringA(debugStream);
-}
 
 static CG::Object* getObjectByIndex(int index)
 {
@@ -305,7 +292,6 @@ static CG::Object* getObjectByIndex(int index)
 	// return the object
 	return &(*it);
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView drawing
@@ -357,13 +343,7 @@ void DrawLine(CDC* pDCToUse, CG::vec4 from, CG::vec4 to, const CG::Camera& camer
 	if (!ClipLine(from, to, camera)) return; // ClipLine will return false if line is out of frustum
 	from = screenProjection * from;
 	to = screenProjection * to;
-
-
-	// for faster testing only
-	//pDCToUse->MoveTo(from.x, from.y);
-	//pDCToUse->LineTo(to.x, to.y);
-
-	// use this in final submission
+	
 	CG::MoveTo(from.x, from.y);
 	CG::LineTo(pDCToUse, to.x, to.y, color);
 }
@@ -382,7 +362,7 @@ void DrawVertexNormal(CDC* pDCToUse, const CG::Vertex& vertex, const CG::Camera&
 	DrawLine(pDCToUse, from, to, camera, screenProjection, color);
 }
 
-void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& normalColor)
+void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& faceNormalColor, const COLORREF& vertexNormalColor)
 {
 	if (face.vertices.size() <= 1) return;
 
@@ -393,11 +373,11 @@ void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool dra
 	{
 		CG::vec4 coords = modelToCameraFrame * vertex.localPosition;
 		DrawLine(pDCToUse, prevCoords, coords, camera, screenProjection, color);
-		if (drawVertexNormal) DrawVertexNormal(pDCToUse, vertex, camera, modelToCameraFrame, screenProjection, normalColor);
+		if (drawVertexNormal) DrawVertexNormal(pDCToUse, vertex, camera, modelToCameraFrame, screenProjection, vertexNormalColor);
 		prevCoords = coords;
 	}
 
-	if (drawFaceNormal) DrawFaceNormal(pDCToUse, face, camera, modelToCameraFrame, screenProjection, normalColor);
+	if (drawFaceNormal) DrawFaceNormal(pDCToUse, face, camera, modelToCameraFrame, screenProjection, faceNormalColor);
 }
 
 vec4 coordsKey(vec4& coords, double range, double precision)
@@ -503,9 +483,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		InitializeView();
 	}
 
-	double aspectRatio = (double)r.Width() / r.Height();
-	if (m_bIsPerspective) camera.Perspective(90, aspectRatio, 100, 1000);
-	else camera.Ortho(-800 * aspectRatio, 800 * aspectRatio, -800, 800, 100, 1000);
+	if (m_bIsPerspective) camera.Perspective(fovY, m_AspectRatio, zNear, zFar);
+	else camera.Ortho(-800 * m_AspectRatio, 800 * m_AspectRatio, -800, 800, zNear, zFar);
 
 	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
 	CG::mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
@@ -519,14 +498,14 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
-			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor);
+			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor, VertexNormalColor);
 		}
 
-		//// draw child object bounding box
-		//for (auto const& face : child.boundingBox)
-		//{
-		//	DrawFace(pDCToUse, face, false, false, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor);
-		//}
+		// draw child object bounding box
+		for (auto const& face : child.boundingBox)
+		{
+			DrawFace(pDCToUse, face, false, false, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor, VertexNormalColor);
+		}
 
 		i++;
 	}
@@ -534,12 +513,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	// draw parent object bounding box
 	for (auto const& face : parentObject.boundingBox)
 	{
-		DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor);
+		DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor, VertexNormalColor);
 	}
-
-	// for testing
-	//const CString text = std::to_string(x_location).c_str();
-	//pDC->DrawText(text, -1, &r, DT_CENTER);
 
 	if (pDCToUse != m_pDC)
 	{
@@ -1105,6 +1080,21 @@ void CCGWorkView::OnOptionsSelectObject()
 	{
 		object_index = dialog.selected_index;
 		selectedObject = getObjectByIndex(object_index);
+  }
+	Invalidate();
+}
+
+void CCGWorkView::OnPerspecctiveSettings()
+{
+	PerspectiveSettingsDialog dialog;
+	dialog.m_zNear = zNear;
+	dialog.m_zFar = zFar;
+	dialog.m_Fov = fovY;
+	if (dialog.DoModal() == IDOK)
+	{
+		zNear = dialog.m_zNear;
+		zFar = dialog.m_zFar;
+		fovY = dialog.m_Fov;
 	}
 	Invalidate();
 }

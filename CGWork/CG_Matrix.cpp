@@ -251,7 +251,7 @@ namespace CG
 		return vec4::dot(p - p0, n);
 	}
 
-	vec4 Plane::Intersection(Line line, double& t) const
+	vec4 Plane::Intersection(const Line& line, double& t) const
 	{
 		t = -(vec4::dot(n, line.p0) + D) / (vec4::dot(n, line.v));
 		return line.p0 + line.v * t;

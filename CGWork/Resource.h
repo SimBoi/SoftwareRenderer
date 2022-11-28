@@ -14,8 +14,9 @@
 #define IDD_COLOR_PICKER_DIALOG         144
 #define IDD_FINENESS_DIALOG             146
 #define IDR_FACE_NORMALS                148
-#define IDD_SELECT_OBJECT_DIALOG        148
 #define IDR_VERTEX_NORMALS              149
+#define IDD_SELECT_OBJECT_DIALOG        151
+#define IDD_PERSPECTIVE_SETTINGS        152
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -64,10 +65,13 @@
 #define IDC_FACENORMAL_COLOR_BUTTON     1062
 #define IDC_MODEL_COLOR_BUTTON          1063
 #define IDC_ORIGINAL_MODEL_COLOR_BUTTON 1064
-#define IDC_OBJECT_COMBO                1066
-#define IDC_SINGLE_INSTRUCTIONS_STATIC1 1067
-#define IDC_SINGLE_INSTRUCTIONS_STATIC2 1068
-#define IDC_SelectTitle_STATIC          1069
+#define IDC_EDIT_ZNEAR                  1065
+#define IDC_EDIT_FOV                    1066
+#define IDC_EDIT_ZFAR                   1067
+#define IDC_OBJECT_COMBO                1068
+#define IDC_SINGLE_INSTRUCTIONS_STATIC1 1069
+#define IDC_SINGLE_INSTRUCTIONS_STATIC2 1070
+#define IDC_SelectTitle_STATIC          1071
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -97,15 +101,20 @@
 #define ID_OPTIONS_POLYGONALFINENESS    32815
 #define ID_FACE_NORMALS                 32818
 #define ID_VERTEX_NORMALS               32819
-#define ID_OPTIONS_SELECTOBJECT         32820
+#define ID_PERSPECCTIVE_SETTINGS        32820
+#define ID_OPTIONS_PERSPECTIVESETTINGS  32821
+#define ID_OPTIONS_PERSID_PECTIVESETTINGS 32822
+#define ID_PERS                         32823
+#define ID_OPTIONS_SELECTOBJECT         32824
+
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         32821
-#define _APS_NEXT_CONTROL_VALUE         1070
+#define _APS_NEXT_RESOURCE_VALUE        153
+#define _APS_NEXT_COMMAND_VALUE         32825
+#define _APS_NEXT_CONTROL_VALUE         1072
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
