@@ -704,7 +704,7 @@ static double calcScaleValue(int val)
 	if (val == 0)
 		return 1;
 
-	double s = val * scale_sensitivity;
+	double s = val * scale_sensitivity * 0.05;
 	return ((val >= 0) ? s : (-1.0 / s));
 }
 

@@ -5,21 +5,6 @@
 
 namespace CG
 {
-
-	class vec3 {
-	public:
-		double x;
-		double y;
-		double z;
-		vec3(double x = 0, double y = 0, double z = 0) :
-			x(x), y(y), z(z) {}
-		double operator[](int i) const;
-		double& operator[](int i);
-		vec3 operator+(const vec3& v) const;
-		vec3 operator*(const double s) const;
-		vec3 operator*(const vec3& v) const;
-	};
-
 	class vec4 {
 	public:
 		double x;
@@ -52,21 +37,6 @@ namespace CG
 		{
 			return (unsigned int)(v.x + v.y + v.z);
 		}
-	};
-
-	class mat3 {
-		vec3 _m[3];
-	public:
-		mat3(const double d = 1); // diaglonal matrix with m[i][i] = d for every i
-		mat3(const vec3& a, const vec3& b, const vec3& c);
-		mat3(double m00, double m01, double m02,
-			double m10, double m11, double m12,
-			double m20, double m21, double m22);
-		vec3 operator[](int i) const;
-		vec3& operator[](int i);
-		mat3 operator+(const mat3& m) const;
-		mat3 operator*(const double s) const;
-		mat3 operator*(const mat3& m) const;
 	};
 
 	class mat4 {
