@@ -32,10 +32,13 @@ static char THIS_FILE[] = __FILE__;
 #include "ColorPickerDialog.h"
 #include "MouseSensitivityDialog.h"
 #include "PolygonalFineNessDialog.h"
+#include "SelectObjectDialog.h"
+#include "PerspectiveSettingsDialog.h"
 
 #include <string>
 #include <unordered_map>
-#include "PerspectiveSettingsDialog.h"
+#include <list>
+
 
 using namespace CG;
 
@@ -95,6 +98,7 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_VERTEX_NORMALS, OnUpdateVertexNormals)
 	ON_COMMAND(ID_OPTIONS_COLORPICKER, OnOptionsColorpicker)
 	ON_COMMAND(ID_OPTIONS_POLYGONALFINENESS, OnOptionsPolygonalFineness)
+	ON_COMMAND(ID_OPTIONS_SELECTOBJECT, &CCGWorkView::OnOptionsSelectObject)
 	ON_COMMAND(ID_PERSPECCTIVE_SETTINGS, OnPerspecctiveSettings)
 END_MESSAGE_MAP()
 
@@ -273,6 +277,22 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 	return true;
 }
 
+
+static CG::Object* getObjectByIndex(int index)
+{
+	if (parentObject.children.empty())
+		return nullptr;
+
+	// Initialize iterator to objects list
+	std::list<CG::Object>::iterator it = parentObject.children.begin();
+
+	// Move the iterator by object_index elements
+	advance(it, index);
+
+	// return the object
+	return &(*it);
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView drawing
 /////////////////////////////////////////////////////////////////////////////
@@ -372,6 +392,9 @@ vec4 coordsKey(vec4& coords, double range, double precision)
 
 void InitializeView()
 {
+	object_index = 0;
+	selectedObject = getObjectByIndex(object_index);
+
 	double objectSize = max(parentObject.maxX - parentObject.minX, parentObject.maxY - parentObject.minY);
 	objectSize = max(objectSize, parentObject.maxZ - parentObject.minZ);
 	double scale = 400 / objectSize;
@@ -548,19 +571,19 @@ void CCGWorkView::OnFileLoad()
 }
 
 
-void CCGWorkView::doAction(int x_val, int y_val)
+void CCGWorkView::doAction(int x_val, int y_val, Object& object)
 {
 	if (m_nAction == ID_ACTION_ROTATE)
 	{
-		doRotate(x_val, y_val);
+		doRotate(x_val, y_val, object);
 	}
 	else if (m_nAction == ID_ACTION_TRANSLATE)
 	{
-		doTranslate(x_val, y_val);
+		doTranslate(x_val, y_val, object);
 	}
 	else if (m_nAction == ID_ACTION_SCALE)
 	{
-		doScale(x_val, y_val);
+		doScale(x_val, y_val, object);
 	}
 }
 
@@ -570,7 +593,7 @@ static double calcRotateValue(int val)
 	return (val * rotation_sensitivity);
 }
 
-void CCGWorkView::doRotate(int x_val, int y_val)
+void CCGWorkView::doRotate(int x_val, int y_val, Object& object)
 {
 	double rotate_value = calcRotateValue(x_val);
 
@@ -578,42 +601,42 @@ void CCGWorkView::doRotate(int x_val, int y_val)
 	{
 		if (m_nAxis == ID_AXIS_X)
 		{
-			parentObject.RotateX(rotate_value);
+			object.RotateX(rotate_value);
 		}
 		else if (m_nAxis == ID_AXIS_Y)
 		{
-			parentObject.RotateY(rotate_value);
+			object.RotateY(rotate_value);
 		}
 		else if (m_nAxis == ID_AXIS_Z)
 		{
-			parentObject.RotateZ(rotate_value);
+			object.RotateZ(rotate_value);
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
 			double rotate_y_value = calcRotateValue(y_val);
-			parentObject.RotateX(rotate_value);
-			parentObject.RotateY(rotate_y_value);
+			object.RotateX(rotate_value);
+			object.RotateY(rotate_y_value);
 		}
 	}
 	else if (m_nSpace == OBJECT)
 	{
 		if (m_nAxis == ID_AXIS_X)
 		{
-			parentObject.LocalRotateX(rotate_value);
+			object.LocalRotateX(rotate_value);
 		}
 		else if (m_nAxis == ID_AXIS_Y)
 		{
-			parentObject.LocalRotateY(rotate_value);
+			object.LocalRotateY(rotate_value);
 		}
 		else if (m_nAxis == ID_AXIS_Z)
 		{
-			parentObject.LocalRotateZ(rotate_value);
+			object.LocalRotateZ(rotate_value);
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
 			double rotate_y_value = calcRotateValue(y_val);
-			parentObject.LocalRotateX(rotate_value);
-			parentObject.LocalRotateY(rotate_y_value);
+			object.LocalRotateX(rotate_value);
+			object.LocalRotateY(rotate_y_value);
 		}
 	}
 }
@@ -624,7 +647,7 @@ static double calcTranslateValue(int val)
 	return (val * translation_sensitivity);
 }
 
-void CCGWorkView::doTranslate(int x_val, int y_val)
+void CCGWorkView::doTranslate(int x_val, int y_val, Object& object)
 {
 	double translate_value = calcTranslateValue(x_val);
 
@@ -632,40 +655,40 @@ void CCGWorkView::doTranslate(int x_val, int y_val)
 	{
 		if (m_nAxis == ID_AXIS_X)
 		{
-			parentObject.Translate(vec4(translate_value, 0, 0));
+			object.Translate(vec4(translate_value, 0, 0));
 		}
 		else if (m_nAxis == ID_AXIS_Y)
 		{
-			parentObject.Translate(vec4(0, translate_value, 0));
+			object.Translate(vec4(0, translate_value, 0));
 		}
 		else if (m_nAxis == ID_AXIS_Z)
 		{
-			parentObject.Translate(vec4(0, 0, translate_value));
+			object.Translate(vec4(0, 0, translate_value));
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
 			double translate_y_value = calcTranslateValue(y_val);
-			parentObject.Translate(vec4(translate_value, translate_y_value, 0));
+			object.Translate(vec4(translate_value, translate_y_value, 0));
 		}
 	}
 	else if (m_nSpace == OBJECT)
 	{
 		if (m_nAxis == ID_AXIS_X)
 		{
-			parentObject.LocalTranslate(vec4(translate_value, 0, 0));
+			object.LocalTranslate(vec4(translate_value, 0, 0));
 		}
 		else if (m_nAxis == ID_AXIS_Y)
 		{
-			parentObject.LocalTranslate(vec4(0, translate_value, 0));
+			object.LocalTranslate(vec4(0, translate_value, 0));
 		}
 		else if (m_nAxis == ID_AXIS_Z)
 		{
-			parentObject.LocalTranslate(vec4(0, 0, translate_value));
+			object.LocalTranslate(vec4(0, 0, translate_value));
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
 			double translate_y_value = calcTranslateValue(y_val);
-			parentObject.LocalTranslate(vec4(translate_value, translate_y_value, 0));
+			object.LocalTranslate(vec4(translate_value, translate_y_value, 0));
 		}
 	}
 }
@@ -680,7 +703,7 @@ static double calcScaleValue(int val)
 	return ((val >= 0) ? s : (-1.0 / s));
 }
 
-void CCGWorkView::doScale(int x_val, int y_val)
+void CCGWorkView::doScale(int x_val, int y_val, Object& object)
 {
 	double scale_value = calcScaleValue(x_val);
 
@@ -688,48 +711,48 @@ void CCGWorkView::doScale(int x_val, int y_val)
 	{
 		if (m_nAxis == ID_AXIS_X)
 		{
-			parentObject.Scale(vec4(scale_value, 1, 1));
+			object.Scale(vec4(scale_value, 1, 1));
 		}
 		else if (m_nAxis == ID_AXIS_Y)
 		{
-			parentObject.Scale(vec4(1, scale_value, 1));
+			object.Scale(vec4(1, scale_value, 1));
 		}
 		else if (m_nAxis == ID_AXIS_Z)
 		{
-			parentObject.Scale(vec4(1, 1, scale_value));
+			object.Scale(vec4(1, 1, scale_value));
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
 			double scale_y_value = calcScaleValue(y_val);
-			parentObject.Scale(vec4(scale_value, scale_y_value, 1));
+			object.Scale(vec4(scale_value, scale_y_value, 1));
 		}
 		else if (m_nAxis == ID_AXIS_XYZ)
 		{
-			parentObject.Scale(vec4(scale_value, scale_value, scale_value));
+			object.Scale(vec4(scale_value, scale_value, scale_value));
 		}
 	}
 	else if (m_nSpace == OBJECT)
 	{
 		if (m_nAxis == ID_AXIS_X)
 		{
-			parentObject.LocalScale(vec4(scale_value, 1, 1));
+			object.LocalScale(vec4(scale_value, 1, 1));
 		}
 		else if (m_nAxis == ID_AXIS_Y)
 		{
-			parentObject.LocalScale(vec4(1, scale_value, 1));
+			object.LocalScale(vec4(1, scale_value, 1));
 		}
 		else if (m_nAxis == ID_AXIS_Z)
 		{
-			parentObject.LocalScale(vec4(1, 1, scale_value));
+			object.LocalScale(vec4(1, 1, scale_value));
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
 			double scale_y_value = calcScaleValue(y_val);
-			parentObject.LocalScale(vec4(scale_value, scale_y_value, 1));
+			object.LocalScale(vec4(scale_value, scale_y_value, 1));
 		}
 		else if (m_nAxis == ID_AXIS_XYZ)
 		{
-			parentObject.LocalScale(vec4(scale_value, scale_value, scale_value));
+			object.LocalScale(vec4(scale_value, scale_value, scale_value));
 		}
 	}
 }
@@ -993,15 +1016,19 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 	if (nFlags == MK_LBUTTON)
 	{
 		// ONLY The left mouse button is down.
-		// parent transformations		
-		doAction(x_value, y_value);
+		// parent transformations
+
+		doAction(x_value, y_value, parentObject);
 	}
 	else if ((nFlags == (MK_LBUTTON | MK_CONTROL)) || (nFlags == MK_RBUTTON))
 	{
 		// The left mouse button and the CTRL key are down,
 		// OR The right mouse button is down.
 		// child transformation
-		// add selection mechanism
+		if (selectedObject != nullptr)
+		{
+			doAction(x_value, y_value, *selectedObject);
+		}
 	}
 
 	old_x_position = current_x_position;
@@ -1029,7 +1056,6 @@ void CCGWorkView::OnOptionsMouseSensitivity()
 void CCGWorkView::OnOptionsColorpicker()
 {
 	ColorPickerDialog dialog;
-	//CColorDialog dialog(CG::ModelColor);
 	dialog.DoModal();
 	Invalidate();
 }
@@ -1042,6 +1068,19 @@ void CCGWorkView::OnOptionsPolygonalFineness()
 	{
 		polygonal_fineness = dialog.m_polygonal_fineness;
 	}
+	Invalidate();
+}
+
+
+void CCGWorkView::OnOptionsSelectObject()
+{
+	SelectObjectDialog dialog;
+	dialog.m_ObjectComboCtrl.SetCurSel(object_index);
+	if (dialog.DoModal() == IDOK)
+	{
+		object_index = dialog.selected_index;
+		selectedObject = getObjectByIndex(object_index);
+  }
 	Invalidate();
 }
 

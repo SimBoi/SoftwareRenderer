@@ -18,6 +18,8 @@
 #include <list>
 
 extern CG::Object parentObject;
+extern CG::Object* selectedObject;
+extern int object_index;
 extern bool initialized;
 extern CG::Camera camera;
 extern int polygonal_fineness;
