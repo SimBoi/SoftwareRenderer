@@ -270,11 +270,13 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 		childObject.faces.push_back(face);
 	}
 
+	// calculate child bounding box
+	childObject.CalcBoundingBox();
+
 	// add child object to the parents children list
 	parentObject.children.push_back(childObject);
 	
-	// calculate child and parent bounding box
-	childObject.CalcBoundingBox();
+	// calculate parent bounding box
 	parentObject.ReCalcBoundingBox(childObject);
 
 

@@ -487,11 +487,11 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		i++;
 	}
 
-	//// draw parent object bounding box
-	//for (auto const& face : parentObject.boundingBox)
-	//{
-	//	DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor, VertexNormalColor);
-	//}
+	// draw parent object bounding box
+	for (auto const& face : parentObject.boundingBox)
+	{
+		DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor, VertexNormalColor);
+	}
 
 	if (pDCToUse != m_pDC)
 	{
