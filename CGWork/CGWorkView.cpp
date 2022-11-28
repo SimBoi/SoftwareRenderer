@@ -1075,12 +1075,11 @@ void CCGWorkView::OnOptionsPolygonalFineness()
 void CCGWorkView::OnOptionsSelectObject()
 {
 	SelectObjectDialog dialog;
-	dialog.m_ObjectComboCtrl.SetCurSel(object_index);
 	if (dialog.DoModal() == IDOK)
 	{
 		object_index = dialog.selected_index;
 		selectedObject = getObjectByIndex(object_index);
-  }
+	}
 	Invalidate();
 }
 
