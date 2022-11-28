@@ -35,6 +35,7 @@ static char THIS_FILE[] = __FILE__;
 
 #include <string>
 #include <unordered_map>
+#include "PerspectiveSettingsDialog.h"
 
 using namespace CG;
 
@@ -94,6 +95,7 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_VERTEX_NORMALS, OnUpdateVertexNormals)
 	ON_COMMAND(ID_OPTIONS_COLORPICKER, OnOptionsColorpicker)
 	ON_COMMAND(ID_OPTIONS_POLYGONALFINENESS, OnOptionsPolygonalFineness)
+	ON_COMMAND(ID_PERSPECCTIVE_SETTINGS, OnPerspecctiveSettings)
 END_MESSAGE_MAP()
 
 
@@ -124,6 +126,7 @@ CCGWorkView::CCGWorkView()
 
 	// default colors
 	setDefaultColors();
+	SetDefaultPerspectiveSettings();
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
@@ -364,7 +367,7 @@ void DrawVertexNormal(CDC* pDCToUse, const CG::Vertex& vertex, const CG::Camera&
 	DrawLine(pDCToUse, from, to, camera, screenProjection, color);
 }
 
-void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& normalColor)
+void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& faceNormalColor, const COLORREF& vertexNormalColor)
 {
 	if (face.vertices.size() <= 1) return;
 
@@ -375,11 +378,11 @@ void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool dra
 	{
 		CG::vec4 coords = modelToCameraFrame * vertex.localPosition;
 		DrawLine(pDCToUse, prevCoords, coords, camera, screenProjection, color);
-		if (drawVertexNormal) DrawVertexNormal(pDCToUse, vertex, camera, modelToCameraFrame, screenProjection, normalColor);
+		if (drawVertexNormal) DrawVertexNormal(pDCToUse, vertex, camera, modelToCameraFrame, screenProjection, vertexNormalColor);
 		prevCoords = coords;
 	}
 
-	if (drawFaceNormal) DrawFaceNormal(pDCToUse, face, camera, modelToCameraFrame, screenProjection, normalColor);
+	if (drawFaceNormal) DrawFaceNormal(pDCToUse, face, camera, modelToCameraFrame, screenProjection, faceNormalColor);
 }
 
 vec4 coordsKey(vec4& coords, double range, double precision)
@@ -484,8 +487,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	}
 
 	double aspectRatio = (double)r.Width() / r.Height();
-	if (m_bIsPerspective) camera.Perspective(90, aspectRatio, 100, 1000);
-	else camera.Ortho(-800 * aspectRatio, 800 * aspectRatio, -800, 800, 100, 1000);
+	if (m_bIsPerspective) camera.Perspective(fovY, aspectRatio, zNear, zFar);
+	else camera.Ortho(-800 * aspectRatio, 800 * aspectRatio, -800, 800, zNear, zFar);
 
 	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
 	CG::mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
@@ -499,7 +502,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
-			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor);
+			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor, VertexNormalColor);
 		}
 
 		//// draw child object bounding box
@@ -514,7 +517,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	// draw parent object bounding box
 	for (auto const& face : parentObject.boundingBox)
 	{
-		DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor);
+		DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor, VertexNormalColor);
 	}
 
 	// for testing
@@ -1072,6 +1075,21 @@ void CCGWorkView::OnOptionsPolygonalFineness()
 	if (dialog.DoModal() == IDOK)
 	{
 		polygonal_fineness = dialog.m_polygonal_fineness;
+	}
+	Invalidate();
+}
+
+void CCGWorkView::OnPerspecctiveSettings()
+{
+	PerspectiveSettingsDialog dialog;
+	dialog.m_zNear = zNear;
+	dialog.m_zFar = zFar;
+	dialog.m_Fov = fovY;
+	if (dialog.DoModal() == IDOK)
+	{
+		zNear = dialog.m_zNear;
+		zFar = dialog.m_zFar;
+		fovY = dialog.m_Fov;
 	}
 	Invalidate();
 }

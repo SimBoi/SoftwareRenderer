@@ -26,8 +26,10 @@ namespace CG
 	extern COLORREF FaceNormalColor;		// face normals color
 	extern COLORREF ModelColor;			// model color
 	extern bool bIsModelColor;			// is model color set
+	extern double zNear, zFar, fovY;
 
 	void setDefaultColors();
+	void SetDefaultPerspectiveSettings();
 
 	class Vertex
 	{

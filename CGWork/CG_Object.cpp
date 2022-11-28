@@ -21,6 +21,7 @@ namespace CG
 	COLORREF FaceNormalColor;		// face normals color
 	COLORREF ModelColor;			// model color
 	bool bIsModelColor;			// is model color set
+	double zNear, zFar, fovY;
 
 	void setDefaultColors()
 	{
@@ -30,6 +31,13 @@ namespace CG
 		FaceNormalColor = RGB(255, 0, 255);
 		ModelColor = RGB(255, 255, 255);
 		bIsModelColor = false;
+	}
+
+	void SetDefaultPerspectiveSettings()
+	{
+		zNear = 100;
+		zFar = 1000;
+		fovY = 90;
 	}
 
 	Vertex::Vertex(vec4& pos, vec4& normal)
