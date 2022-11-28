@@ -14,6 +14,7 @@
 #define IDD_COLOR_PICKER_DIALOG         144
 #define IDD_FINENESS_DIALOG             146
 #define IDR_FACE_NORMALS                148
+#define IDD_SELECT_OBJECT_DIALOG        148
 #define IDR_VERTEX_NORMALS              149
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
@@ -63,6 +64,10 @@
 #define IDC_FACENORMAL_COLOR_BUTTON     1062
 #define IDC_MODEL_COLOR_BUTTON          1063
 #define IDC_ORIGINAL_MODEL_COLOR_BUTTON 1064
+#define IDC_OBJECT_COMBO                1066
+#define IDC_SINGLE_INSTRUCTIONS_STATIC1 1067
+#define IDC_SINGLE_INSTRUCTIONS_STATIC2 1068
+#define IDC_SelectTitle_STATIC          1069
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -92,14 +97,15 @@
 #define ID_OPTIONS_POLYGONALFINENESS    32815
 #define ID_FACE_NORMALS                 32818
 #define ID_VERTEX_NORMALS               32819
+#define ID_OPTIONS_SELECTOBJECT         32820
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        148
-#define _APS_NEXT_COMMAND_VALUE         32820
-#define _APS_NEXT_CONTROL_VALUE         1065
+#define _APS_NEXT_RESOURCE_VALUE        150
+#define _APS_NEXT_COMMAND_VALUE         32821
+#define _APS_NEXT_CONTROL_VALUE         1070
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

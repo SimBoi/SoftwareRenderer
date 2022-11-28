@@ -13,6 +13,8 @@
 // global variable to hold data contained in the currently open .itd file
 using namespace CG;
 Object parentObject;
+Object* selectedObject = nullptr;
+int object_index = 0;
 bool initialized = false;
 Camera camera;
 int polygonal_fineness = 20; // Defaule Polygonal FineNess

@@ -132,10 +132,10 @@ public:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 
 	// CG1::HW2 Functions:
-	void doAction(int x_val, int y_val);
-	void doRotate(int x_val, int y_val);
-	void doTranslate(int x_val, int y_val);
-	void doScale(int x_val, int y_val);
+	void doAction(int x_val, int y_val, CG::Object& object);
+	void doRotate(int x_val, int y_val, CG::Object& object);
+	void doTranslate(int x_val, int y_val, CG::Object& object);
+	void doScale(int x_val, int y_val, CG::Object& object);
 
 	void DrawFace1(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& faceColor);
 
@@ -151,6 +151,7 @@ public:
 	afx_msg void OnUpdateVertexNormals(CCmdUI* pCmdUI);
 	afx_msg void OnOptionsColorpicker();
 	afx_msg void OnOptionsPolygonalFineness();
+	afx_msg void OnOptionsSelectObject();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
