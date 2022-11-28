@@ -701,6 +701,9 @@ void CCGWorkView::doTranslate(int x_val, int y_val)
 
 static double calcScaleValue(int val)
 {
+	if (val == 0)
+		return 1;
+
 	double s = val * scale_sensitivity;
 	return ((val >= 0) ? s : (-1.0 / s));
 }
@@ -994,6 +997,15 @@ void CCGWorkView::OnTimer(UINT_PTR nIDEvent)
 		Invalidate();
 }
 
+static int getMouseDirection(int old_position, int current_position)
+{
+	const int epsilon = 5;
+	int diff = (current_position - old_position);
+	if (diff >= -epsilon && diff <= epsilon)
+		return 0;
+	return (diff > 0) ? 1 : -1;
+}
+
 
 void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 {
@@ -1003,8 +1015,8 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 	int current_x_position = point.x;
 	int current_y_position = point.y;
 
-	int x_value = (current_x_position - old_x_position) > 0 ? 1 : -1;
-	int y_value = (current_y_position - old_y_position) > 0 ? -1 : 1; // ??
+	int x_value = getMouseDirection(old_x_position, current_x_position);
+	int y_value = -1 * getMouseDirection(old_y_position, current_y_position);
 
 	if (nFlags == MK_LBUTTON)
 	{
