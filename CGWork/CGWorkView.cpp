@@ -651,20 +651,20 @@ void CCGWorkView::doScale(int x_val, int y_val)
 	{
 		if (m_nAxis == ID_AXIS_X)
 		{
-			parentObject.Scale(vec4(scale_value, 0, 0));
+			parentObject.Scale(vec4(scale_value, 1, 1));
 		}
 		else if (m_nAxis == ID_AXIS_Y)
 		{
-			parentObject.Scale(vec4(0, scale_value, 0));
+			parentObject.Scale(vec4(1, scale_value, 1));
 		}
 		else if (m_nAxis == ID_AXIS_Z)
 		{
-			parentObject.Scale(vec4(0, 0, scale_value));
+			parentObject.Scale(vec4(1, 1, scale_value));
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
 			double scale_y_value = calcScaleValue(y_val);
-			parentObject.Scale(vec4(scale_value, scale_y_value, 0));
+			parentObject.Scale(vec4(scale_value, scale_y_value, 1));
 		}
 		else if (m_nAxis == ID_AXIS_XYZ)
 		{
@@ -675,20 +675,20 @@ void CCGWorkView::doScale(int x_val, int y_val)
 	{
 		if (m_nAxis == ID_AXIS_X)
 		{
-			parentObject.LocalScale(vec4(scale_value, 0, 0));
+			parentObject.LocalScale(vec4(scale_value, 1, 1));
 		}
 		else if (m_nAxis == ID_AXIS_Y)
 		{
-			parentObject.LocalScale(vec4(0, scale_value, 0));
+			parentObject.LocalScale(vec4(1, scale_value, 1));
 		}
 		else if (m_nAxis == ID_AXIS_Z)
 		{
-			parentObject.LocalScale(vec4(0, 0, scale_value));
+			parentObject.LocalScale(vec4(1, 1, scale_value));
 		}
 		else if (m_nAxis == ID_AXIS_XY)
 		{
 			double scale_y_value = calcScaleValue(y_val);
-			parentObject.LocalScale(vec4(scale_value, scale_y_value, 0));
+			parentObject.LocalScale(vec4(scale_value, scale_y_value, 1));
 		}
 		else if (m_nAxis == ID_AXIS_XYZ)
 		{
