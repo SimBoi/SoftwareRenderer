@@ -190,7 +190,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
     </ClCompile>
-    <ClCompile Include="CG_Line.cpp" />
+    <ClCompile Include="CG_Draw.cpp" />
     <ClCompile Include="CG_Matrix.cpp" />
     <ClCompile Include="CG_Object.cpp" />
     <ClCompile Include="ColorPickerDialog.cpp" />
@@ -232,7 +232,7 @@
     <ClInclude Include="CGWork.h" />
     <ClInclude Include="CGWorkDoc.h" />
     <ClInclude Include="CGWorkView.h" />
-    <ClInclude Include="CG_Line.h" />
+    <ClInclude Include="CG_Draw.h" />
     <ClInclude Include="CG_Matrix.h" />
     <ClInclude Include="CG_Object.h" />
     <ClInclude Include="ColorPickerDialog.h" />

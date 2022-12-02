@@ -137,8 +137,7 @@ public:
 	void doTranslate(int x_val, int y_val, CG::Object& object);
 	void doScale(int x_val, int y_val, CG::Object& object);
 
-	void DrawFace1(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& faceColor);
-
+	void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& faceNormalColor, const COLORREF& vertexNormalColor);
 
 	afx_msg void OnOptionsMouseSensitivity();
 	afx_msg void OnViewSpace();

@@ -23,6 +23,7 @@ namespace CG
 		vec4 operator-() const;
 		bool operator==(const vec4& other) const;
 		bool operator!=(const vec4& other) const;
+		void Floor();
 		vec4 normalized() const;
 		static double dot(const vec4& u, const vec4& v);
 		static vec4 cross(const vec4& u, const vec4& v);
@@ -64,10 +65,11 @@ namespace CG
 	class Line
 	{
 	public:
-		vec4 p0;
-		vec4 v;
+		vec4 p1;
+		vec4 p2;
 		Line(vec4& p1, vec4& p2);
-		double GetT(vec4& p); // returns, for point p, the equavelant t in the equation p = p0 + t*v
+		vec4 operator[](double t) const;
+		bool IntersectionXY(Line& other, double& t, vec4& p) const;
 	};
 
 	class Plane
@@ -80,7 +82,7 @@ namespace CG
 		Plane(vec4& p, vec4& n);
 		Plane(vec4& p, vec4& u, vec4& v);
 		double SignedDistance(vec4& p) const;
-		vec4 Intersection(const Line& line, double& t) const; // find intersection point between line and plane, returns point and updates the reference to t
+		bool Intersection(const Line& line, double& t, vec4& p) const; // find intersection point between line and plane, returns point and updates the reference to t
 	};
 }
 

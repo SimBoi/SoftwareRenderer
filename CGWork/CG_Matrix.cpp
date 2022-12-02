@@ -67,6 +67,13 @@ namespace CG
 		return !(*this == other);
 	}
 
+	void vec4::Floor()
+	{
+		x = floor(x);
+		y = floor(y);
+		z = floor(z);
+	}
+
 	vec4 vec4::normalized() const
 	{
 		double length = sqrt(x * x + y * y + z * z);
@@ -208,18 +215,25 @@ namespace CG
 
 	///////////// Line
 
-	Line::Line(vec4& p1, vec4& p2)
+	Line::Line(vec4& p1, vec4& p2) : p1(p1), p2(p2) { }
+
+	vec4 Line::operator[](double t) const
 	{
-		p0 = p1;
-		v = p2 - p1;
-		v.w = 0;
+		return p1 * (1 - t) + p2 * t;
 	}
 
-	double Line::GetT(vec4& p)
+	bool Line::IntersectionXY(Line& other, double& t, vec4& p) const
 	{
-		if (v.x != 0) return (p.x - p0.x) / v.x;
-		else if (v.y != 0) return (p.y - p0.y) / v.y;
-		else return (p.z - p0.z) / v.z;
+		double a = (p1.x - other.p1.x) * (other.p1.y - other.p2.y);
+		double b = (p1.y - other.p1.y) * (other.p1.x - other.p2.x);
+		double c = (p1.x - p2.x) * (other.p1.y - other.p2.y);
+		double d = (p1.y - p2.y) * (other.p1.x - other.p2.x);
+
+		if (c == d) return false;
+
+		t = (a - b) / (c - d);
+		p = (*this)[t];
+		return true;
 	}
 
 	///////////// Plane
@@ -251,9 +265,13 @@ namespace CG
 		return vec4::dot(p - p0, n);
 	}
 
-	vec4 Plane::Intersection(const Line& line, double& t) const
+	bool Plane::Intersection(const Line& line, double& t, vec4& p) const
 	{
-		t = -(vec4::dot(n, line.p0) + D) / (vec4::dot(n, line.v));
-		return line.p0 + line.v * t;
+		double b = vec4::dot(n, line.p2 - line.p1);
+		if (b == 0) return false;
+		double a = -vec4::dot(n, line.p1) - D;
+		t = a / b;
+		p = line[t];
+		return true;
 	}
 }

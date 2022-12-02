@@ -26,7 +26,7 @@ static char THIS_FILE[] = __FILE__;
 #include "MainFrm.h"
 
 // our own MoveTo and LineTo implementation
-#include "CG_Line.h"
+#include "CG_Draw.h"
 #include "CG_Matrix.h"
 #include "CG_Object.h"
 #include "ColorPickerDialog.h"
@@ -297,7 +297,7 @@ static CG::Object* getObjectByIndex(int index)
 // CCGWorkView drawing
 /////////////////////////////////////////////////////////////////////////////
 
-// returns false if line is out of frustum
+// returns false if line is out of frustum, points should be relative to camera frame (before applying projection)
 bool ClipLine(CG::vec4& from, CG::vec4& to, const CG::Camera& camera)
 {
 	if (camera.IsInsideFrustum(from))
@@ -308,7 +308,8 @@ bool ClipLine(CG::vec4& from, CG::vec4& to, const CG::Camera& camera)
 		double t;
 		for (int i = 0; i < 6; i++)
 		{
-			CG::vec4 intersection = camera.clipPlanes[i].Intersection(line, t);
+			CG::vec4 intersection;
+			if (!camera.clipPlanes[i].Intersection(line, t, intersection)) continue;
 			if (t > 0 && t < 1)
 			{
 				to = intersection;
@@ -322,7 +323,8 @@ bool ClipLine(CG::vec4& from, CG::vec4& to, const CG::Camera& camera)
 		double t;
 		for (int i = 0; i < 6; i++)
 		{
-			CG::vec4 intersection = camera.clipPlanes[i].Intersection(line, t);
+			CG::vec4 intersection;
+			if (!camera.clipPlanes[i].Intersection(line, t, intersection)) continue;
 			if (t > 0 && t < 1)
 			{
 				from = intersection;
@@ -348,36 +350,72 @@ void DrawLine(CDC* pDCToUse, CG::vec4 from, CG::vec4 to, const CG::Camera& camer
 	CG::LineTo(pDCToUse, to.x, to.y, color);
 }
 
-void DrawFaceNormal(CDC* pDCToUse, const CG::Face& face, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color)
+void CCGWorkView::DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& faceNormalColor, const COLORREF& vertexNormalColor)
 {
-	vec4 from = modelToCameraFrame * face.center;
-	vec4 to = modelToCameraFrame * (face.center + face.normal);
-	DrawLine(pDCToUse, from, to, camera, screenProjection, color);
-}
+	if (face.vertices.size() <= 2) return;
 
-void DrawVertexNormal(CDC* pDCToUse, const CG::Vertex& vertex, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color)
-{
-	vec4 from = modelToCameraFrame * vertex.localPosition;
-	vec4 to = modelToCameraFrame * (vertex.localPosition + vertex.normal);
-	DrawLine(pDCToUse, from, to, camera, screenProjection, color);
-}
-
-void DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& faceNormalColor, const COLORREF& vertexNormalColor)
-{
-	if (face.vertices.size() <= 1) return;
-
-	// draw face
-	CG::Vertex prevVertex = face.vertices.back();
-	CG::vec4 prevCoords = modelToCameraFrame * prevVertex.localPosition;
+	// clip face edges
+	std::list<CG::Line> edges;
+	vec4 currCoords, prevCoords = modelToCameraFrame * face.vertices.back().localPosition;
 	for (auto const& vertex : face.vertices)
 	{
-		CG::vec4 coords = modelToCameraFrame * vertex.localPosition;
-		DrawLine(pDCToUse, prevCoords, coords, camera, screenProjection, color);
-		if (drawVertexNormal) DrawVertexNormal(pDCToUse, vertex, camera, modelToCameraFrame, screenProjection, vertexNormalColor);
-		prevCoords = coords;
+		currCoords = modelToCameraFrame * vertex.localPosition;
+		vec4 coords = currCoords;
+		if (ClipLine(prevCoords, coords, camera)) edges.push_back(Line(prevCoords, coords));
+		prevCoords = currCoords;
 	}
 
-	if (drawFaceNormal) DrawFaceNormal(pDCToUse, face, camera, modelToCameraFrame, screenProjection, faceNormalColor);
+	if (edges.size() == 0) return;
+	
+	// apply projection
+	for (auto& edge : edges)
+	{
+		vec4 p1 = screenProjection * edge[0];
+		vec4 p2 = screenProjection * edge[1];
+		p1.Floor();
+		p2.Floor();
+		edge = Line(p1, p2);
+	}
+
+	// connect edges outside of the frustum
+	Line* prevEdge = &edges.back();
+	for (auto it = edges.begin(); it != edges.end(); it++)
+	{
+		if (prevEdge->p2 != it->p1)
+		{
+			edges.insert(it, Line(prevEdge->p2, it->p1));
+		}
+		prevEdge = &(*it);
+	}
+
+	// render solid face
+	CG::ScanConversion(pDCToUse, m_WindowHeight, m_WindowWidth, edges, color);
+
+	// render wireframe
+	for (auto edge : edges)
+	{
+		MoveTo(edge[0].x, edge[0].y);
+		LineTo(pDCToUse, edge[1].x, edge[1].y, RGB(255, 0, 255));
+	}
+
+	// draw face normals
+	if (drawFaceNormal)
+	{
+		vec4 from = modelToCameraFrame * face.center;
+		vec4 to = modelToCameraFrame * (face.center + face.normal);
+		DrawLine(pDCToUse, from, to, camera, screenProjection, faceNormalColor);
+	}
+
+	// draw vertex normals
+	if (drawVertexNormal)
+	{
+		for (auto const& vertex : face.vertices)
+		{
+			vec4 from = modelToCameraFrame * vertex.localPosition;
+			vec4 to = modelToCameraFrame * (vertex.localPosition + vertex.normal);
+			DrawLine(pDCToUse, from, to, camera, screenProjection, vertexNormalColor);
+		}
+	}
 }
 
 vec4 coordsKey(vec4& coords, double range, double precision)
@@ -501,20 +539,20 @@ void CCGWorkView::OnDraw(CDC* pDC)
 			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor, VertexNormalColor);
 		}
 
-		// draw child object bounding box
-		for (auto const& face : child.boundingBox)
-		{
-			DrawFace(pDCToUse, face, false, false, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor, VertexNormalColor);
-		}
+		//// draw child object bounding box
+		//for (auto const& face : child.boundingBox)
+		//{
+		//	DrawFace(pDCToUse, face, false, false, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor, VertexNormalColor);
+		//}
 
 		i++;
 	}
 
-	// draw parent object bounding box
-	for (auto const& face : parentObject.boundingBox)
-	{
-		DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor, VertexNormalColor);
-	}
+	//// draw parent object bounding box
+	//for (auto const& face : parentObject.boundingBox)
+	//{
+	//	DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor, VertexNormalColor);
+	//}
 
 	if (pDCToUse != m_pDC)
 	{
