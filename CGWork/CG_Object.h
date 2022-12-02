@@ -86,13 +86,13 @@ namespace CG
 	public:
 		mat4 cTransform;
 		mat4 cInverse;
-		mat4 projection;
-		Plane clipPlanes[6];
+		mat4 projection; // camera frame to default volume
+		Plane clipPlanes[6]; // clip planes in camera frame
 
 		void LookAt(vec4& eye, vec4& at, vec4& up);
 		void Ortho(double left, double right, double bottom, double top, double zNear, double zFar);
 		void Perspective(double fovY, double aspectRatio, double zNear, double zFar);
-		static mat4 ToScreenSpace(double width, double height);
+		static mat4 ToScreenSpace(double width, double height); // default volume XY to screen space XY
 		bool IsInsideFrustum(vec4& p) const;
 	};
 }

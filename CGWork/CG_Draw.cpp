@@ -3,6 +3,51 @@
 
 namespace CG
 {
+	ZBuffer::~ZBuffer()
+	{
+		free();
+	}
+
+	double* ZBuffer::operator[](int index)
+	{
+		return arr[index];
+	}
+
+	void ZBuffer::resize(int height, int width)
+	{
+		if (this->height == height && this->width == width) return;
+		free();
+		this->height = height;
+		this->width = width;
+		arr = new double* [width];
+		for (int i = 0; i < width; i++) arr[i] = new double[height];
+	}
+
+	void ZBuffer::init()
+	{
+		for (int i = 0; i < width; i++)
+		{
+			for (int j = 0; j < height; j++)
+			{
+				arr[i][j] = -1;
+			}
+		}
+	}
+
+	void ZBuffer::SetPixel(CDC* pDC, int x, int y, double z, const COLORREF& color)
+	{
+		if (x < 0 || x >= width || y < 0 || y >= height || z < (*this)[x][y]) return;
+		(*this)[x][y] = z;
+		pDC->SetPixel(x, y, color);
+	}
+
+	void ZBuffer::free()
+	{
+		for (int i = 0; i < width; ++i) delete[] arr[i];
+		delete[] arr;
+	}
+
+	ZBuffer zBuffer;
 	int prevX;
 	int prevY;
 
@@ -70,7 +115,6 @@ namespace CG
 		}
 	}
 
-
 	void LineTo(CDC* pDC, int endX, int endY, const COLORREF& color)
 	{
 		if (abs(endY - prevY) < abs(endX - prevX))
@@ -137,20 +181,17 @@ namespace CG
 			intersections.sort(PointXComparator());
 
 			// fill pixels between intersections
-			auto it = intersections.begin();
-			int sign = -1;
-			for (int x = 0; x < width; x++)
+			for (auto it = intersections.begin(); it != intersections.end(); it++)
 			{
-				while (it != intersections.end() && x == (int)((*it).x))
+				vec4 p1 = *it;
+				it++;
+				vec4 p2 = *it;
+				int range = p2.x - p1.x;
+				for (int t = 0; t <= range; t++)
 				{
-					sign *= -1;
-					it++;
-				}
-				if (sign == 1) pDC->SetPixel(x, y, color);
-
-				if (sign == 1 && x > 1400)
-				{
-					sign = 1;
+					double a = (double)t / range;
+					double z = p1.z * (1 - a) + p2.z * a;
+					zBuffer.SetPixel(pDC, p1.x + t, y, z, color);
 				}
 			}
 		}

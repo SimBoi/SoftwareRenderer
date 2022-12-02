@@ -503,6 +503,9 @@ void InitializeView()
 
 void CCGWorkView::OnDraw(CDC* pDC)
 {
+	zBuffer.resize(m_WindowHeight, m_WindowWidth);
+	zBuffer.init(); // reset zBuffer
+
 	CCGWorkDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
