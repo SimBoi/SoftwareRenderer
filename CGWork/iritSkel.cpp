@@ -18,6 +18,7 @@ int object_index = 0;
 bool initialized = false;
 Camera camera;
 int polygonal_fineness = 20; // Defaule Polygonal FineNess
+Light lights[8];
 
 IPFreeformConvStateStruct CGSkelFFCState = {
 	FALSE,          /* Talkative */
