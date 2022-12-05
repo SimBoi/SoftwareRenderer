@@ -95,16 +95,6 @@ namespace CG
 		static mat4 ToScreenSpace(double width, double height); // default volume XY to screen space XY
 		bool IsInsideFrustum(vec4& p) const;
 	};
-
-	class Light
-	{
-		bool enabled;
-		vec4 position; // global position
-		vec4 direction; // vector representing direction, in global coordinates
-		COLORREF color;
-		double diffuseIntensity; // from 0 to 1
-		double specularIntensity; // from 0 to 1
-	};
 }
 
 #endif
