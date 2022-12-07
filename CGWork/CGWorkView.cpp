@@ -130,6 +130,7 @@ CCGWorkView::CCGWorkView()
 
 	// default colors
 	setDefaultColors();
+	ViewProjection = (m_bIsPerspective) ? PERSPECTIVE : ORTHOGRAPHIC;
 	SetDefaultPerspectiveSettings();
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
@@ -346,8 +347,8 @@ void DrawLine(CDC* pDCToUse, CG::vec4 from, CG::vec4 to, const CG::Camera& camer
 	from = screenProjection * from;
 	to = screenProjection * to;
 	
-	CG::MoveTo(from.x, from.y);
-	CG::LineTo(pDCToUse, to.x, to.y, color);
+	CG::MoveTo(from.x, from.y, from.z);
+	CG::LineTo(pDCToUse, to.x, to.y, to.z, color);
 }
 
 void CCGWorkView::DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& faceNormalColor, const COLORREF& vertexNormalColor)
@@ -394,8 +395,8 @@ void CCGWorkView::DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNor
 	// render wireframe
 	for (auto edge : edges)
 	{
-		MoveTo(edge[0].x, edge[0].y);
-		LineTo(pDCToUse, edge[1].x, edge[1].y, RGB(255, 0, 255));
+		MoveTo(edge[0].x, edge[0].y, edge[0].z);
+		LineTo(pDCToUse, edge[1].x, edge[1].y, edge[1].z, RGB(255, 0, 255));
 	}
 
 	// draw face normals
@@ -809,6 +810,7 @@ void CCGWorkView::OnViewOrthographic()
 {
 	m_nView = ID_VIEW_ORTHOGRAPHIC;
 	m_bIsPerspective = false;
+	ViewProjection = (m_bIsPerspective) ? PERSPECTIVE : ORTHOGRAPHIC;
 	Invalidate();		// redraw using the new view.
 }
 
@@ -821,6 +823,7 @@ void CCGWorkView::OnViewPerspective()
 {
 	m_nView = ID_VIEW_PERSPECTIVE;
 	m_bIsPerspective = true;
+	ViewProjection = (m_bIsPerspective) ? PERSPECTIVE : ORTHOGRAPHIC;
 	Invalidate();
 }
 

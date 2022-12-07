@@ -22,8 +22,8 @@ namespace CG
 
 	extern ZBuffer zBuffer;
 
-	void MoveTo(int x, int y);
-	void LineTo(CDC* pDC, int endX, int endY, const COLORREF& color);
+	void MoveTo(int x, int y, double z);
+	void LineTo(CDC* pDC, int endX, int endY, double endZ, const COLORREF& color);
 	void ScanConversion(CDC* pDC, int height, int width, const std::list<Line>& edges, const COLORREF& color);
 }
 

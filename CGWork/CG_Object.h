@@ -14,6 +14,9 @@
 
 namespace CG
 {
+	typedef enum SpaceType { VIEW, OBJECT } TSpace;
+	typedef enum ViewType { ORTHOGRAPHIC, PERSPECTIVE } TView;
+
 	extern int rotation_sensitivity;
 	extern int translation_sensitivity;
 	extern int scale_sensitivity;
@@ -26,6 +29,7 @@ namespace CG
 	extern COLORREF FaceNormalColor;		// face normals color
 	extern COLORREF ModelColor;			// model color
 	extern bool bIsModelColor;			// is model color set
+	extern TView ViewProjection;		// ORTHOGRAPHIC / PERSPECTIVE
 	extern double zNear, zFar, fovY;
 
 	void setDefaultColors();

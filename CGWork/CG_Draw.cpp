@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "CG_Object.h"
 #include "CG_Draw.h"
 
 namespace CG
@@ -50,18 +51,35 @@ namespace CG
 	ZBuffer zBuffer;
 	int prevX;
 	int prevY;
+	double prevZ;
 
-	void MoveTo(int x, int y)
+	void MoveTo(int x, int y, double z)
 	{
 		prevX = x;
 		prevY = y;
+		prevZ = z;
 	}
 
-	void DrawLowLine(CDC* pDC, int x1, int y1, int x2, int y2, const COLORREF& color)
+	double getZDepth(double z)
+	{
+		if (ViewProjection == ORTHOGRAPHIC)
+		{
+			return 2 * ((z - zNear) / (zFar - zNear)) - 1;
+		}
+		else if (ViewProjection == PERSPECTIVE)
+		{
+			return (((zFar + zNear) / (zFar - zNear)) + (1 / z) * ((-2 * zFar * zNear) / (zFar - zNear)));
+		}
+
+		return 0;
+	}
+
+	void DrawLowLine(CDC* pDC, int x1, int y1, double z1, int x2, int y2, double z2, const COLORREF& color)
 	{
 		const int dx = x2 - x1;
 		int dy = y2 - y1;
-
+		const double dz = (z2 - z1);
+		
 		const int yi = (dy < 0 ? -1 : 1);
 		dy = dy * yi;
 
@@ -70,9 +88,11 @@ namespace CG
 		const int northeast = 2 * (dy - dx);
 
 		int x = x1, y = y1;
+		double z = z1;
 		while (x < x2)
 		{
-			pDC->SetPixel(x, y, color);
+			z = (((x - x1) / dx) * dz) + z1;
+			zBuffer.SetPixel(pDC, x, y, getZDepth(z), color);
 			if (d > 0)
 			{
 				d += northeast;
@@ -86,10 +106,11 @@ namespace CG
 		}
 	}
 
-	void DrawHighLine(CDC* pDC, int x1, int y1, int x2, int y2, const COLORREF& color)
+	void DrawHighLine(CDC* pDC, int x1, int y1, double z1, int x2, int y2, double z2, const COLORREF& color)
 	{
 		int dx = x2 - x1;
 		const int dy = y2 - y1;
+		const double dz = (z2 - z1);
 
 		const int xi = (dx < 0 ? -1 : 1);
 		dx = dx * xi;
@@ -99,9 +120,11 @@ namespace CG
 		const int southeast = 2 * (dx - dy);
 
 		int x = x1, y = y1;
+		double z = z1;
 		while (y < y2)
 		{
-			pDC->SetPixel(x, y, color);
+			z = (((y - y1) / dy) * dz) + z1;
+			zBuffer.SetPixel(pDC, x, y, getZDepth(z), color);
 			if (d > 0)
 			{
 				d += southeast;
@@ -115,33 +138,32 @@ namespace CG
 		}
 	}
 
-	void LineTo(CDC* pDC, int endX, int endY, const COLORREF& color)
+	void LineTo(CDC* pDC, int endX, int endY, double endZ, const COLORREF& color)
 	{
 		if (abs(endY - prevY) < abs(endX - prevX))
 		{
 			if (prevX > endX)
 			{
-				DrawLowLine(pDC, endX, endY, prevX, prevY, color);
+				DrawLowLine(pDC, endX, endY, endZ, prevX, prevY, prevZ, color);
 			}
 			else
 			{
-				DrawLowLine(pDC, prevX, prevY, endX, endY, color);
+				DrawLowLine(pDC, prevX, prevY, prevZ, endX, endY, endZ, color);
 			}
 		}
 		else
 		{
 			if (prevY > endY)
 			{
-				DrawHighLine(pDC, endX, endY, prevX, prevY, color);
+				DrawHighLine(pDC, endX, endY, endZ, prevX, prevY, prevZ, color);
 			}
 			else
 			{
-				DrawHighLine(pDC, prevX, prevY, endX, endY, color);
+				DrawHighLine(pDC, prevX, prevY, prevZ, endX, endY, endZ, color);
 			}
 		}
 
-		prevX = endX;
-		prevY = endY;
+		MoveTo(endX, endY, endZ);
 	}
 
 	struct PointXComparator

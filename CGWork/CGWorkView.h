@@ -18,8 +18,6 @@
 #include "CG_Matrix.h"
 #include "CG_Object.h"
 
-typedef enum SpaceType { VIEW, OBJECT } TSpace;
-
 
 class CCGWorkView : public CView
 {
@@ -41,7 +39,7 @@ private:
 	bool m_bIsPerspective;		// is the view perspective
 	bool m_drawFaceNormals = false;		// draw face normals or not
 	bool m_drawVertexNormals = false;	// draw vertex normals or not
-	TSpace m_nSpace;			// view/ object space	
+	CG::TSpace m_nSpace;			// view/ object space	
 	
 	CString m_strItdFileName;		// file name of IRIT data
 
