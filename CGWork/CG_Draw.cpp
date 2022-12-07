@@ -37,29 +37,17 @@ namespace CG
 		}
 	}
 
-	void ZBuffer::SetPixel(CDC* pDC, int x, int y, double z, const COLORREF& color)
+	void ZBuffer::OverridePixel(CDC* pDC, int x, int y, double z, const COLORREF& color)
 	{
-		if (GetRValue(color) > 200)
-		{
-			double currZ = arr[x][y];
-			currZ -= 1e-4;
-			if (z < currZ)
-			{
-				currZ = z;
-			}
-		}
-		else if (x == 625 && y == 249)
-		{
-			double currZ = arr[x][y];
-			currZ -= 1e-4;
-			if (z < currZ)
-			{
-				currZ = z;
-			}
-		}
-		if (x < 0 || x >= width || y < 0 || y >= height || z < arr[x][y] - 1e-4) return;
+		if (x < 0 || x >= width || y < 0 || y >= height || z <= arr[x][y] - 1e-6) return;
 		arr[x][y] = z;
 		pDC->SetPixel(x, y, color);
+	}
+	
+	void ZBuffer::SetPixel(CDC* pDC, int x, int y, double z, const COLORREF& color)
+	{
+		if (x < 0 || x >= width || y < 0 || y >= height || z < arr[x][y]) return;
+		OverridePixel(pDC, x, y, z, color);
 	}
 
 	void ZBuffer::free()
@@ -80,20 +68,6 @@ namespace CG
 		prevZ = z;
 	}
 
-	double getZDepth(double z)
-	{
-		if (ViewProjection == ORTHOGRAPHIC)
-		{
-			return 2 * ((z - zNear) / (zFar - zNear)) - 1;
-		}
-		else if (ViewProjection == PERSPECTIVE)
-		{
-			return (((zFar + zNear) / (zFar - zNear)) + (1 / z) * ((-2 * zFar * zNear) / (zFar - zNear)));
-		}
-
-		return 0;
-	}
-
 	void DrawLowLine(CDC* pDC, int x1, int y1, double z1, int x2, int y2, double z2, const COLORREF& color)
 	{
 		const int dx = x2 - x1;
@@ -112,7 +86,7 @@ namespace CG
 		while (x < x2)
 		{
 			z = (((x - x1) / dx) * dz) + z1;
-			zBuffer.SetPixel(pDC, x, y, z, color);
+			zBuffer.OverridePixel(pDC, x, y, z, color);
 			if (d > 0)
 			{
 				d += northeast;
@@ -144,7 +118,7 @@ namespace CG
 		while (y < y2)
 		{
 			z = (((y - y1) / dy) * dz) + z1;
-			zBuffer.SetPixel(pDC, x, y, z, color);
+			zBuffer.OverridePixel(pDC, x, y, z, color);
 			if (d > 0)
 			{
 				d += southeast;

@@ -16,7 +16,8 @@ namespace CG
 		double* operator[](int index);
 		void resize(int height, int width);
 		void init();
-		void SetPixel(CDC* pDC, int x, int y, double z, const COLORREF& color);
+		void OverridePixel(CDC* pDC, int x, int y, double z, const COLORREF& color); // draws if z >= previous z
+		void SetPixel(CDC* pDC, int x, int y, double z, const COLORREF& color); // draws if z > previous z
 	private:
 		void free();
 	};
