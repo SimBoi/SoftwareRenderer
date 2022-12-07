@@ -2,6 +2,7 @@
 #define CG_OBJECT
 
 #include "CG_Matrix.h"
+#include "PngWrapper.h"
 #include <list>
 #include <windows.h>
 
@@ -15,6 +16,7 @@
 namespace CG
 {
 	typedef enum SpaceType { VIEW, OBJECT } TSpace;
+	typedef enum LayoutType { NONE, STRETCH, REPEAT } BackgroundLayout;
 
 	extern int rotation_sensitivity;
 	extern int translation_sensitivity;
@@ -22,6 +24,8 @@ namespace CG
 
 	void setDefaultSensitivity();
 
+	extern BackgroundLayout BackgroundImageLayout;		// background layout
+	extern PngWrapper BackgroundImage;		// background image
 	extern COLORREF BackgroundColor;		// background color
 	extern COLORREF BoundingBoxColor;	// bounding box color
 	extern COLORREF VertexNormalColor;	// vertex normals color

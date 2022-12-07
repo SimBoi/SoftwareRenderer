@@ -34,6 +34,7 @@ static char THIS_FILE[] = __FILE__;
 #include "PolygonalFineNessDialog.h"
 #include "SelectObjectDialog.h"
 #include "PerspectiveSettingsDialog.h"
+#include "BackgroundImageDialog.h"
 
 #include <string>
 #include <unordered_map>
@@ -100,6 +101,7 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(ID_OPTIONS_POLYGONALFINENESS, OnOptionsPolygonalFineness)
 	ON_COMMAND(ID_OPTIONS_SELECTOBJECT, &CCGWorkView::OnOptionsSelectObject)
 	ON_COMMAND(ID_PERSPECCTIVE_SETTINGS, OnPerspecctiveSettings)
+	ON_COMMAND(ID_OPTIONS_BACKGROUNDIMAGE, &CCGWorkView::OnOptionsBackgroundImage)
 END_MESSAGE_MAP()
 
 
@@ -130,6 +132,7 @@ CCGWorkView::CCGWorkView()
 
 	// default colors
 	setDefaultColors();
+	BackgroundImageLayout = NONE;
 	SetDefaultPerspectiveSettings();
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
@@ -546,6 +549,8 @@ void InitializeView()
 	camera.LookAt(vec4(0, 0, 600, 1), parentObject.wPosition(), vec4(0, 1, 0).normalized());
 }
 
+
+
 void CCGWorkView::OnDraw(CDC* pDC)
 {
 	zBuffer.resize(m_WindowHeight, m_WindowWidth);
@@ -560,8 +565,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	GetClientRect(&r);
 	CDC* pDCToUse = /*m_pDC*/m_pDbDC;
 
-	// set background color
-	pDCToUse->FillSolidRect(&r, BackgroundColor);
+	// draw background
+	DrawBackground(r, pDCToUse);
 
 	if (!initialized)
 	{
@@ -1184,6 +1189,26 @@ void CCGWorkView::OnPerspecctiveSettings()
 		zNear = dialog.m_zNear;
 		zFar = dialog.m_zFar;
 		fovY = dialog.m_Fov;
+	}
+	Invalidate();
+}
+
+
+void CCGWorkView::OnOptionsBackgroundImage()
+{
+	BackgroundImageDialog dialog;
+	/*dialog.m_bRadioNone = (BackgroundImageLayout != NONE) ? TRUE : FALSE;
+	dialog.m_bRadioStretch = (BackgroundImageLayout != STRETCH) ? TRUE : FALSE;
+	dialog.m_bRadioRepeat = (BackgroundImageLayout != REPEAT) ? TRUE : FALSE;
+	*/
+	if (dialog.DoModal() == IDOK)
+	{
+		if (dialog.m_bRadioNone)
+			BackgroundImageLayout = NONE;
+		else if (dialog.m_bRadioStretch)
+			BackgroundImageLayout = STRETCH;
+		else if (dialog.m_bRadioRepeat)
+			BackgroundImageLayout = REPEAT;
 	}
 	Invalidate();
 }

@@ -1,4 +1,5 @@
 #include "CG_Object.h"
+#include "PngWrapper.h"
 #include <cmath>
 
 namespace CG
@@ -15,6 +16,8 @@ namespace CG
 		scale_sensitivity = 25;
 	}
 
+	BackgroundLayout BackgroundImageLayout;		// background layout
+	PngWrapper BackgroundImage;		// background image
 	COLORREF BackgroundColor;		// background color
 	COLORREF BoundingBoxColor;	// bounding box color
 	COLORREF VertexNormalColor;	// vertex normals color
