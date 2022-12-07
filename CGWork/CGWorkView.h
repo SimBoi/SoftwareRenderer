@@ -43,7 +43,7 @@ private:
 	
 	CString m_strItdFileName;		// file name of IRIT data
 
-	int m_nLightShading;			// shading: Flat, Gouraud.
+	int m_nLightShading;			// shading: Flat, Gouraud, Phong.
 
 	double m_lMaterialAmbient;		// The Ambient in the scene
 	double m_lMaterialDiffuse;		// The Diffuse in the scene
@@ -144,7 +144,7 @@ public:
 		const CG::mat4& modelToCameraFrame,
 		const CG::mat4& projectionToModelFrame,
 		const CG::mat4& globalToModelFrame,
-		const CG::mat4& modelToGlobalFrameTranspose,
+		const CG::mat4& globalToModelFrameTranspose,
 		const CG::mat4& screenProjection,
 		const COLORREF& color,
 		const COLORREF& faceNormalColor,

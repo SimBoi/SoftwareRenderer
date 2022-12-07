@@ -168,6 +168,40 @@ namespace CG
 		}
 	};
 
+	vec4 CalcDiffuse(const mat4& globalToModelFrame, const mat4& globalToModelFrameTranspose, const vec4& pixelModelPos, vec4 normal, LightParams lightSources[8])
+	{
+		vec4 diffuse;
+		for (int i = 0; i < 8; i++)
+		{
+			if (!lightSources[i].enabled) continue;
+
+			vec4 direction, light = vec4(lightSources[i].colorR, lightSources[i].colorG, lightSources[i].colorB);
+
+			if (lightSources[i].type == LIGHT_TYPE_DIRECTIONAL)
+			{
+				// get global light direction form lightSource
+				direction = vec4(lightSources[i].dirX, lightSources[i].dirY, lightSources[i].dirZ, 0);
+				// transform face normal to global frame
+				normal = globalToModelFrameTranspose * normal;
+			}
+			else
+			{
+				// calculate light origin position in model frame
+				vec4 lightPos = globalToModelFrame * vec4(lightSources[i].posX, lightSources[i].posY, lightSources[i].posZ, 1);
+				// calculate light direction in model frame
+				direction = pixelModelPos - lightPos;
+			}
+			double dotProduct = vec4::dot(direction.normalized(), normal.normalized());
+			diffuse += light * max(dotProduct, 0);
+		}
+		return diffuse;
+	}
+
+	vec4 CalcSpecular()
+	{
+		return vec4();
+	}
+
 	void ScanConversion(
 		CDC* pDC,
 		int height,
@@ -175,12 +209,24 @@ namespace CG
 		const std::list<Edge>& edges,
 		const mat4& projectionToModelFrame,
 		const mat4& globalToModelFrame,
-		const mat4& modelToGlobalFrameTranspose,
+		const mat4& globalToModelFrameTranspose,
+		const vec4& faceCenter,
 		const vec4& faceNormal,
 		const COLORREF& objectColor,
 		const LightParams& ambientLight,
-		LightParams lightSources[8])
+		LightParams lightSources[8],
+		int shading)
 	{
+		vec4 ambient = vec4(ambientLight.colorR, ambientLight.colorG, ambientLight.colorB);
+		vec4 diffuse;
+		vec4 specular;
+
+		if (shading == FLAT)
+		{
+			diffuse = CalcDiffuse(globalToModelFrame, globalToModelFrameTranspose, faceCenter, faceNormal, lightSources);
+			specular = CalcSpecular();
+		}
+
 		for (int y = 0; y < height; y++)
 		{
 			// find intersections
@@ -219,35 +265,8 @@ namespace CG
 					double a = (double)t / range;
 					int x = p1.x + t;
 					double z = p1.z * (1 - a) + p2.z * a;
+
 					
-					vec4 ambient = vec4(ambientLight.colorR, ambientLight.colorG, ambientLight.colorB);
-					vec4 diffuse;
-					vec4 specular;
-
-					for (int i = 0; i < 8; i++)
-					{
-						if (!lightSources[i].enabled) continue;
-
-						vec4 light = vec4(lightSources[i].colorR, lightSources[i].colorG, lightSources[i].colorB);
-
-						if (lightSources[i].type == LIGHT_TYPE_DIRECTIONAL)
-						{
-							vec4 direction = vec4(lightSources[i].dirX, lightSources[i].dirY, lightSources[i].dirZ, 0);
-							if (direction == vec4(0, 0, 0, 0)) continue;
-
-							// calculate face normal in global coordinates
-							vec4 globalFaceNormal = (faceNormal);
-							globalFaceNormal.w = 0;
-							globalFaceNormal = (mat4::Transpose(globalToModelFrame) * globalFaceNormal).normalized();
-
-							double dotProduct = vec4::dot(direction, globalFaceNormal);
-							diffuse += light * max(dotProduct, 0);
-						}
-						else
-						{
-
-						}
-					}
 
 					vec4 finalLight = ambient + diffuse + specular;
 					// cap final light based on dynnamic range

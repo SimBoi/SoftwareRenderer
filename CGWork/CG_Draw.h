@@ -7,6 +7,8 @@
 
 namespace CG
 {
+	typedef enum Shading { FLAT, GOURAUD, PHONG } TView;
+
 	class ZBuffer
 	{
 		int height = 0, width = 0;
@@ -33,11 +35,13 @@ namespace CG
 		const std::list<Edge>& edges,
 		const mat4& projectionToModelFrame,
 		const mat4& globalToModelFrame,
-		const mat4& modelToGlobalFrameTranspose,
+		const mat4& globalToModelFrameTranspose,
+		const vec4& faceCenter,
 		const vec4& faceNormal,
 		const COLORREF& objectColor,
 		const LightParams& ambientLight,
-		LightParams lightSources[8]);
+		LightParams lightSources[8],
+		int shading);
 }
 
 #endif

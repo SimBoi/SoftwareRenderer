@@ -132,7 +132,7 @@ CCGWorkView::CCGWorkView()
 	setDefaultColors();
 	SetDefaultPerspectiveSettings();
 
-	m_nLightShading = ID_LIGHT_SHADING_FLAT;
+	m_nLightShading = FLAT;
 
 	m_lMaterialAmbient = 0.2;
 	m_lMaterialDiffuse = 0.8;
@@ -388,7 +388,7 @@ void CCGWorkView::DrawFace(
 	const mat4& modelToCameraFrame,
 	const mat4& projectionToModelFrame,
 	const mat4& globalToModelFrame,
-	const mat4& modelToGlobalFrameTranspose,
+	const mat4& globalToModelFrameTranspose,
 	const mat4& screenProjection,
 	const COLORREF& color,
 	const COLORREF& faceNormalColor,
@@ -434,7 +434,7 @@ void CCGWorkView::DrawFace(
 	}
 
 	// render solid face
-	ScanConversion(pDCToUse, m_WindowHeight, m_WindowWidth, edges, projectionToModelFrame, globalToModelFrame, modelToGlobalFrameTranspose, face.normal, color, m_ambientLight, m_lights);
+	ScanConversion(pDCToUse, m_WindowHeight, m_WindowWidth, edges, projectionToModelFrame, globalToModelFrame, globalToModelFrameTranspose, face.center, face.normal, color, m_ambientLight, m_lights, m_nLightShading);
 
 	// render wireframe
 	for (auto const& edge : edges)
@@ -581,8 +581,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	for (auto& child : parentObject.children)
 	{
 		mat4 globalToChildFrame = child.mInverse * child.wInverse * globalToParentFrame;
+		mat4 globalToChildFrameTranspose = mat4::Transpose(globalToChildFrame);
 		mat4 childToParentFrame = child.wTransform * child.mTransform;
-		mat4 childToGlobalFrameTranspose = mat4::Transpose(parentToGlobalFrame * childToParentFrame);
 		mat4 childToCameraFrame = parentToCameraFrame * childToParentFrame;
 		mat4 projectionToChildFrame = mat4::InverseTransform(screenProjection * childToCameraFrame);
 		COLORREF child_color = (bIsModelColor ? ModelColor : child.color);
@@ -590,7 +590,19 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
-			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, projectionToChildFrame, globalToChildFrame, childToGlobalFrameTranspose, screenProjection, child_color, FaceNormalColor, VertexNormalColor);
+			DrawFace(
+				pDCToUse,
+				face,
+				m_drawFaceNormals,
+				m_drawVertexNormals,
+				camera, childToCameraFrame,
+				projectionToChildFrame,
+				globalToChildFrame,
+				globalToChildFrameTranspose,
+				screenProjection,
+				child_color,
+				FaceNormalColor,
+				VertexNormalColor);
 		}
 
 		//// draw child object bounding box
@@ -1034,23 +1046,23 @@ void CCGWorkView::OnUpdateVertexNormals(CCmdUI* pCmdUI)
 
 void CCGWorkView::OnLightShadingFlat() 
 {
-	m_nLightShading = ID_LIGHT_SHADING_FLAT;
+	m_nLightShading = FLAT;
 }
 
 void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_nLightShading == ID_LIGHT_SHADING_FLAT);
+	pCmdUI->SetCheck(m_nLightShading == FLAT);
 }
 
 
 void CCGWorkView::OnLightShadingGouraud() 
 {
-	m_nLightShading = ID_LIGHT_SHADING_GOURAUD;
+	m_nLightShading = GOURAUD;
 }
 
 void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_nLightShading == ID_LIGHT_SHADING_GOURAUD);
+	pCmdUI->SetCheck(m_nLightShading == GOURAUD);
 }
 
 // LIGHT SETUP HANDLER ///////////////////////////////////////////
