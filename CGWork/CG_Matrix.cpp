@@ -43,6 +43,15 @@ namespace CG
 		return vec4(s * x, s * y, s * z, s * w);
 	}
 
+	vec4& vec4::operator*=(const double s)
+	{
+		x *= s;
+		y *= s;
+		z *= s;
+		w *= s;
+		return *this;
+	}
+
 	vec4 vec4::operator*(const vec4& v) const
 	{
 		return vec4(x * v.x, y * v.y, z * v.z, w * v.w);

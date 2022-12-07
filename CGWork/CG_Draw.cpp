@@ -191,7 +191,7 @@ namespace CG
 				// calculate light direction in model frame
 				direction = pixelModelPos - lightPos;
 			}
-			double dotProduct = vec4::dot(direction.normalized(), normal.normalized());
+			double dotProduct = vec4::dot(direction.normalized(), -normal.normalized());
 			diffuse += light * max(dotProduct, 0);
 		}
 		return diffuse;

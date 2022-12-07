@@ -584,12 +584,27 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		mat4 globalToChildFrameTranspose = mat4::Transpose(globalToChildFrame);
 		mat4 childToParentFrame = child.wTransform * child.mTransform;
 		mat4 childToCameraFrame = parentToCameraFrame * childToParentFrame;
+		mat4 cameraToChildFrame = globalToChildFrame * camera.cTransform;
+		mat4 cameraToChildFrameTranspose = mat4::Transpose(cameraToChildFrame);
 		mat4 projectionToChildFrame = mat4::InverseTransform(screenProjection * childToCameraFrame);
 		COLORREF child_color = (bIsModelColor ? ModelColor : child.color);
 
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
+			// back face culling
+			if (m_nView == ID_VIEW_PERSPECTIVE)
+			{
+				vec4 cameraModelPos = cameraToChildFrame * vec4(0, 0, 0, 1);
+				vec4 viewDirection = face.center - cameraModelPos;
+				if (vec4::dot(viewDirection, face.normal) >= 0) continue;
+			}
+			else
+			{
+				vec4 faceNormalCameraFrame = cameraToChildFrameTranspose * face.normal;
+				if (vec4::dot(faceNormalCameraFrame, vec4(0, 0, -1, 0)) >= 0) continue;
+			}
+
 			DrawFace(
 				pDCToUse,
 				face,

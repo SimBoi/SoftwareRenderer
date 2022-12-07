@@ -19,6 +19,7 @@ namespace CG
 		vec4 operator+(const vec4& v) const;
 		vec4& operator+=(const vec4& v);
 		vec4 operator*(const double s) const;
+		vec4& operator*=(const double s);
 		vec4 operator*(const vec4& v) const;
 		vec4 operator/(const double s) const;
 		vec4 operator/(const vec4& v) const;
