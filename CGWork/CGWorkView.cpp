@@ -130,7 +130,6 @@ CCGWorkView::CCGWorkView()
 
 	// default colors
 	setDefaultColors();
-	ViewProjection = (m_bIsPerspective) ? PERSPECTIVE : ORTHOGRAPHIC;
 	SetDefaultPerspectiveSettings();
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
@@ -861,7 +860,6 @@ void CCGWorkView::OnViewOrthographic()
 {
 	m_nView = ID_VIEW_ORTHOGRAPHIC;
 	m_bIsPerspective = false;
-	ViewProjection = (m_bIsPerspective) ? PERSPECTIVE : ORTHOGRAPHIC;
 	Invalidate();		// redraw using the new view.
 }
 
@@ -874,7 +872,6 @@ void CCGWorkView::OnViewPerspective()
 {
 	m_nView = ID_VIEW_PERSPECTIVE;
 	m_bIsPerspective = true;
-	ViewProjection = (m_bIsPerspective) ? PERSPECTIVE : ORTHOGRAPHIC;
 	Invalidate();
 }
 
