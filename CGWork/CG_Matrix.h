@@ -26,7 +26,7 @@ namespace CG
 		vec4 operator-() const;
 		bool operator==(const vec4& other) const;
 		bool operator!=(const vec4& other) const;
-		void Floor();
+		void FloorXY();
 		vec4 normalized() const;
 		void ToArray(double arr[4]) const;
 		static double dot(const vec4& u, const vec4& v);

@@ -354,10 +354,10 @@ namespace CG
 		clipPlanes[LEFT_PLANE] = Plane(vec4(0, 0, 0), vec4(-xMax, -yMax, -zFar), vec4(-xMax, yMax, -zFar));
 
 		projection = mat4(
-			1 / (aspectRatio * tan(angle)), 0, 0, 0,
-			0, 1 / tan(angle), 0, 0,
-			0, 0, -(zFar - zNear) / (zFar - zNear), -2 * zFar * zNear / (zFar - zNear),
-			0, 0, -1, 0
+			-1 / (aspectRatio * tan(angle)), 0, 0, 0,
+			0, -1 / tan(angle), 0, 0,
+			0, 0, -(zFar + zNear) / (zFar - zNear), 2 * zFar * zNear / (zNear - zFar),
+			0, 0, 1, 0
 		);
 	}
 

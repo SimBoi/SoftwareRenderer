@@ -418,8 +418,8 @@ void CCGWorkView::DrawFace(
 	{
 		vec4 p1 = screenProjection * edge.line.p1;
 		vec4 p2 = screenProjection * edge.line.p2;
-		p1.Floor();
-		p2.Floor();
+		p1.FloorXY();
+		p2.FloorXY();
 		edge.line = Line(p1, p2);
 	}
 
@@ -437,12 +437,12 @@ void CCGWorkView::DrawFace(
 	// render solid face
 	ScanConversion(pDCToUse, m_WindowHeight, m_WindowWidth, edges, projectionToModelFrame, globalToModelFrame, modelToGlobalFrameTranspose, face.normal, color, m_ambientLight, m_lights);
 
-	// render wireframe
-	for (auto const& edge : edges)
-	{
-		MoveTo(edge.line.p1.x, edge.line.p1.y, edge.line.p1.z);
-		LineTo(pDCToUse, edge.line.p2.x, edge.line.p2.y, edge.line.p2.z, RGB(255, 0, 255));
-	}
+	//// render wireframe
+	//for (auto const& edge : edges)
+	//{
+	//	MoveTo(edge.line.p1.x, edge.line.p1.y, edge.line.p1.z);
+	//	LineTo(pDCToUse, edge.line.p2.x, edge.line.p2.y, edge.line.p2.z, RGB(255, 0, 255));
+	//}
 
 	// draw face normals
 	if (drawFaceNormal)

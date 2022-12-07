@@ -78,11 +78,10 @@ namespace CG
 		return !(*this == other);
 	}
 
-	void vec4::Floor()
+	void vec4::FloorXY()
 	{
 		x = floor(x);
 		y = floor(y);
-		z = floor(z);
 	}
 
 	vec4 vec4::normalized() const

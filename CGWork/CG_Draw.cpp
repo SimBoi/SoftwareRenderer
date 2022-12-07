@@ -4,7 +4,7 @@
 
 namespace CG
 {
-	double dynamicRange = 1000;
+	double dynamicRange = 300;
 
 	ZBuffer::~ZBuffer()
 	{
@@ -39,6 +39,24 @@ namespace CG
 
 	void ZBuffer::SetPixel(CDC* pDC, int x, int y, double z, const COLORREF& color)
 	{
+		if (GetRValue(color) > 200)
+		{
+			double currZ = arr[x][y];
+			currZ -= 1e-4;
+			if (z < currZ)
+			{
+				currZ = z;
+			}
+		}
+		else if (x == 625 && y == 249)
+		{
+			double currZ = arr[x][y];
+			currZ -= 1e-4;
+			if (z < currZ)
+			{
+				currZ = z;
+			}
+		}
 		if (x < 0 || x >= width || y < 0 || y >= height || z < arr[x][y] - 1e-4) return;
 		arr[x][y] = z;
 		pDC->SetPixel(x, y, color);
@@ -199,7 +217,7 @@ namespace CG
 				vec4 p;
 				double t;
 				if (!(*it).line.IntersectionXY(scanLine, t, p)) continue;
-				p.Floor();
+				p.FloorXY();
 				if (0 < t && t < 1)
 				{
 					intersections.push_back(p);
@@ -244,7 +262,7 @@ namespace CG
 							if (direction == vec4(0, 0, 0, 0)) continue;
 
 							// calculate face normal in global coordinates
-							vec4 globalFaceNormal = -(faceNormal);
+							vec4 globalFaceNormal = (faceNormal);
 							globalFaceNormal.w = 0;
 							globalFaceNormal = (mat4::Transpose(globalToModelFrame) * globalFaceNormal).normalized();
 
