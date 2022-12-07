@@ -44,6 +44,17 @@ namespace CG
 		Vertex(vec4& pos = vec4(), vec4& normal = vec4());
 	};
 
+	class Edge
+	{
+	public:
+		Line line;
+		vec4 startNormal;
+		vec4 endNormal;
+		Edge(Line line, vec4 startNormal, vec4 endNormal) :
+			line(line), startNormal(startNormal), endNormal(endNormal)
+		{ };
+	};
+
 	class Face
 	{
 	public:
@@ -55,8 +66,8 @@ namespace CG
 	class Object
 	{
 	public:
-		mat4 mTransform;
-		mat4 wTransform;
+		mat4 mTransform, mInverse;
+		mat4 wTransform, wInverse;
 		std::list<Face> faces;
 		COLORREF color;
 		double minX, maxX, minY, maxY, minZ, maxZ; // used for bounding box calculation
@@ -88,8 +99,7 @@ namespace CG
 	class Camera
 	{
 	public:
-		mat4 cTransform;
-		mat4 cInverse;
+		mat4 cTransform, cInverse;
 		mat4 projection; // camera frame to default volume
 		Plane clipPlanes[6]; // clip planes in camera frame
 

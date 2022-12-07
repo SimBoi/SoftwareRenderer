@@ -396,3 +396,22 @@ int CGSkelGetObjectTransp(IPObjectStruct *PObj, double *Transp)
 	return !IP_ATTR_IS_BAD_REAL(*Transp);
 }
 
+/*****************************************************************************
+* DESCRIPTION:                                                               *
+*   Computes the INVERSE of a given matrix M.			             *
+*	The matrix M is is not modified.			             *
+*   The matrix M is assumed to be 4 by 4 (a transformation matrix).          *
+*   Return TRUE if the inverted matrix (InvM) exists.                        *
+*                                                                            *
+* PARAMETERS:                                                                *
+*   M:          Original matrix to invert.                                   *
+*   InvM:       Inverted matrix will be placed here.	                     *
+*                                                                            *
+* RETURN VALUE:                                                              *
+*   int:        TRUE if inverse exists, FALSE otherwise.                     *
+*****************************************************************************/
+int CGSkelInverseMatrix(double M[4][4], double InvM[4][4])
+{
+	return MatInverseMatrix(M, InvM);
+}
+

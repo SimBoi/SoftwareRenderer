@@ -279,13 +279,13 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 }
 
 
-static CG::Object* getObjectByIndex(int index)
+static Object* getObjectByIndex(int index)
 {
 	if (parentObject.children.empty())
 		return nullptr;
 
 	// Initialize iterator to objects list
-	std::list<CG::Object>::iterator it = parentObject.children.begin();
+	std::list<Object>::iterator it = parentObject.children.begin();
 
 	// Move the iterator by object_index elements
 	advance(it, index);
@@ -299,17 +299,17 @@ static CG::Object* getObjectByIndex(int index)
 /////////////////////////////////////////////////////////////////////////////
 
 // returns false if line is out of frustum, points should be relative to camera frame (before applying projection)
-bool ClipLine(CG::vec4& from, CG::vec4& to, const CG::Camera& camera)
+bool ClipLine(vec4& from, vec4& to, const Camera& camera)
 {
 	if (camera.IsInsideFrustum(from))
 	{
 		if (camera.IsInsideFrustum(to)) return true; // both ends of the line are inside the frustum, no need to clip the line
 
-		CG::Line line = CG::Line(from, to); // t(from) = 0, t(to) = 1
+		Line line = Line(from, to); // t(from) = 0, t(to) = 1
 		double t;
 		for (int i = 0; i < 6; i++)
 		{
-			CG::vec4 intersection;
+			vec4 intersection;
 			if (!camera.clipPlanes[i].Intersection(line, t, intersection)) continue;
 			if (t > 0 && t < 1)
 			{
@@ -320,11 +320,11 @@ bool ClipLine(CG::vec4& from, CG::vec4& to, const CG::Camera& camera)
 	}
 	else if (camera.IsInsideFrustum(to))
 	{
-		CG::Line line = CG::Line(from, to); // t(from) = 0, t(to) = 1
+		Line line = Line(from, to); // t(from) = 0, t(to) = 1
 		double t;
 		for (int i = 0; i < 6; i++)
 		{
-			CG::vec4 intersection;
+			vec4 intersection;
 			if (!camera.clipPlanes[i].Intersection(line, t, intersection)) continue;
 			if (t > 0 && t < 1)
 			{
@@ -340,29 +340,74 @@ bool ClipLine(CG::vec4& from, CG::vec4& to, const CG::Camera& camera)
 	return true;
 }
 
+bool ClipEdge(Edge& edge, const Camera& camera)
+{
+	vec4 p1 = edge.line.p1, p2 = edge.line.p2;
+	if (!ClipLine(p1, p2, camera)) return false;
+	Line line = Line(p1, p2);
+
+	double a1, a2;
+	if (edge.line.p1.x != edge.line.p2.x)
+	{
+		a1 = (p1.x - edge.line.p1.x) / (edge.line.p2.x - edge.line.p1.x);
+		a2 = (p2.x - edge.line.p1.x) / (edge.line.p2.x - edge.line.p1.x);
+	}
+	else if (edge.line.p1.y != edge.line.p2.y)
+	{
+		a1 = (p1.y - edge.line.p1.y) / (edge.line.p2.y - edge.line.p1.y);
+		a2 = (p2.y - edge.line.p1.y) / (edge.line.p2.y - edge.line.p1.y);
+	}
+	else
+	{
+		a1 = (p1.z - edge.line.p1.z) / (edge.line.p2.z - edge.line.p1.z);
+		a2 = (p2.z - edge.line.p1.z) / (edge.line.p2.z - edge.line.p1.z);
+	}
+
+	edge.startNormal = (edge.startNormal * (1 - a1) + edge.endNormal * a1).normalized();
+	edge.endNormal = (edge.startNormal * (1 - a2) + edge.endNormal * a2).normalized();
+	edge.line = line;
+	return true;
+}
+
 // renders line between two points in camera frame
-void DrawLine(CDC* pDCToUse, CG::vec4 from, CG::vec4 to, const CG::Camera& camera, const CG::mat4& screenProjection, const COLORREF& color)
+void DrawLine(CDC* pDCToUse, vec4 from, vec4 to, const Camera& camera, const mat4& screenProjection, const COLORREF& color)
 {
 	if (!ClipLine(from, to, camera)) return; // ClipLine will return false if line is out of frustum
 	from = screenProjection * from;
 	to = screenProjection * to;
 	
-	CG::MoveTo(from.x, from.y, from.z);
-	CG::LineTo(pDCToUse, to.x, to.y, to.z, color);
+	MoveTo(from.x, from.y, from.z);
+	LineTo(pDCToUse, to.x, to.y, to.z, color);
 }
 
-void CCGWorkView::DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNormal, bool drawVertexNormal, const CG::Camera& camera, const CG::mat4& modelToCameraFrame, const CG::mat4& screenProjection, const COLORREF& color, const COLORREF& faceNormalColor, const COLORREF& vertexNormalColor)
+void CCGWorkView::DrawFace(
+	CDC* pDCToUse,
+	const Face& face,
+	bool drawFaceNormal,
+	bool drawVertexNormal,
+	const Camera& camera,
+	const mat4& modelToCameraFrame,
+	const mat4& projectionToModelFrame,
+	const mat4& globalToModelFrame,
+	const mat4& modelToGlobalFrameTranspose,
+	const mat4& screenProjection,
+	const COLORREF& color,
+	const COLORREF& faceNormalColor,
+	const COLORREF& vertexNormalColor)
 {
 	if (face.vertices.size() <= 2) return;
 
 	// clip face edges
-	std::list<CG::Line> edges;
+	std::list<Edge> edges;
 	vec4 currCoords, prevCoords = modelToCameraFrame * face.vertices.back().localPosition;
+	vec4 currNormal, prevNormal = face.vertices.back().normal;
 	for (auto const& vertex : face.vertices)
 	{
 		currCoords = modelToCameraFrame * vertex.localPosition;
+		currNormal = vertex.normal;
 		vec4 coords = currCoords;
-		if (ClipLine(prevCoords, coords, camera)) edges.push_back(Line(prevCoords, coords));
+		Edge edge = Edge(Line(prevCoords, coords), prevNormal, currNormal);
+		if (ClipEdge(edge, camera)) edges.push_back(edge);
 		prevCoords = currCoords;
 	}
 
@@ -371,32 +416,32 @@ void CCGWorkView::DrawFace(CDC* pDCToUse, const CG::Face& face, bool drawFaceNor
 	// apply projection
 	for (auto& edge : edges)
 	{
-		vec4 p1 = screenProjection * edge[0];
-		vec4 p2 = screenProjection * edge[1];
+		vec4 p1 = screenProjection * edge.line.p1;
+		vec4 p2 = screenProjection * edge.line.p2;
 		p1.Floor();
 		p2.Floor();
-		edge = Line(p1, p2);
+		edge.line = Line(p1, p2);
 	}
 
 	// connect edges outside of the frustum
-	Line* prevEdge = &edges.back();
+	Edge* prevEdge = &edges.back();
 	for (auto it = edges.begin(); it != edges.end(); it++)
 	{
-		if (prevEdge->p2 != it->p1)
+		if (prevEdge->line.p2 != it->line.p1)
 		{
-			edges.insert(it, Line(prevEdge->p2, it->p1));
+			edges.insert(it, Edge(Line(prevEdge->line.p2, it->line.p1), prevEdge->endNormal, it->startNormal));
 		}
 		prevEdge = &(*it);
 	}
 
 	// render solid face
-	CG::ScanConversion(pDCToUse, m_WindowHeight, m_WindowWidth, edges, color);
+	ScanConversion(pDCToUse, m_WindowHeight, m_WindowWidth, edges, projectionToModelFrame, globalToModelFrame, modelToGlobalFrameTranspose, face.normal, color, m_ambientLight, m_lights);
 
 	// render wireframe
-	for (auto edge : edges)
+	for (auto const& edge : edges)
 	{
-		MoveTo(edge[0].x, edge[0].y, edge[0].z);
-		LineTo(pDCToUse, edge[1].x, edge[1].y, edge[1].z, RGB(255, 0, 255));
+		MoveTo(edge.line.p1.x, edge.line.p1.y, edge.line.p1.z);
+		LineTo(pDCToUse, edge.line.p2.x, edge.line.p2.y, edge.line.p2.z, RGB(255, 0, 255));
 	}
 
 	// draw face normals
@@ -438,7 +483,7 @@ void InitializeView()
 	objectSize = max(objectSize, parentObject.maxZ - parentObject.minZ);
 	double scale = 400 / objectSize;
 	double normalScale = 0.05 * objectSize;
- 	parentObject.Scale(CG::vec4(scale, scale, scale));
+ 	parentObject.Scale(vec4(scale, scale, scale));
 
 	// calculate missing vertex normals
 	double precision = 0.001;
@@ -499,7 +544,7 @@ void InitializeView()
 		}
 	}
 
-	camera.LookAt(CG::vec4(0, 0, 600, 1), parentObject.wPosition(), CG::vec4(0, 1, 0).normalized());
+	camera.LookAt(vec4(0, 0, 600, 1), parentObject.wPosition(), vec4(0, 1, 0).normalized());
 }
 
 void CCGWorkView::OnDraw(CDC* pDC)
@@ -527,20 +572,26 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
 	if (m_bIsPerspective) camera.Perspective(fovY, m_AspectRatio, zNear, zFar);
 	else camera.Ortho(-800 * m_AspectRatio, 800 * m_AspectRatio, -800, 800, zNear, zFar);
-
-	CG::mat4 parentToCameraFrame = camera.cInverse * parentObject.wTransform * parentObject.mTransform;
-	CG::mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
+	
+	mat4 globalToParentFrame = parentObject.mInverse * parentObject.wInverse;
+	mat4 parentToGlobalFrame = parentObject.wTransform * parentObject.mTransform;
+	mat4 parentToCameraFrame = camera.cInverse * parentToGlobalFrame;
+	mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
 
 	int i = 0;
 	for (auto& child : parentObject.children)
 	{
-		CG::mat4 childToCameraFrame = parentToCameraFrame * child.wTransform * child.mTransform;
+		mat4 globalToChildFrame = child.mInverse * child.wInverse * globalToParentFrame;
+		mat4 childToParentFrame = child.wTransform * child.mTransform;
+		mat4 childToGlobalFrameTranspose = mat4::Transpose(parentToGlobalFrame * childToParentFrame);
+		mat4 childToCameraFrame = parentToCameraFrame * childToParentFrame;
+		mat4 projectionToChildFrame = mat4::InverseTransform(screenProjection * childToCameraFrame);
 		COLORREF child_color = (bIsModelColor ? ModelColor : child.color);
 
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
-			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor, VertexNormalColor);
+			DrawFace(pDCToUse, face, m_drawFaceNormals, m_drawVertexNormals, camera, childToCameraFrame, projectionToChildFrame, globalToChildFrame, childToGlobalFrameTranspose, screenProjection, child_color, FaceNormalColor, VertexNormalColor);
 		}
 
 		//// draw child object bounding box
@@ -1032,8 +1083,6 @@ void CCGWorkView::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: Add your message handler code here and/or call default
 	CView::OnTimer(nIDEvent);
-	if (nIDEvent == 1)
-		Invalidate();
 }
 
 static int getMouseDirection(int old_position, int current_position)

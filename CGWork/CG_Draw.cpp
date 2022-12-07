@@ -4,6 +4,8 @@
 
 namespace CG
 {
+	double dynamicRange = 1000;
+
 	ZBuffer::~ZBuffer()
 	{
 		free();
@@ -37,8 +39,8 @@ namespace CG
 
 	void ZBuffer::SetPixel(CDC* pDC, int x, int y, double z, const COLORREF& color)
 	{
-		if (x < 0 || x >= width || y < 0 || y >= height || z < (*this)[x][y]) return;
-		(*this)[x][y] = z;
+		if (x < 0 || x >= width || y < 0 || y >= height || z < arr[x][y] - 1e-4) return;
+		arr[x][y] = z;
 		pDC->SetPixel(x, y, color);
 	}
 
@@ -174,7 +176,18 @@ namespace CG
 		}
 	};
 
-	void ScanConversion(CDC* pDC, int height, int width, const std::list<Line>& edges, const COLORREF& color)
+	void ScanConversion(
+		CDC* pDC,
+		int height,
+		int width,
+		const std::list<Edge>& edges,
+		const mat4& projectionToModelFrame,
+		const mat4& globalToModelFrame,
+		const mat4& modelToGlobalFrameTranspose,
+		const vec4& faceNormal,
+		const COLORREF& objectColor,
+		const LightParams& ambientLight,
+		LightParams lightSources[8])
 	{
 		for (int y = 0; y < height; y++)
 		{
@@ -185,7 +198,7 @@ namespace CG
 			{
 				vec4 p;
 				double t;
-				if (!(*it).IntersectionXY(scanLine, t, p)) continue;
+				if (!(*it).line.IntersectionXY(scanLine, t, p)) continue;
 				p.Floor();
 				if (0 < t && t < 1)
 				{
@@ -193,10 +206,10 @@ namespace CG
 				}
 				else if (t == 1)
 				{
-					const Line* edge1 = &(*it);
+					const Edge* edge1 = &(*it);
 					it++;
-					const Line* edge2 = it != edges.end() ? &(*it) : &(*edges.begin());
-					if ((edge1->p2.y - edge1->p1.y) * (edge2->p2.y - edge2->p1.y) > 0) intersections.push_back((*edge1)[1]);
+					const Edge* edge2 = it != edges.end() ? &(*it) : &(*edges.begin());
+					if ((edge1->line.p2.y - edge1->line.p1.y) * (edge2->line.p2.y - edge2->line.p1.y) > 0) intersections.push_back((*edge1).line[1]);
 					if (it == edges.end()) break;
 				}
 			}
@@ -212,8 +225,47 @@ namespace CG
 				for (int t = 0; t <= range; t++)
 				{
 					double a = (double)t / range;
+					int x = p1.x + t;
 					double z = p1.z * (1 - a) + p2.z * a;
-					zBuffer.SetPixel(pDC, p1.x + t, y, z, color);
+					
+					vec4 ambient = vec4(ambientLight.colorR, ambientLight.colorG, ambientLight.colorB);
+					vec4 diffuse;
+					vec4 specular;
+
+					for (int i = 0; i < 8; i++)
+					{
+						if (!lightSources[i].enabled) continue;
+
+						vec4 light = vec4(lightSources[i].colorR, lightSources[i].colorG, lightSources[i].colorB);
+
+						if (lightSources[i].type == LIGHT_TYPE_DIRECTIONAL)
+						{
+							vec4 direction = vec4(lightSources[i].dirX, lightSources[i].dirY, lightSources[i].dirZ, 0);
+							if (direction == vec4(0, 0, 0, 0)) continue;
+
+							// calculate face normal in global coordinates
+							vec4 globalFaceNormal = -(faceNormal);
+							globalFaceNormal.w = 0;
+							globalFaceNormal = (mat4::Transpose(globalToModelFrame) * globalFaceNormal).normalized();
+
+							double dotProduct = vec4::dot(direction, globalFaceNormal);
+							diffuse += light * max(dotProduct, 0);
+						}
+						else
+						{
+
+						}
+					}
+
+					vec4 finalLight = ambient + diffuse + specular;
+					// cap final light based on dynnamic range
+					finalLight.x = min(dynamicRange, finalLight.x) / dynamicRange;
+					finalLight.y = min(dynamicRange, finalLight.y) / dynamicRange;
+					finalLight.z = min(dynamicRange, finalLight.z) / dynamicRange;
+
+					// calc pixel color
+					vec4 finalColor = finalLight * vec4::ColorToVec(objectColor);
+					zBuffer.SetPixel(pDC, x, y, z, RGB(finalColor.x, finalColor.y, finalColor.z));
 				}
 			}
 		}

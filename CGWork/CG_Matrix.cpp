@@ -1,5 +1,6 @@
 #include "CG_Matrix.h"
 #include <cmath>
+int CGSkelInverseMatrix(double M[4][4], double InvM[4][4]);
 
 namespace CG
 {
@@ -42,9 +43,19 @@ namespace CG
 		return vec4(s * x, s * y, s * z, s * w);
 	}
 
+	vec4 vec4::operator*(const vec4& v) const
+	{
+		return vec4(x * v.x, y * v.y, z * v.z, w * v.w);
+	}
+
 	vec4 vec4::operator/(const double s) const
 	{
 		return *this * (1 / s);
+	}
+
+	vec4 vec4::operator/(const vec4& v) const
+	{
+		return vec4(x / v.x, y / v.y, z / v.z, w / v.w);
 	}
 
 	vec4 vec4::operator-(const vec4& other) const
@@ -77,7 +88,17 @@ namespace CG
 	vec4 vec4::normalized() const
 	{
 		double length = sqrt(x * x + y * y + z * z);
-		return *this / length;
+		vec4 normal = *this / length;
+		if (w == 0) normal.w = 0;
+		return normal;
+	}
+
+	void vec4::ToArray(double arr[4]) const
+	{
+		arr[0] = x;
+		arr[1] = y;
+		arr[2] = z;
+		arr[3] = w;
 	}
 
 	double vec4::dot(const vec4& u, const vec4& v)
@@ -102,11 +123,24 @@ namespace CG
 		return coords / coords.w;
 	}
 
+	vec4 vec4::ColorToVec(const COLORREF& color)
+	{
+		return vec4(GetRValue(color), GetGValue(color), GetBValue(color), 0);
+	}
+
 	///////////// mat4
 
 	mat4::mat4(const double d)
 	{
 		_m[0][0] = d; _m[1][1] = d; _m[2][2] = d; _m[3][3] = d;
+	}
+
+	mat4::mat4(const double mat[4][4])
+	{
+		_m[0] = vec4(mat[0][0], mat[0][1], mat[0][2], mat[0][3]);
+		_m[1] = vec4(mat[1][0], mat[1][1], mat[1][2], mat[1][3]);
+		_m[2] = vec4(mat[2][0], mat[2][1], mat[2][2], mat[2][3]);
+		_m[3] = vec4(mat[3][0], mat[3][1], mat[3][2], mat[3][3]);
 	}
 
 	mat4::mat4(const vec4& a, const vec4& b, const vec4& c, const vec4& d)
@@ -147,7 +181,7 @@ namespace CG
 
 	mat4 mat4::operator*(const mat4& m) const
 	{
-		mat4 a(0);
+		mat4 a(0.0);
 		for (int i = 0; i < 4; ++i)
 			for (int j = 0; j < 4; ++j)
 				for (int k = 0; k < 4; ++k)
@@ -161,7 +195,37 @@ namespace CG
 		for (int i = 0; i < 4; ++i)
 			for (int j = 0; j < 4; ++j)
 				v[i] += _m[i][j] * u[j];
+		if (u.w == 0)
+		{
+			v.w = 0;
+			return v;
+		}
 		return vec4::HomogeneousToEuclidean(v);
+	}
+
+	void mat4::To2DArray(double mat[4][4]) const
+	{
+		_m[0].ToArray(mat[0]);
+		_m[1].ToArray(mat[1]);
+		_m[2].ToArray(mat[2]);
+		_m[3].ToArray(mat[3]);
+	}
+
+	mat4 mat4::Transpose(const mat4& m)
+	{
+		mat4 t;
+		for (int i = 0; i < 4; i++)
+			for (int j = 0; j < 4; j++)
+				t[i][j] = m[j][i];
+		return t;
+	}
+
+	mat4 mat4::InverseTransform(const mat4& t)
+	{
+		double T[4][4], InvT[4][4];
+		t.To2DArray(T);
+		if (!CGSkelInverseMatrix(T, InvT)) throw;
+		return mat4(InvT);
 	}
 
 	mat4 mat4::Translate(vec4& amount)

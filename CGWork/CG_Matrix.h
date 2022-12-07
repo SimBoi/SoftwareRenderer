@@ -1,5 +1,6 @@
 #ifndef CG_MATRIX
 #define CG_MATRIX
+#include <wtypes.h>
 
 #define DEG_TO_RAD 0.0174532925;
 
@@ -18,17 +19,21 @@ namespace CG
 		vec4 operator+(const vec4& v) const;
 		vec4& operator+=(const vec4& v);
 		vec4 operator*(const double s) const;
+		vec4 operator*(const vec4& v) const;
 		vec4 operator/(const double s) const;
+		vec4 operator/(const vec4& v) const;
 		vec4 operator-(const vec4& other) const;
 		vec4 operator-() const;
 		bool operator==(const vec4& other) const;
 		bool operator!=(const vec4& other) const;
 		void Floor();
 		vec4 normalized() const;
+		void ToArray(double arr[4]) const;
 		static double dot(const vec4& u, const vec4& v);
 		static vec4 cross(const vec4& u, const vec4& v);
 		static bool AreParallel(const vec4& u, const vec4& v);
 		static vec4 HomogeneousToEuclidean(vec4& coords);
+		static vec4 ColorToVec(const COLORREF& color);
 	};
 
 	class vec4Hash
@@ -44,6 +49,7 @@ namespace CG
 		vec4 _m[4];
 	public:
 		mat4(const double d = 1); // diaglonal matrix with m[i][i] = d for every i
+		mat4(const double mat[4][4]);
 		mat4(const vec4& a, const vec4& b, const vec4& c, const vec4& d);
 		mat4(double m00, double m01, double m02, double m03,
 			double m10, double m11, double m12, double m13,
@@ -55,6 +61,9 @@ namespace CG
 		mat4 operator*(const double s) const;
 		mat4 operator*(const mat4& m) const;
 		vec4 operator*(const vec4& u) const;
+		void To2DArray(double mat[4][4]) const;
+		static mat4 Transpose(const mat4& m);
+		static mat4 InverseTransform(const mat4& t);
 		static mat4 Translate(vec4& amount);
 		static mat4 RotateX(double angle);
 		static mat4 RotateY(double angle);

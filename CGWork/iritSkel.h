@@ -32,5 +32,6 @@ const char *CGSkelGetObjectPTexture(IPObjectStruct *PObj);
 int CGSkelGetObjectTransp(IPObjectStruct *PObj, double *Transp);
 
 bool CGSkelStoreData(IPObjectStruct *PObj);
+int CGSkelInverseMatrix(double M[4][4], double InvM[4][4]);
 
 #endif // IRIT_SKEL_H

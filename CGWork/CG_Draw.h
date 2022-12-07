@@ -2,6 +2,7 @@
 #define CG_LINE
 
 #include "CG_Matrix.h"
+#include "Light.h"
 #include <list>
 
 namespace CG
@@ -24,7 +25,18 @@ namespace CG
 
 	void MoveTo(int x, int y, double z);
 	void LineTo(CDC* pDC, int endX, int endY, double endZ, const COLORREF& color);
-	void ScanConversion(CDC* pDC, int height, int width, const std::list<Line>& edges, const COLORREF& color);
+	void ScanConversion(
+		CDC* pDC,
+		int height,
+		int width,
+		const std::list<Edge>& edges,
+		const mat4& projectionToModelFrame,
+		const mat4& globalToModelFrame,
+		const mat4& modelToGlobalFrameTranspose,
+		const vec4& faceNormal,
+		const COLORREF& objectColor,
+		const LightParams& ambientLight,
+		LightParams lightSources[8]);
 }
 
 #endif

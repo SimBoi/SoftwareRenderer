@@ -60,12 +60,14 @@ namespace CG
 	void Object::Translate(vec4& amount)
 	{
 		wTransform = mat4::Translate(amount) * wTransform;
+		wInverse = mat4::InverseTransform(wTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
 	void Object::LocalTranslate(vec4& amount)
 	{
 		mTransform = mat4::Translate(amount) * mTransform;
+		mInverse = mat4::InverseTransform(mTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
@@ -92,6 +94,7 @@ namespace CG
 		vec4 p = wPosition();
 		mat4 r = mat4::RotateX(angle);
 		wTransform = RotateFromOrigin(p, r) * wTransform;
+		wInverse = mat4::InverseTransform(wTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
@@ -100,6 +103,7 @@ namespace CG
 		vec4 p = wPosition();
 		mat4 r = mat4::RotateY(angle);
 		wTransform = RotateFromOrigin(p, r) * wTransform;
+		wInverse = mat4::InverseTransform(wTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
@@ -108,6 +112,7 @@ namespace CG
 		vec4 p = wPosition();
 		mat4 r = mat4::RotateZ(angle);
 		wTransform = RotateFromOrigin(p, r) * wTransform;
+		wInverse = mat4::InverseTransform(wTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
@@ -116,6 +121,7 @@ namespace CG
 		vec4 p = mPosition();
 		mat4 r = mat4::RotateX(angle);
 		mTransform = RotateFromOrigin(p, r) * mTransform;
+		mInverse = mat4::InverseTransform(mTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 	
@@ -124,6 +130,7 @@ namespace CG
 		vec4 p = mPosition();
 		mat4 r = mat4::RotateY(angle);
 		mTransform = RotateFromOrigin(p, r) * mTransform;
+		mInverse = mat4::InverseTransform(mTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 	
@@ -132,6 +139,7 @@ namespace CG
 		vec4 p = mPosition();
 		mat4 r = mat4::RotateZ(angle);
 		mTransform = RotateFromOrigin(p, r) * mTransform;
+		mInverse = mat4::InverseTransform(mTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
@@ -151,6 +159,7 @@ namespace CG
 			0, 0, 0, 1
 		);
 		wTransform = t2 * mat4::Scale(amount) * t1 * wTransform;
+		wInverse = mat4::InverseTransform(wTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
@@ -170,6 +179,7 @@ namespace CG
 			0, 0, 0, 1
 		);
 		mTransform = t2 * mat4::Scale(amount) * t1 * mTransform;
+		mInverse = mat4::InverseTransform(mTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
