@@ -21,7 +21,6 @@ namespace CG
 	COLORREF FaceNormalColor;		// face normals color
 	COLORREF ModelColor;			// model color
 	bool bIsModelColor;			// is model color set
-	TView ViewProjection;		// ORTHOGRAPHIC / PERSPECTIVE
 	double zNear, zFar, fovY;
 
 	void setDefaultColors()
