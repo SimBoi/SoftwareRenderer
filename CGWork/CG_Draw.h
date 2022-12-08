@@ -33,14 +33,19 @@ namespace CG
 		int height,
 		int width,
 		const std::list<Edge>& edges,
-		const mat4& projectionToModelFrame,
-		const mat4& globalToModelFrame,
+		const mat4& projectionToGlobalFrame,
+		const mat4& cameraToGlobalFrame,
+		const mat4& modelToGlobalFrame,
 		const mat4& globalToModelFrameTranspose,
 		const vec4& faceCenter,
 		const vec4& faceNormal,
 		const COLORREF& objectColor,
 		const LightParams& ambientLight,
 		LightParams lightSources[8],
+		double ambientIntensity,
+		double diffuseIntensity,
+		double specularIntensity,
+		int cosineFactor,
 		int shading);
 }
 

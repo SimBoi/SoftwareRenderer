@@ -39,15 +39,14 @@ namespace CG
 
 	void ZBuffer::OverridePixel(CDC* pDC, int x, int y, double z, const COLORREF& color)
 	{
-		if (x < 0 || x >= width || y < 0 || y >= height || z <= arr[x][y] - 1e-6) return;
-		arr[x][y] = z;
-		pDC->SetPixel(x, y, color);
+		SetPixel(pDC, x, y, z + 1e-5, color);
 	}
 	
 	void ZBuffer::SetPixel(CDC* pDC, int x, int y, double z, const COLORREF& color)
 	{
 		if (x < 0 || x >= width || y < 0 || y >= height || z < arr[x][y]) return;
-		OverridePixel(pDC, x, y, z, color);
+		arr[x][y] = z;
+		pDC->SetPixel(x, y, color);
 	}
 
 	void ZBuffer::free()
@@ -168,38 +167,36 @@ namespace CG
 		}
 	};
 
-	vec4 CalcDiffuse(const mat4& globalToModelFrame, const mat4& globalToModelFrameTranspose, const vec4& pixelModelPos, vec4 normal, LightParams lightSources[8])
+	// takes arguments in global frame
+	void CalcLighting(
+		const vec4& cameraPos,
+		const vec4& pixelPos,
+		vec4 N,
+		LightParams lightSources[8],
+		int cosineFactor,
+		vec4& diffuse,
+		vec4& specular)
 	{
-		vec4 diffuse;
 		for (int i = 0; i < 8; i++)
 		{
 			if (!lightSources[i].enabled) continue;
 
-			vec4 direction, light = vec4(lightSources[i].colorR, lightSources[i].colorG, lightSources[i].colorB);
-
+			vec4 L, R, V;
+			vec4 light = vec4(lightSources[i].colorR, lightSources[i].colorG, lightSources[i].colorB);
+			vec4 lightPos = vec4(lightSources[i].posX, lightSources[i].posY, lightSources[i].posZ, 1);
+			// calculare light direction in global frame
 			if (lightSources[i].type == LIGHT_TYPE_DIRECTIONAL)
-			{
-				// get global light direction form lightSource
-				direction = vec4(lightSources[i].dirX, lightSources[i].dirY, lightSources[i].dirZ, 0);
-				// transform face normal to global frame
-				normal = globalToModelFrameTranspose * normal;
-			}
+				L = vec4(lightSources[i].dirX, lightSources[i].dirY, lightSources[i].dirZ, 0);
 			else
-			{
-				// calculate light origin position in model frame
-				vec4 lightPos = globalToModelFrame * vec4(lightSources[i].posX, lightSources[i].posY, lightSources[i].posZ, 1);
-				// calculate light direction in model frame
-				direction = pixelModelPos - lightPos;
-			}
-			double dotProduct = vec4::dot(direction.normalized(), -normal.normalized());
-			diffuse += light * max(dotProduct, 0);
-		}
-		return diffuse;
-	}
+				L = pixelPos - lightPos;
+			L.normalize();
+			N.normalize();
+			R = (N * (2 * vec4::dot(N, -L)) + L).normalized();
+			V = (cameraPos - pixelPos).normalized();
 
-	vec4 CalcSpecular()
-	{
-		return vec4();
+			diffuse += light * max(vec4::dot(L, -N), 0);
+			specular += light * pow(max(vec4::dot(R, V), 0), cosineFactor);
+		}
 	}
 
 	void ScanConversion(
@@ -207,24 +204,42 @@ namespace CG
 		int height,
 		int width,
 		const std::list<Edge>& edges,
-		const mat4& projectionToModelFrame,
-		const mat4& globalToModelFrame,
+		const mat4& projectionToGlobalFrame,
+		const mat4& cameraToGlobalFrame,
+		const mat4& modelToGlobalFrame,
 		const mat4& globalToModelFrameTranspose,
 		const vec4& faceCenter,
 		const vec4& faceNormal,
 		const COLORREF& objectColor,
 		const LightParams& ambientLight,
 		LightParams lightSources[8],
+		double ambientIntensity,
+		double diffuseIntensity,
+		double specularIntensity,
+		int cosineFactor,
 		int shading)
 	{
 		vec4 ambient = vec4(ambientLight.colorR, ambientLight.colorG, ambientLight.colorB);
-		vec4 diffuse;
-		vec4 specular;
+		vec4 diffuse, specular, finalLight, finalColor;
 
 		if (shading == FLAT)
 		{
-			diffuse = CalcDiffuse(globalToModelFrame, globalToModelFrameTranspose, faceCenter, faceNormal, lightSources);
-			specular = CalcSpecular();
+			CalcLighting(
+				cameraToGlobalFrame * vec4(0, 0, 0, 1),
+				modelToGlobalFrame * faceCenter,
+				globalToModelFrameTranspose * faceNormal,
+				lightSources,
+				cosineFactor,
+				diffuse,
+				specular);
+
+			finalLight = ambient * ambientIntensity + diffuse * diffuseIntensity + specular * specularIntensity;
+			// cap final light based on dynnamic range
+			finalLight.x = min(dynamicRange, finalLight.x) / dynamicRange;
+			finalLight.y = min(dynamicRange, finalLight.y) / dynamicRange;
+			finalLight.z = min(dynamicRange, finalLight.z) / dynamicRange;
+
+			finalColor = finalLight * vec4::ColorToVec(objectColor);
 		}
 
 		for (int y = 0; y < height; y++)
@@ -266,16 +281,6 @@ namespace CG
 					int x = p1.x + t;
 					double z = p1.z * (1 - a) + p2.z * a;
 
-					
-
-					vec4 finalLight = ambient + diffuse + specular;
-					// cap final light based on dynnamic range
-					finalLight.x = min(dynamicRange, finalLight.x) / dynamicRange;
-					finalLight.y = min(dynamicRange, finalLight.y) / dynamicRange;
-					finalLight.z = min(dynamicRange, finalLight.z) / dynamicRange;
-
-					// calc pixel color
-					vec4 finalColor = finalLight * vec4::ColorToVec(objectColor);
 					zBuffer.SetPixel(pDC, x, y, z, RGB(finalColor.x, finalColor.y, finalColor.z));
 				}
 			}

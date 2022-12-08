@@ -387,7 +387,8 @@ void CCGWorkView::DrawFace(
 	const Camera& camera,
 	const mat4& modelToCameraFrame,
 	const mat4& projectionToModelFrame,
-	const mat4& globalToModelFrame,
+	const mat4& cameraToGlobalFrame,
+	const mat4& modelToGlobalFrame,
 	const mat4& globalToModelFrameTranspose,
 	const mat4& screenProjection,
 	const COLORREF& color,
@@ -434,14 +435,32 @@ void CCGWorkView::DrawFace(
 	}
 
 	// render solid face
-	ScanConversion(pDCToUse, m_WindowHeight, m_WindowWidth, edges, projectionToModelFrame, globalToModelFrame, globalToModelFrameTranspose, face.center, face.normal, color, m_ambientLight, m_lights, m_nLightShading);
+	ScanConversion(
+		pDCToUse,
+		m_WindowHeight,
+		m_WindowWidth,
+		edges,
+		projectionToModelFrame,
+		cameraToGlobalFrame,
+		modelToGlobalFrame,
+		globalToModelFrameTranspose,
+		face.center,
+		face.normal,
+		color,
+		m_ambientLight,
+		m_lights,
+		m_lMaterialAmbient,
+		m_lMaterialDiffuse,
+		m_lMaterialSpecular,
+		m_nMaterialCosineFactor,
+		m_nLightShading);
 
 	// render wireframe
-	for (auto const& edge : edges)
-	{
-		MoveTo(edge.line.p1.x, edge.line.p1.y, edge.line.p1.z);
-		LineTo(pDCToUse, edge.line.p2.x, edge.line.p2.y, edge.line.p2.z, RGB(255, 0, 255));
-	}
+	//for (auto const& edge : edges)
+	//{
+	//	MoveTo(edge.line.p1.x, edge.line.p1.y, edge.line.p1.z);
+	//	LineTo(pDCToUse, edge.line.p2.x, edge.line.p2.y, edge.line.p2.z, RGB(255, 0, 255));
+	//}
 
 	// draw face normals
 	if (drawFaceNormal)
@@ -583,6 +602,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		mat4 globalToChildFrame = child.mInverse * child.wInverse * globalToParentFrame;
 		mat4 globalToChildFrameTranspose = mat4::Transpose(globalToChildFrame);
 		mat4 childToParentFrame = child.wTransform * child.mTransform;
+		mat4 childToGlobalFrame = parentToGlobalFrame * childToParentFrame;
 		mat4 childToCameraFrame = parentToCameraFrame * childToParentFrame;
 		mat4 cameraToChildFrame = globalToChildFrame * camera.cTransform;
 		mat4 cameraToChildFrameTranspose = mat4::Transpose(cameraToChildFrame);
@@ -610,9 +630,11 @@ void CCGWorkView::OnDraw(CDC* pDC)
 				face,
 				m_drawFaceNormals,
 				m_drawVertexNormals,
-				camera, childToCameraFrame,
+				camera,
+				childToCameraFrame,
 				projectionToChildFrame,
-				globalToChildFrame,
+				camera.cTransform,
+				childToGlobalFrame,
 				globalToChildFrameTranspose,
 				screenProjection,
 				child_color,

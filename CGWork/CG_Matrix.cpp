@@ -93,12 +93,16 @@ namespace CG
 		y = floor(y);
 	}
 
+	void vec4::normalize()
+	{
+		double length = sqrt(x * x + y * y + z * z);
+		*this *= 1 / length;
+	}
+
 	vec4 vec4::normalized() const
 	{
 		double length = sqrt(x * x + y * y + z * z);
-		vec4 normal = *this / length;
-		if (w == 0) normal.w = 0;
-		return normal;
+		return *this / length;
 	}
 
 	void vec4::ToArray(double arr[4]) const
