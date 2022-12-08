@@ -132,6 +132,8 @@ CCGWorkView::CCGWorkView()
 
 	// default colors
 	setDefaultColors();
+	// background image
+	IsBackgroundImageLoaded = false;
 	BackgroundImageLayout = NONE;
 	SetDefaultPerspectiveSettings();
 
@@ -1197,18 +1199,6 @@ void CCGWorkView::OnPerspecctiveSettings()
 void CCGWorkView::OnOptionsBackgroundImage()
 {
 	BackgroundImageDialog dialog;
-	/*dialog.m_bRadioNone = (BackgroundImageLayout != NONE) ? TRUE : FALSE;
-	dialog.m_bRadioStretch = (BackgroundImageLayout != STRETCH) ? TRUE : FALSE;
-	dialog.m_bRadioRepeat = (BackgroundImageLayout != REPEAT) ? TRUE : FALSE;
-	*/
-	if (dialog.DoModal() == IDOK)
-	{
-		if (dialog.m_bRadioNone)
-			BackgroundImageLayout = NONE;
-		else if (dialog.m_bRadioStretch)
-			BackgroundImageLayout = STRETCH;
-		else if (dialog.m_bRadioRepeat)
-			BackgroundImageLayout = REPEAT;
-	}
+	dialog.DoModal();
 	Invalidate();
 }

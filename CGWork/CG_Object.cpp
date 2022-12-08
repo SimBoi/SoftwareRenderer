@@ -17,6 +17,7 @@ namespace CG
 	}
 
 	BackgroundLayout BackgroundImageLayout;		// background layout
+	bool IsBackgroundImageLoaded;
 	PngWrapper BackgroundImage;		// background image
 	COLORREF BackgroundColor;		// background color
 	COLORREF BoundingBoxColor;	// bounding box color

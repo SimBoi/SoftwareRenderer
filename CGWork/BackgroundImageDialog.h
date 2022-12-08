@@ -24,11 +24,12 @@ protected:
 public:
 	afx_msg void OnBnClickedLoadImageButton();
 	afx_msg void OnBnClickedOk();
-	BOOL m_bRadioNone;
-	BOOL m_bRadioStretch;
-	BOOL m_bRadioRepeat;
+	virtual BOOL OnInitDialog();
+	afx_msg void OnBnClickedRadioNone();
+	afx_msg void OnBnClickedRadioStretch();
+	afx_msg void OnBnClickedRadioRepeat();
+	void setLayoutRadios();
 	CButton m_RadioNoneCtrl;
 	CButton m_RadioStretchCtrl;
 	CButton m_RadioRepeatCtrl;
-	virtual BOOL OnInitDialog();
 };

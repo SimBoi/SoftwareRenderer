@@ -25,6 +25,7 @@ namespace CG
 	void setDefaultSensitivity();
 
 	extern BackgroundLayout BackgroundImageLayout;		// background layout
+	extern bool IsBackgroundImageLoaded;
 	extern PngWrapper BackgroundImage;		// background image
 	extern COLORREF BackgroundColor;		// background color
 	extern COLORREF BoundingBoxColor;	// bounding box color

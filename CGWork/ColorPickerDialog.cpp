@@ -7,7 +7,7 @@
 #include "CGWork.h"
 #include "afxdialogex.h"
 #include "ColorPickerDialog.h"
-
+#include "BackgroundImageDialog.h"
 #include "CG_Object.h"
 
 
@@ -39,6 +39,7 @@ BEGIN_MESSAGE_MAP(ColorPickerDialog, CDialog)
 	ON_BN_CLICKED(IDC_MODEL_COLOR_BUTTON, &ColorPickerDialog::OnClickedModelColorButton)
 	ON_BN_CLICKED(IDC_ORIGINAL_MODEL_COLOR_BUTTON, &ColorPickerDialog::OnClickedOriginalModelColorButton)
 	ON_BN_CLICKED(ID_DEFAULT_COLORS_BUTTON, &ColorPickerDialog::OnClickedDefaultColorsButton)
+	ON_BN_CLICKED(IDC_BACKGROUND_IMAGE_BUTTON, &ColorPickerDialog::OnBnClickedBackgroundImageButton)
 END_MESSAGE_MAP()
 
 
@@ -105,4 +106,11 @@ void ColorPickerDialog::OnClickedOriginalModelColorButton()
 void ColorPickerDialog::OnClickedDefaultColorsButton()
 {
 	CG::setDefaultColors();
+}
+
+
+void ColorPickerDialog::OnBnClickedBackgroundImageButton()
+{
+	BackgroundImageDialog dialog;
+	dialog.DoModal();
 }
