@@ -40,7 +40,8 @@ private:
 	bool m_drawFaceNormals = false;		// draw face normals or not
 	bool m_drawVertexNormals = false;	// draw vertex normals or not
 	CG::TSpace m_nSpace;			// view/ object space
-	int m_normalFlip;        // set to -1 to flip normals, otherwise set to 1
+	int m_normalFlip;			// set to -1 to flip normals, otherwise set to 1
+	bool m_alwaysCalcNormals;	// calculate vertex normals instead of using the provided normals
 	
 	CString m_strItdFileName;		// file name of IRIT data
 
@@ -136,6 +137,7 @@ public:
 	void doTranslate(int x_val, int y_val, CG::Object& object);
 	void doScale(int x_val, int y_val, CG::Object& object);
 
+	void InitializeView();
 	void DrawFace(
 		CDC* pDCToUse,
 		const CG::Face& face,

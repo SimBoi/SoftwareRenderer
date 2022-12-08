@@ -127,6 +127,7 @@ CCGWorkView::CCGWorkView()
 	m_drawFaceNormals = false;
 	m_drawVertexNormals = false;
 	m_normalFlip = -1;
+	m_alwaysCalcNormals = false;
 
 	old_x_position = 0;
 	old_y_position = 0;
@@ -499,7 +500,7 @@ vec4 coordsKey(vec4& coords, double range, double precision)
 	return key;
 }
 
-void InitializeView()
+void CCGWorkView::InitializeView()
 {
 	object_index = 0;
 	selectedObject = getObjectByIndex(object_index);
@@ -510,7 +511,7 @@ void InitializeView()
 	double normalScale = 0.05 * objectSize;
  	parentObject.Scale(vec4(scale, scale, scale));
 
-	// calculate missing vertex normals
+	// calculate vertex normals
 	double precision = 0.001;
 	std::unordered_map<vec4, std::list<Face*>, vec4Hash> incidentFaces;
 	for (auto& child : parentObject.children)
@@ -544,7 +545,8 @@ void InitializeView()
 		{
 			for (auto& vertex : face.vertices)
 			{
-				if (vertex.normal != zeroVector) continue;
+				if (m_alwaysCalcNormals == false && vertex.normal != zeroVector) continue;
+
 				vec4 key = coordsKey(vertex.localPosition, objectSize, precision);
 				if (incidentFaces.count(key) == 0) continue;
 				for (Face* incidentFace : incidentFaces[key])

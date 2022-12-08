@@ -208,10 +208,6 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 				vertex.normal.z = PVertex->Normal[2];
 				vertex.normal.w = 0;
 			}
-			else
-			{
-				// issue error message once
-			}
 
 			// store vertex position
 			vertex.localPosition.x = PVertex->Coord[0];
