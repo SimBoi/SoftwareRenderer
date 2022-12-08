@@ -249,9 +249,12 @@ namespace CG
 			std::list<vec4> intersections;
 			for (auto it = edges.begin(); it != edges.end(); it++)
 			{
+				// skip edges parallel to the scan line
+				if (it->line.p1.y == it->line.p2.y) continue;
+
 				vec4 p;
 				double t;
-				if (!(*it).line.IntersectionXY(scanLine, t, p)) continue;
+				if (!it->line.IntersectionXY(scanLine, t, p)) continue;
 				p.FloorXY();
 				if (0 < t && t < 1)
 				{
@@ -261,8 +264,24 @@ namespace CG
 				{
 					const Edge* edge1 = &(*it);
 					it++;
-					const Edge* edge2 = it != edges.end() ? &(*it) : &(*edges.begin());
-					if ((edge1->line.p2.y - edge1->line.p1.y) * (edge2->line.p2.y - edge2->line.p1.y) > 0) intersections.push_back((*edge1).line[1]);
+					auto next = it != edges.end() ? it : edges.begin();
+					while (next->line.p1.y == next->line.p2.y)
+					{
+						next++;
+						if (next == edges.end()) next = edges.begin();
+						if (it != edges.end()) it++;
+					}
+					const Edge* edge2 = &(*next);
+					
+					if ((edge1->line.p2.y - edge1->line.p1.y) * (edge2->line.p2.y - edge2->line.p1.y) > 0)
+					{
+						intersections.push_back(edge1->line.p2);
+					}
+					else
+					{
+						intersections.push_back(edge1->line.p2);
+						intersections.push_back(edge2->line.p1);
+					}
 					if (it == edges.end()) break;
 				}
 			}
@@ -275,9 +294,10 @@ namespace CG
 				it++;
 				vec4 p2 = *it;
 				int range = p2.x - p1.x;
+
 				for (int t = 0; t <= range; t++)
 				{
-					double a = (double)t / range;
+					double a = range == 0 ? 0 : (double)t / range;
 					int x = p1.x + t;
 					double z = p1.z * (1 - a) + p2.z * a;
 
