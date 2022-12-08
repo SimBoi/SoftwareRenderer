@@ -26,9 +26,6 @@ static char THIS_FILE[] = __FILE__;
 #include "MainFrm.h"
 
 // our own MoveTo and LineTo implementation
-#include "CG_Draw.h"
-#include "CG_Matrix.h"
-#include "CG_Object.h"
 #include "ColorPickerDialog.h"
 #include "MouseSensitivityDialog.h"
 #include "PolygonalFineNessDialog.h"
@@ -126,8 +123,9 @@ CCGWorkView::CCGWorkView()
 	m_nSpace = VIEW;
 	m_drawFaceNormals = false;
 	m_drawVertexNormals = false;
-	m_normalFlip = -1;
+	m_normalFlip = 1;
 	m_alwaysCalcNormals = false;
+	m_renderMode = SOLID;
 
 	old_x_position = 0;
 	old_y_position = 0;
@@ -388,6 +386,7 @@ void DrawLine(CDC* pDCToUse, vec4 from, vec4 to, const Camera& camera, const mat
 
 void CCGWorkView::DrawFace(
 	CDC* pDCToUse,
+	RenderMode renderMode,
 	const Face& face,
 	bool drawFaceNormal,
 	bool drawVertexNormal,
@@ -441,34 +440,39 @@ void CCGWorkView::DrawFace(
 		prevEdge = &(*it);
 	}
 
-	// render solid face
-	ScanConversion(
-		pDCToUse,
-		m_WindowHeight,
-		m_WindowWidth,
-		edges,
-		projectionToModelFrame,
-		cameraToGlobalFrame,
-		modelToGlobalFrame,
-		globalToModelFrameTranspose,
-		face.center,
-		face.normal,
-		m_normalFlip,
-		color,
-		m_ambientLight,
-		m_lights,
-		m_lMaterialAmbient,
-		m_lMaterialDiffuse,
-		m_lMaterialSpecular,
-		m_nMaterialCosineFactor,
-		m_nLightShading);
-
-	// render wireframe
-	//for (auto const& edge : edges)
-	//{
-	//	MoveTo(edge.line.p1.x, edge.line.p1.y, edge.line.p1.z);
-	//	LineTo(pDCToUse, edge.line.p2.x, edge.line.p2.y, edge.line.p2.z, RGB(255, 0, 255));
-	//}
+	if (renderMode == SOLID)
+	{
+		// render solid face
+		ScanConversion(
+			pDCToUse,
+			m_WindowHeight,
+			m_WindowWidth,
+			edges,
+			projectionToModelFrame,
+			cameraToGlobalFrame,
+			modelToGlobalFrame,
+			globalToModelFrameTranspose,
+			face.center,
+			face.normal,
+			m_normalFlip,
+			color,
+			m_ambientLight,
+			m_lights,
+			m_lMaterialAmbient,
+			m_lMaterialDiffuse,
+			m_lMaterialSpecular,
+			m_nMaterialCosineFactor,
+			m_nLightShading);
+	}
+	else
+	{
+		// render wireframe
+		for (auto const& edge : edges)
+		{
+			MoveTo(edge.line.p1.x, edge.line.p1.y, edge.line.p1.z);
+			LineTo(pDCToUse, edge.line.p2.x, edge.line.p2.y, edge.line.p2.z, color);
+		}
+	}
 
 	// draw face normals
 	if (drawFaceNormal)
@@ -638,6 +642,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
 			DrawFace(
 				pDCToUse,
+				m_renderMode,
 				face,
 				m_drawFaceNormals,
 				m_drawVertexNormals,

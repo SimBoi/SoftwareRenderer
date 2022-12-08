@@ -17,6 +17,7 @@
 #include "Light.h"
 #include "CG_Matrix.h"
 #include "CG_Object.h"
+#include "CG_Draw.h"
 
 
 class CCGWorkView : public CView
@@ -37,15 +38,16 @@ private:
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
 	bool m_bIsPerspective;		// is the view perspective
-	bool m_drawFaceNormals = false;		// draw face normals or not
-	bool m_drawVertexNormals = false;	// draw vertex normals or not
-	CG::TSpace m_nSpace;			// view/ object space
+	bool m_drawFaceNormals;		// draw face normals or not
+	bool m_drawVertexNormals;	// draw vertex normals or not
+	CG::TSpace m_nSpace;		// view/ object space
 	int m_normalFlip;			// set to -1 to flip normals, otherwise set to 1
 	bool m_alwaysCalcNormals;	// calculate vertex normals instead of using the provided normals
+	CG::RenderMode m_renderMode;	// rendering: wireframe, solid
 	
 	CString m_strItdFileName;		// file name of IRIT data
 
-	int m_nLightShading;			// shading: Flat, Gouraud, Phong.
+	CG::Shading m_nLightShading;			// shading: Flat, Gouraud, Phong.
 
 	double m_lMaterialAmbient;		// The Ambient in the scene
 	double m_lMaterialDiffuse;		// The Diffuse in the scene
@@ -140,6 +142,7 @@ public:
 	void InitializeView();
 	void DrawFace(
 		CDC* pDCToUse,
+		CG::RenderMode renderMode,
 		const CG::Face& face,
 		bool drawFaceNormal,
 		bool drawVertexNormal,

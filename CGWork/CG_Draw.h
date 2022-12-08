@@ -7,7 +7,8 @@
 
 namespace CG
 {
-	typedef enum Shading { FLAT, GOURAUD, PHONG } TView;
+	typedef enum Shading { FLAT, GOURAUD, PHONG } Shading;
+	typedef enum RenderMode { WIREFRAME, SOLID} RenderMode;
 
 	class ZBuffer
 	{
