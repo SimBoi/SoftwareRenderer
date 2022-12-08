@@ -29,4 +29,5 @@ public:
 	afx_msg void OnClickedModelColorButton();
 	afx_msg void OnClickedOriginalModelColorButton();
 	afx_msg void OnClickedDefaultColorsButton();
+	afx_msg void OnBnClickedBackgroundImageButton();
 };

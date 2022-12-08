@@ -4,7 +4,12 @@
 
 namespace CG
 {
+	const double BACKGROUND_DEPTH = -1;
 	double dynamicRange = 300;
+	ZBuffer zBuffer;
+	int prevX;
+	int prevY;
+	double prevZ;
 
 	ZBuffer::~ZBuffer()
 	{
@@ -55,11 +60,106 @@ namespace CG
 		delete[] arr;
 	}
 
-	ZBuffer zBuffer;
-	int prevX;
-	int prevY;
-	double prevZ;
+	static COLORREF getPNGColor(int png_value)
+	{
+		int channels = BackgroundImage.GetNumChannels();
+		if (channels == 1)
+		{
+			return png_value;
+		}
+		else if (channels == 3)
+		{
+			return RGB(GET_R(png_value), GET_G(png_value), GET_B(png_value));
+		}
+		else if (channels == 4)
+		{
+			// Alpha compositing
 
+			double old_r = GET_R(png_value) / 255.0;
+			double old_g = GET_G(png_value) / 255.0;
+			double old_b = GET_B(png_value) / 255.0;
+			double old_a = GET_A(png_value) / 255.0;
+
+			double background_r = GetRValue(BackgroundColor) / 255.0;
+			double background_g = GetGValue(BackgroundColor) / 255.0;
+			double background_b = GetBValue(BackgroundColor) / 255.0;
+
+			double new_r = ((1 - old_a) * background_r) + (old_a * old_r);
+			new_r = (new_r < 1.0) ? new_r * 255 : 255;
+
+			double new_g = ((1 - old_a) * background_g) + (old_a * old_g);
+			new_g = (new_g < 1.0) ? new_g * 255 : 255;
+
+			double new_b = ((1 - old_a) * background_b) + (old_a * old_b);
+			new_b = (new_b < 1.0) ? new_b * 255 : 255;
+
+			return RGB((int)new_r, (int)new_g, (int)new_b);
+		}
+
+		return RGB(0, 0, 0);
+	}
+
+	void DrawStretchImage(CDC* pDC, int rect_width, int rect_height)
+	{
+		const int image_height = BackgroundImage.GetHeight();
+		const int image_width = BackgroundImage.GetWidth();
+
+		// image device contex (bitmap)
+		CDC* imgDC = new CDC();
+		imgDC->CreateCompatibleDC(pDC);
+		// SetTimer(1, 1, NULL);
+		HBITMAP image_bit_map = CreateCompatibleBitmap(pDC->m_hDC, image_width, image_height);
+		imgDC->SelectObject(image_bit_map);
+
+		for (unsigned int y = 0; y < image_height; y++)
+		{
+			for (unsigned int x = 0; x < image_width; x++)
+			{
+				COLORREF color = getPNGColor(BackgroundImage.GetValue(x, y));
+				//imgDC->SetPixel(x, y, color);
+				zBuffer.SetPixel(imgDC, x, y, BACKGROUND_DEPTH, color);
+			}
+		}
+
+		// copy and stretch imgDC to pDC
+		pDC->StretchBlt(0, 0, rect_width, rect_height, imgDC, 0, 0, image_width, image_height, SRCCOPY);
+		imgDC->DeleteDC();
+		delete imgDC;
+	}
+
+	void DrawRepeatImage(CDC* pDC, int rect_width, int rect_height)
+	{
+		const int image_height = BackgroundImage.GetHeight();
+		const int image_width = BackgroundImage.GetWidth();
+
+		for (unsigned int y = 0; y < rect_height; y++)
+		{
+			for (unsigned int x = 0; x < rect_width; x++)
+			{
+				COLORREF color = getPNGColor(BackgroundImage.GetValue(x % image_width, y % image_height));
+				//pDC->SetPixel(x, y, color);
+				zBuffer.SetPixel(pDC, x, y, BACKGROUND_DEPTH, color);
+			}
+		}
+	}
+
+	void DrawBackground(CRect& r, CDC* pDC)
+	{
+		if (IsBackgroundImageLoaded && BackgroundImageLayout == STRETCH)
+		{
+			DrawStretchImage(pDC, r.Width(), r.Height());
+		}
+		else if (IsBackgroundImageLoaded && BackgroundImageLayout == REPEAT)
+		{
+			DrawRepeatImage(pDC, r.Width(), r.Height());
+		}
+		else
+		{
+			pDC->FillSolidRect(&r, BackgroundColor);
+		}
+	}
+
+	
 	void MoveTo(int x, int y, double z)
 	{
 		prevX = x;
