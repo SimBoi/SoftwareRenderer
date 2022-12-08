@@ -40,6 +40,7 @@ namespace CG
 		const mat4& globalToModelFrameTranspose,
 		const vec4& faceCenter,
 		const vec4& faceNormal,
+		int normalFlip,
 		const COLORREF& objectColor,
 		const LightParams& ambientLight,
 		LightParams lightSources[8],

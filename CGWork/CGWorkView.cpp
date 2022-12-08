@@ -126,6 +126,7 @@ CCGWorkView::CCGWorkView()
 	m_nSpace = VIEW;
 	m_drawFaceNormals = false;
 	m_drawVertexNormals = false;
+	m_normalFlip = -1;
 
 	old_x_position = 0;
 	old_y_position = 0;
@@ -451,6 +452,7 @@ void CCGWorkView::DrawFace(
 		globalToModelFrameTranspose,
 		face.center,
 		face.normal,
+		m_normalFlip,
 		color,
 		m_ambientLight,
 		m_lights,
@@ -624,11 +626,11 @@ void CCGWorkView::OnDraw(CDC* pDC)
 			{
 				vec4 cameraModelPos = cameraToChildFrame * vec4(0, 0, 0, 1);
 				vec4 viewDirection = face.center - cameraModelPos;
-				if (vec4::dot(viewDirection, face.normal) >= 0) continue;
+				if (vec4::dot(viewDirection, face.normal * m_normalFlip) >= 0) continue;
 			}
 			else
 			{
-				vec4 faceNormalCameraFrame = cameraToChildFrameTranspose * face.normal;
+				vec4 faceNormalCameraFrame = cameraToChildFrameTranspose * face.normal * m_normalFlip;
 				if (vec4::dot(faceNormalCameraFrame, vec4(0, 0, -1, 0)) >= 0) continue;
 			}
 

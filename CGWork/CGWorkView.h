@@ -39,7 +39,8 @@ private:
 	bool m_bIsPerspective;		// is the view perspective
 	bool m_drawFaceNormals = false;		// draw face normals or not
 	bool m_drawVertexNormals = false;	// draw vertex normals or not
-	CG::TSpace m_nSpace;			// view/ object space	
+	CG::TSpace m_nSpace;			// view/ object space
+	int m_normalFlip;        // set to -1 to flip normals, otherwise set to 1
 	
 	CString m_strItdFileName;		// file name of IRIT data
 

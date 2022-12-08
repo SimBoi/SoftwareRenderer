@@ -272,6 +272,7 @@ namespace CG
 		const vec4& cameraPos,
 		const vec4& pixelPos,
 		vec4 N,
+		int normalFlip,
 		LightParams lightSources[8],
 		int cosineFactor,
 		vec4& diffuse,
@@ -291,6 +292,7 @@ namespace CG
 				L = pixelPos - lightPos;
 			L.normalize();
 			N.normalize();
+			N *= normalFlip;
 			R = (N * (2 * vec4::dot(N, -L)) + L).normalized();
 			V = (cameraPos - pixelPos).normalized();
 
@@ -310,6 +312,7 @@ namespace CG
 		const mat4& globalToModelFrameTranspose,
 		const vec4& faceCenter,
 		const vec4& faceNormal,
+		int normalFlip,
 		const COLORREF& objectColor,
 		const LightParams& ambientLight,
 		LightParams lightSources[8],
@@ -328,6 +331,7 @@ namespace CG
 				cameraToGlobalFrame * vec4(0, 0, 0, 1),
 				modelToGlobalFrame * faceCenter,
 				globalToModelFrameTranspose * faceNormal,
+				normalFlip,
 				lightSources,
 				cosineFactor,
 				diffuse,
