@@ -32,6 +32,7 @@ static char THIS_FILE[] = __FILE__;
 #include "SelectObjectDialog.h"
 #include "PerspectiveSettingsDialog.h"
 #include "BackgroundImageDialog.h"
+#include "RenderToFileDialog.h"
 
 #include <string>
 #include <unordered_map>
@@ -99,6 +100,15 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(ID_OPTIONS_SELECTOBJECT, &CCGWorkView::OnOptionsSelectObject)
 	ON_COMMAND(ID_PERSPECCTIVE_SETTINGS, OnPerspecctiveSettings)
 	ON_COMMAND(ID_OPTIONS_BACKGROUNDIMAGE, &CCGWorkView::OnOptionsBackgroundImage)
+	ON_COMMAND(ID_RENDERMODE_SOLID, &CCGWorkView::OnRendermodeSolid)
+	ON_UPDATE_COMMAND_UI(ID_RENDERMODE_SOLID, &CCGWorkView::OnUpdateRendermodeSolid)
+	ON_COMMAND(ID_RENDERMODE_WIREFRAME, &CCGWorkView::OnRendermodeWireframe)
+	ON_UPDATE_COMMAND_UI(ID_RENDERMODE_WIREFRAME, &CCGWorkView::OnUpdateRendermodeWireframe)
+	ON_COMMAND(ID_RENDER_ONSCREEN, &CCGWorkView::OnRenderOnscreen)
+	ON_COMMAND(ID_RENDER_TOFILE, &CCGWorkView::OnRenderTofile)
+	ON_UPDATE_COMMAND_UI(ID_RENDER_TOFILE, &CCGWorkView::OnUpdateRenderTofile)
+//	ON_UPDATE_COMMAND_UI(ID_RENDER_ONSCREEN, &CCGWorkView::OnUpdateRenderOnscreen)
+ON_UPDATE_COMMAND_UI(ID_RENDER_ONSCREEN, &CCGWorkView::OnUpdateRenderOnscreen)
 END_MESSAGE_MAP()
 
 
@@ -138,6 +148,11 @@ CCGWorkView::CCGWorkView()
 	BackgroundImageLayout = NONE;
 	SetDefaultPerspectiveSettings();
 
+	m_bRenderOnScreen = true;
+	// render to file
+	m_bRenderToPngFile = false;
+	m_pRenderToPng = nullptr;
+
 	m_nLightShading = FLAT;
 
 	m_lMaterialAmbient = 0.2;
@@ -153,6 +168,7 @@ CCGWorkView::CCGWorkView()
 
 CCGWorkView::~CCGWorkView()
 {
+	
 }
 
 
@@ -580,37 +596,31 @@ void CCGWorkView::InitializeView()
 }
 
 
-
-void CCGWorkView::OnDraw(CDC* pDC)
+void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio)
 {
 	zBuffer.resize(m_WindowHeight, m_WindowWidth);
 	zBuffer.init(); // reset zBuffer
 
-	CCGWorkDoc* pDoc = GetDocument();
-	ASSERT_VALID(pDoc);
-	if (!pDoc)
-		return;
-	CRect r;
-
-	GetClientRect(&r);
-	CDC* pDCToUse = /*m_pDC*/m_pDbDC;
-
 	// draw background
-	DrawBackground(r, pDCToUse);
+	CG::DrawBackground(SceneRect, pDCToUse);
 
+	// initialize the view
 	if (!initialized)
 	{
 		initialized = true;
 		InitializeView();
 	}
 
-	if (m_bIsPerspective) camera.Perspective(fovY, m_AspectRatio, zNear, zFar);
-	else camera.Ortho(-800 * m_AspectRatio, 800 * m_AspectRatio, -800, 800, zNear, zFar);
-	
+	// Orthographic or Perspective View
+	if (m_bIsPerspective) camera.Perspective(fovY, SceneAspectRatio, zNear, zFar);
+	else camera.Ortho(-800 * SceneAspectRatio, 800 * SceneAspectRatio, -800, 800, zNear, zFar);
+
+	// Parent to/from Frames
 	mat4 globalToParentFrame = parentObject.mInverse * parentObject.wInverse;
 	mat4 parentToGlobalFrame = parentObject.wTransform * parentObject.mTransform;
 	mat4 parentToCameraFrame = camera.cInverse * parentToGlobalFrame;
-	mat4 screenProjection = camera.ToScreenSpace(r.Width(), r.Height()) * camera.projection;
+	mat4 screenProjection = camera.ToScreenSpace(SceneRect.Width(), SceneRect.Height()) * camera.projection;
+
 
 	int i = 0;
 	for (auto& child : parentObject.children)
@@ -676,11 +686,92 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	//{
 	//	DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor, VertexNormalColor);
 	//}
+}
+
+
+
+void CCGWorkView::OnDraw(CDC* pDC)
+{
+	CCGWorkDoc* pDoc = GetDocument();
+	ASSERT_VALID(pDoc);
+	if (!pDoc)
+		return;
+
+	if (m_bRenderOnScreen)
+	{
+		RenderOnScreen();
+	}
+
+	if (m_bRenderToPngFile)
+	{
+		RenderToPngFile();
+	}
+}
+
+
+
+void CCGWorkView::RenderOnScreen()
+{
+	CRect r;
+	GetClientRect(&r);
+	CDC* pDCToUse = /*m_pDC*/m_pDbDC;
+
+	DrawScene(r, pDCToUse, m_WindowWidth, m_WindowHeight, m_AspectRatio);
 
 	if (pDCToUse != m_pDC)
 	{
 		m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
 	}
+}
+
+
+void CCGWorkView::RenderToPngFile()
+{
+	if (!m_bRenderToPngFile || m_pRenderToPng == nullptr)
+		return;
+
+	// image rect
+	CRect img_r(0, 0, m_pRenderToPng->GetWidth(), m_pRenderToPng->GetHeight());
+
+	// image Device Context
+	CDC* pDCToUse = new CDC();
+	pDCToUse->CreateCompatibleDC(m_pDC);
+	//SetTimer(1, 1, NULL);
+	HBITMAP pImgBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, img_r.right, img_r.bottom);
+	pDCToUse->SelectObject(pImgBitMap);
+
+	// compute the aspect ratio
+	// this will keep all dimension scales equal
+	double TmpAspectRatio = (GLdouble)m_WindowWidth / (GLdouble)m_WindowHeight;  // ??
+
+
+	DrawScene(img_r, pDCToUse, m_pRenderToPng->GetWidth(), m_pRenderToPng->GetHeight(), m_AspectRatio);
+
+	WriteDCToPngFile(pDCToUse, img_r.Width(), img_r.Height());
+
+	delete pDCToUse;
+	pDCToUse = nullptr;
+}
+
+
+void CCGWorkView::WriteDCToPngFile(CDC* pDCToUse, int width, int height)
+{
+	if (!m_bRenderToPngFile || m_pRenderToPng == nullptr)
+		return;
+
+	if (!m_pRenderToPng->InitWritePng())
+		return;
+
+	for (unsigned int y = 0; y < height; y++)
+	{
+		for (unsigned int x = 0; x < width; x++)
+		{
+			int png_val = ColorRefToPngVal(pDCToUse->GetPixel(x, y));
+			m_pRenderToPng->SetValue(x, y, png_val);
+		}
+	}
+
+	m_pRenderToPng->WritePng();
 }
 
 
@@ -698,6 +789,11 @@ void CCGWorkView::OnDestroy()
 
 	if (m_pDbDC) {
 		delete m_pDbDC;
+	}
+
+	if (m_pRenderToPng) {
+		delete m_pRenderToPng;
+		m_pRenderToPng = nullptr;
 	}
 }
 
@@ -1094,9 +1190,6 @@ void CCGWorkView::OnUpdateVertexNormals(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_drawVertexNormals);
 }
 
-// OPTIONS HANDLERS ///////////////////////////////////////////
-
-
 
 
 // LIGHT SHADING HANDLERS ///////////////////////////////////////////
@@ -1121,6 +1214,82 @@ void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nLightShading == GOURAUD);
 }
+
+// RENDER HANDLERS ///////////////////////////////////////////
+
+void CCGWorkView::OnRendermodeSolid()
+{
+	m_renderMode = SOLID;
+}
+
+
+void CCGWorkView::OnUpdateRendermodeSolid(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_renderMode == SOLID);
+}
+
+
+void CCGWorkView::OnRendermodeWireframe()
+{
+	m_renderMode = WIREFRAME;
+}
+
+
+void CCGWorkView::OnUpdateRendermodeWireframe(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_renderMode == WIREFRAME);
+}
+
+
+void CCGWorkView::OnRenderOnscreen()
+{
+	m_bRenderOnScreen = !m_bRenderOnScreen;
+}
+
+
+void CCGWorkView::OnUpdateRenderOnscreen(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_bRenderOnScreen);
+}
+
+
+void CCGWorkView::OnRenderTofile()
+{
+	RenderToFileDialog dialog;
+	dialog.m_FilePathString = (m_pRenderToPng != nullptr) ? m_strPngFileName : "";
+	dialog.m_ImageWidth = (m_pRenderToPng != nullptr) ? m_pRenderToPng->GetWidth() : m_WindowWidth;
+	dialog.m_ImageHeight = (m_pRenderToPng != nullptr) ? m_pRenderToPng->GetHeight() : m_WindowHeight;
+	dialog.m_WindowWidth = m_WindowWidth;
+	dialog.m_WindowHeight = m_WindowHeight;
+
+	INT_PTR answer = dialog.DoModal();
+	if (answer == IDOK)
+	{
+		// free memory old render to file
+		delete m_pRenderToPng;
+		m_pRenderToPng = nullptr;
+
+		// init new render to file
+		m_strPngFileName = dialog.m_FilePathString;
+		m_pRenderToPng = new PngWrapper(m_strPngFileName, dialog.m_ImageWidth, dialog.m_ImageHeight);
+		m_bRenderToPngFile = (m_pRenderToPng != nullptr);
+	}
+	else if (answer == IDCANCEL_RENDERTO_FILE)
+	{
+		delete m_pRenderToPng;
+		m_pRenderToPng = nullptr;
+		m_bRenderToPngFile = false;
+	}
+	Invalidate();
+	
+}
+
+
+void CCGWorkView::OnUpdateRenderTofile(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_bRenderToPngFile);
+}
+
 
 // LIGHT SETUP HANDLER ///////////////////////////////////////////
 
@@ -1196,6 +1365,8 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 	//UpdateWindow();
 }
 
+// OPTIONS HANDLERS ///////////////////////////////////////////
+
 void CCGWorkView::OnOptionsMouseSensitivity()
 {
 	MouseSensitivityDialog dialog;
@@ -1264,3 +1435,5 @@ void CCGWorkView::OnOptionsBackgroundImage()
 	dialog.DoModal();
 	Invalidate();
 }
+
+

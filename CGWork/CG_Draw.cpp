@@ -59,7 +59,12 @@ namespace CG
 		delete[] arr;
 	}
 
-	static COLORREF getPNGColor(int png_value)
+	int ColorRefToPngVal(COLORREF color)
+	{
+		return SET_RGB(GetRValue(color), GetGValue(color), GetBValue(color));
+	}
+
+	COLORREF PngValToColorRef(int png_value)
 	{
 		int channels = BackgroundImage.GetNumChannels();
 		if (channels == 1)
@@ -114,7 +119,7 @@ namespace CG
 		{
 			for (unsigned int x = 0; x < image_width; x++)
 			{
-				COLORREF color = getPNGColor(BackgroundImage.GetValue(x, y));
+				COLORREF color = PngValToColorRef(BackgroundImage.GetValue(x, y));
 				imgDC->SetPixel(x, y, color);
 			}
 		}
@@ -134,7 +139,7 @@ namespace CG
 		{
 			for (unsigned int x = 0; x < rect_width; x++)
 			{
-				COLORREF color = getPNGColor(BackgroundImage.GetValue(x % image_width, y % image_height));
+				COLORREF color = PngValToColorRef(BackgroundImage.GetValue(x % image_width, y % image_height));
 				pDC->SetPixel(x, y, color);
 			}
 		}
