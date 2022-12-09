@@ -126,6 +126,7 @@ CCGWorkView::CCGWorkView()
 	m_normalFlip = 1;
 	m_alwaysCalcNormals = false;
 	m_renderMode = SOLID;
+	m_backFaceCulling = true;
 
 	old_x_position = 0;
 	old_y_position = 0;
@@ -627,17 +628,20 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		// draw child object faces
 		for (auto const& face : child.faces)
 		{
-			// back face culling
-			if (m_nView == ID_VIEW_PERSPECTIVE)
+			if (m_backFaceCulling)
 			{
-				vec4 cameraModelPos = cameraToChildFrame * vec4(0, 0, 0, 1);
-				vec4 viewDirection = face.center - cameraModelPos;
-				if (vec4::dot(viewDirection, face.normal * m_normalFlip) >= 0) continue;
-			}
-			else
-			{
-				vec4 faceNormalCameraFrame = cameraToChildFrameTranspose * face.normal * m_normalFlip;
-				if (vec4::dot(faceNormalCameraFrame, vec4(0, 0, -1, 0)) >= 0) continue;
+				// back face culling
+				if (m_nView == ID_VIEW_PERSPECTIVE)
+				{
+					vec4 cameraModelPos = cameraToChildFrame * vec4(0, 0, 0, 1);
+					vec4 viewDirection = face.center - cameraModelPos;
+					if (vec4::dot(viewDirection, face.normal * m_normalFlip) >= 0) continue;
+				}
+				else
+				{
+					vec4 faceNormalCameraFrame = cameraToChildFrameTranspose * face.normal * m_normalFlip;
+					if (vec4::dot(faceNormalCameraFrame, vec4(0, 0, -1, 0)) >= 0) continue;
+				}
 			}
 
 			DrawFace(

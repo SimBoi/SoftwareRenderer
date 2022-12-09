@@ -4,7 +4,6 @@
 
 namespace CG
 {
-	const double BACKGROUND_DEPTH = -1;
 	double dynamicRange = 300;
 	ZBuffer zBuffer;
 	int prevX;
@@ -116,8 +115,7 @@ namespace CG
 			for (unsigned int x = 0; x < image_width; x++)
 			{
 				COLORREF color = getPNGColor(BackgroundImage.GetValue(x, y));
-				//imgDC->SetPixel(x, y, color);
-				zBuffer.SetPixel(imgDC, x, y, BACKGROUND_DEPTH, color);
+				imgDC->SetPixel(x, y, color);
 			}
 		}
 
@@ -137,8 +135,7 @@ namespace CG
 			for (unsigned int x = 0; x < rect_width; x++)
 			{
 				COLORREF color = getPNGColor(BackgroundImage.GetValue(x % image_width, y % image_height));
-				//pDC->SetPixel(x, y, color);
-				zBuffer.SetPixel(pDC, x, y, BACKGROUND_DEPTH, color);
+				pDC->SetPixel(x, y, color);
 			}
 		}
 	}

@@ -44,6 +44,7 @@ private:
 	int m_normalFlip;			// set to -1 to flip normals, otherwise set to 1
 	bool m_alwaysCalcNormals;	// calculate vertex normals instead of using the provided normals
 	CG::RenderMode m_renderMode;	// rendering: wireframe, solid
+	bool m_backFaceCulling;
 	
 	CString m_strItdFileName;		// file name of IRIT data
 
