@@ -697,20 +697,33 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	if (!pDoc)
 		return;
 
-	if (m_bRenderOnScreen)
+	if (m_bRenderOnScreen && m_bRenderToPngFile
+		&& m_pRenderToPng->GetWidth() == m_WindowWidth
+		&& m_pRenderToPng->GetHeight() == m_WindowHeight)
 	{
-		RenderOnScreen();
+		// in case of rendering on screen and to file of the same size
+		// no need to recalculate the scene
+		CDC* pDCImage = RenderOnScreen();
+		WriteDCToPngFile(pDCImage, m_WindowWidth, m_WindowHeight);
 	}
+	else
+	{
+		if (m_bRenderOnScreen)
+		{
+			RenderOnScreen();
+		}
 
-	if (m_bRenderToPngFile)
-	{
-		RenderToPngFile();
+		if (m_bRenderToPngFile)
+		{
+			RenderToPngFile();
+		}
 	}
+	
 }
 
 
 
-void CCGWorkView::RenderOnScreen()
+CDC* CCGWorkView::RenderOnScreen()
 {
 	CRect r;
 	GetClientRect(&r);
@@ -722,6 +735,8 @@ void CCGWorkView::RenderOnScreen()
 	{
 		m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
 	}
+
+	return pDCToUse;
 }
 
 
@@ -754,7 +769,7 @@ void CCGWorkView::RenderToPngFile()
 }
 
 
-void CCGWorkView::WriteDCToPngFile(CDC* pDCToUse, int width, int height)
+void CCGWorkView::WriteDCToPngFile(const CDC* pDCImage, int width, int height)
 {
 	if (!m_bRenderToPngFile || m_pRenderToPng == nullptr)
 		return;
@@ -766,7 +781,7 @@ void CCGWorkView::WriteDCToPngFile(CDC* pDCToUse, int width, int height)
 	{
 		for (unsigned int x = 0; x < width; x++)
 		{
-			int png_val = ColorRefToPngVal(pDCToUse->GetPixel(x, y));
+			int png_val = ColorRefToPngVal(pDCImage->GetPixel(x, y));
 			m_pRenderToPng->SetValue(x, y, png_val);
 		}
 	}

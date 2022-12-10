@@ -145,9 +145,9 @@ public:
 	void doTranslate(int x_val, int y_val, CG::Object& object);
 	void doScale(int x_val, int y_val, CG::Object& object);
 
-	void RenderOnScreen();		// Renders the scene on the screen
+	CDC* RenderOnScreen();		// Renders the scene on the screen
 	void RenderToPngFile();		// Renders the scene to a file in PNG format
-	void WriteDCToPngFile(CDC* pDCToUse, int width, int height);
+	void WriteDCToPngFile(const CDC* pDCImage, int width, int height);
 
 	void InitializeView();
 	void DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio);

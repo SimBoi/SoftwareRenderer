@@ -30,4 +30,6 @@ public:
 	int m_WindowHeight;
 	afx_msg void OnBnClickedButtonDefaultSize();
 	afx_msg void OnBnClickedButtonCancelRendertoFile(); 
+	afx_msg void OnEnChangeEditWidth();
+	afx_msg void OnEnChangeEditHeight();
 };

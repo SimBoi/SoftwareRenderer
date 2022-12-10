@@ -43,6 +43,8 @@ BEGIN_MESSAGE_MAP(RenderToFileDialog, CDialog)
 	ON_BN_CLICKED(IDC_BUTTON_RENDERTO, &RenderToFileDialog::OnBnClickedButtonRenderto)
 	ON_BN_CLICKED(IDC_BUTTON_DEFAULT_SIZE, &RenderToFileDialog::OnBnClickedButtonDefaultSize)
 	ON_BN_CLICKED(IDC_BUTTON_CANCEL_RENDERTO_FILE, &RenderToFileDialog::OnBnClickedButtonCancelRendertoFile)
+	ON_EN_CHANGE(IDC_EDIT_WIDTH, &RenderToFileDialog::OnEnChangeEditWidth)
+	ON_EN_CHANGE(IDC_EDIT_HEIGHT, &RenderToFileDialog::OnEnChangeEditHeight)
 END_MESSAGE_MAP()
 
 
@@ -73,4 +75,28 @@ void RenderToFileDialog::OnBnClickedButtonDefaultSize()
 void RenderToFileDialog::OnBnClickedButtonCancelRendertoFile()
 {
 	EndDialog(IDCANCEL_RENDERTO_FILE);
+}
+
+
+void RenderToFileDialog::OnEnChangeEditWidth()
+{
+	// TODO:  If this is a RICHEDIT control, the control will not
+	// send this notification unless you override the CDialog::OnInitDialog()
+	// function and call CRichEditCtrl().SetEventMask()
+	// with the ENM_CHANGE flag ORed into the mask.
+
+	// TODO:  Add your control notification handler code here
+	UpdateData(true);
+}
+
+
+void RenderToFileDialog::OnEnChangeEditHeight()
+{
+	// TODO:  If this is a RICHEDIT control, the control will not
+	// send this notification unless you override the CDialog::OnInitDialog()
+	// function and call CRichEditCtrl().SetEventMask()
+	// with the ENM_CHANGE flag ORed into the mask.
+
+	// TODO:  Add your control notification handler code here
+	UpdateData(true);
 }

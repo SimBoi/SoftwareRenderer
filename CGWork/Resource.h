@@ -87,7 +87,6 @@
 #define IDC_STATIC_HEIGHT               1079
 #define IDC_EDIT_HEIGHT                 1080
 #define IDC_BUTTON_DEFAULT_SIZE         1081
-#define IDC_BUTTON1                     1082
 #define IDC_BUTTON_CANCEL_RENDERTO_FILE 1082
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
