@@ -319,7 +319,7 @@ namespace CG
 		CDC* pDC,
 		int height,
 		int width,
-		const std::list<ScanEdge>& edges,
+		std::list<ScanEdge>& edges,
 		const mat4& projectionToGlobalFrame,
 		const mat4& cameraToGlobalFrame,
 		const mat4& modelToGlobalFrame,
@@ -353,6 +353,30 @@ namespace CG
 				ambientIntensity
 			);
 			finalColor = finalLight * objectColor;
+		}
+		// calculate lighting only on vertices in gouraud shading
+		else if (shading == GOURAUD)
+		{
+			auto next = edges.begin();
+			next++;
+			for (auto curr = edges.begin(); curr != edges.end(); curr++)
+			{
+				vec4 vertexLight = CalcLighting(
+					cameraPos,
+					curr->global.line.p2,
+					curr->global.endNormal,
+					normalFlip,
+					lightSources,
+					cosineFactor,
+					ambient,
+					ambientIntensity
+				);
+				curr->shadingP2 = vertexLight;
+				next->shadingP1 = vertexLight;
+
+				next++;
+				if (next == edges.end()) next = edges.begin();
+			}
 		}
 
 		// calculate the y range
@@ -391,6 +415,7 @@ namespace CG
 				if (0 < t && t < 1)
 				{
 					if (shading == PHONG) intersections[yIndex][i].interpolated = it->global.startNormal * (1 - t) + it->global.endNormal * t;
+					else if (shading == GOURAUD) intersections[yIndex][i].interpolated = it->shadingP1 * (1 - t) + it->shadingP2 * t;
 					intersections[yIndex][i].projected = p;
 					intersections[yIndex][i++].global = it->global.line[t];
 				}
@@ -410,15 +435,18 @@ namespace CG
 					if ((edge1->projected.p2.y - edge1->projected.p1.y) * (edge2->projected.p2.y - edge2->projected.p1.y) > 0)
 					{
 						if (shading == PHONG) intersections[yIndex][i].interpolated = edge1->global.endNormal;
+						else if (shading == GOURAUD) intersections[yIndex][i].interpolated = edge1->shadingP2;
 						intersections[yIndex][i].projected = edge1->projected.p2;
 						intersections[yIndex][i++].global = edge1->global.line.p2;
 					}
 					else
 					{
 						if (shading == PHONG) intersections[yIndex][i].interpolated = edge1->global.endNormal;
+						else if (shading == GOURAUD) intersections[yIndex][i].interpolated = edge2->shadingP2;
 						intersections[yIndex][i].projected = edge1->projected.p2;
 						intersections[yIndex][i++].global = edge1->global.line.p2;
 						if (shading == PHONG) intersections[yIndex][i].interpolated = edge2->global.startNormal;
+						else if (shading == GOURAUD) intersections[yIndex][i].interpolated = edge2->shadingP1;
 						intersections[yIndex][i].projected = edge2->projected.p1;
 						intersections[yIndex][i++].global = edge2->global.line.p1;
 					}
@@ -460,7 +488,8 @@ namespace CG
 				}
 				else if (shading == GOURAUD)
 				{
-					
+					vec4 finalLight = intersections[yIndex][0].interpolated * (1 - a) + intersections[yIndex][1].interpolated * a;
+					finalColor = finalLight * objectColor;
 				}
 				zBuffer.SetPixel(pDC, x, y, z, RGB(finalColor.x, finalColor.y, finalColor.z));
 			}

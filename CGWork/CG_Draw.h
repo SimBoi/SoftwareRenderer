@@ -15,6 +15,8 @@ namespace CG
 	public:
 		Line projected;
 		Edge global;
+		vec4 shadingP1;
+		vec4 shadingP2;
 		ScanEdge(Line projected, Edge(global)) :
 			projected(projected), global(global)
 		{ };
@@ -45,7 +47,7 @@ namespace CG
 		CDC* pDC,
 		int height,
 		int width,
-		const std::list<ScanEdge>& edges,
+		std::list<ScanEdge>& edges,
 		const mat4& projectionToGlobalFrame,
 		const mat4& cameraToGlobalFrame,
 		const mat4& modelToGlobalFrame,

@@ -138,7 +138,7 @@ CCGWorkView::CCGWorkView()
 	BackgroundImageLayout = NONE;
 	SetDefaultPerspectiveSettings();
 
-	m_nLightShading = PHONG;
+	m_nLightShading = FLAT;
 
 	m_lMaterialAmbient = 0.2;
 	m_lMaterialDiffuse = 0.8;
