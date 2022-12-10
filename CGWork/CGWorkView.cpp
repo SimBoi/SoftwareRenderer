@@ -493,10 +493,10 @@ void CCGWorkView::DrawFace(
 	else
 	{
 		// render wireframe
-		for (auto const& edge : edges)
+		for (auto const& edge : scanEdges)
 		{
-			MoveTo(edge.line.p1.x, edge.line.p1.y, edge.line.p1.z);
-			LineTo(pDCToUse, edge.line.p2.x, edge.line.p2.y, edge.line.p2.z, color);
+			MoveTo(edge.projected.p1.x, edge.projected.p1.y, edge.projected.p1.z);
+			LineTo(pDCToUse, edge.projected.p2.x, edge.projected.p2.y, edge.projected.p2.z, color);
 		}
 	}
 
