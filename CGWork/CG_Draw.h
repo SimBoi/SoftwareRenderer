@@ -10,6 +10,16 @@ namespace CG
 	typedef enum Shading { FLAT, GOURAUD, PHONG } Shading;
 	typedef enum RenderMode { WIREFRAME, SOLID} RenderMode;
 
+	class ScanEdge
+	{
+	public:
+		Line projected;
+		Edge global;
+		ScanEdge(Line projected, Edge(global)) :
+			projected(projected), global(global)
+		{ };
+	};
+
 	class ZBuffer
 	{
 		int height = 0, width = 0;
@@ -30,11 +40,12 @@ namespace CG
 	void DrawBackground(CRect& r, CDC* pDC);
 	void MoveTo(int x, int y, double z);
 	void LineTo(CDC* pDC, int endX, int endY, double endZ, const COLORREF& color);
+	// faceCenter and faceNormal should be in global frame
 	void ScanConversion(
 		CDC* pDC,
 		int height,
 		int width,
-		const std::list<Edge>& edges,
+		const std::list<ScanEdge>& edges,
 		const mat4& projectionToGlobalFrame,
 		const mat4& cameraToGlobalFrame,
 		const mat4& modelToGlobalFrame,
@@ -46,8 +57,6 @@ namespace CG
 		const LightParams& ambientLight,
 		LightParams lightSources[8],
 		double ambientIntensity,
-		double diffuseIntensity,
-		double specularIntensity,
 		int cosineFactor,
 		int shading);
 }

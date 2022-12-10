@@ -10,6 +10,13 @@ namespace CG
 	int prevY;
 	double prevZ;
 
+	struct ScanIntersection
+	{
+		vec4 projected;
+		vec4 global;
+		vec4 interpolated; // holds interpolated normals for phong shading, interpolared lighting for gouraud shading
+	};
+
 	ZBuffer::~ZBuffer()
 	{
 		free();
@@ -265,16 +272,18 @@ namespace CG
 	};
 
 	// takes arguments in global frame
-	void CalcLighting(
+	vec4 CalcLighting(
 		const vec4& cameraPos,
 		const vec4& pixelPos,
 		vec4 N,
 		int normalFlip,
 		LightParams lightSources[8],
 		int cosineFactor,
-		vec4& diffuse,
-		vec4& specular)
+		vec4& ambient,
+		double ambientIntensity)
 	{
+		vec4 diffuse, specular;
+
 		for (int i = 0; i < 8; i++)
 		{
 			if (!lightSources[i].enabled) continue;
@@ -293,16 +302,24 @@ namespace CG
 			R = (N * (2 * vec4::dot(N, -L)) + L).normalized();
 			V = (cameraPos - pixelPos).normalized();
 
-			diffuse += light * max(vec4::dot(L, -N), 0);
-			specular += light * pow(max(vec4::dot(R, V), 0), cosineFactor);
+			diffuse += light * max(vec4::dot(L, -N), 0) * lightSources[i].diffuseIntensity;
+			specular += light * pow(max(vec4::dot(R, V), 0), cosineFactor) * lightSources[i].specularIntensity;
 		}
+
+		vec4 finalLight = ambient * ambientIntensity + diffuse + specular;
+		// cap final light based on dynnamic range
+		finalLight.x = min(dynamicRange, finalLight.x) / dynamicRange;
+		finalLight.y = min(dynamicRange, finalLight.y) / dynamicRange;
+		finalLight.z = min(dynamicRange, finalLight.z) / dynamicRange;
+
+		return finalLight;
 	}
 
 	void ScanConversion(
 		CDC* pDC,
 		int height,
 		int width,
-		const std::list<Edge>& edges,
+		const std::list<ScanEdge>& edges,
 		const mat4& projectionToGlobalFrame,
 		const mat4& cameraToGlobalFrame,
 		const mat4& modelToGlobalFrame,
@@ -310,101 +327,150 @@ namespace CG
 		const vec4& faceCenter,
 		const vec4& faceNormal,
 		int normalFlip,
-		const COLORREF& objectColor,
+		const COLORREF& objectColorref,
 		const LightParams& ambientLight,
 		LightParams lightSources[8],
 		double ambientIntensity,
-		double diffuseIntensity,
-		double specularIntensity,
 		int cosineFactor,
 		int shading)
 	{
 		vec4 ambient = vec4(ambientLight.colorR, ambientLight.colorG, ambientLight.colorB);
-		vec4 diffuse, specular, finalLight, finalColor;
+		vec4 objectColor = vec4::ColorToVec(objectColorref);
+		vec4 finalColor;
+		vec4 cameraPos = cameraToGlobalFrame * vec4(0, 0, 0, 1);
 
+		// calculate lighting once for the whole polygon in flat shading
 		if (shading == FLAT)
 		{
-			CalcLighting(
-				cameraToGlobalFrame * vec4(0, 0, 0, 1),
-				modelToGlobalFrame * faceCenter,
-				globalToModelFrameTranspose * faceNormal,
+			vec4 finalLight = CalcLighting(
+				cameraPos,
+				faceCenter,
+				faceNormal,
 				normalFlip,
 				lightSources,
 				cosineFactor,
-				diffuse,
-				specular);
-
-			finalLight = ambient * ambientIntensity + diffuse * diffuseIntensity + specular * specularIntensity;
-			// cap final light based on dynnamic range
-			finalLight.x = min(dynamicRange, finalLight.x) / dynamicRange;
-			finalLight.y = min(dynamicRange, finalLight.y) / dynamicRange;
-			finalLight.z = min(dynamicRange, finalLight.z) / dynamicRange;
-
-			finalColor = finalLight * vec4::ColorToVec(objectColor);
+				ambient,
+				ambientIntensity
+			);
+			finalColor = finalLight * objectColor;
 		}
 
-		for (int y = 0; y < height; y++)
+		// calculate the y range
+		int minY = height, maxY = 0;
+		for (auto edge : edges)
 		{
+			if (minY > edge.projected.p1.y) minY = edge.projected.p1.y;
+			if (minY > edge.projected.p2.y) minY = edge.projected.p2.y;
+			if (maxY < edge.projected.p1.y) maxY = edge.projected.p1.y;
+			if (maxY < edge.projected.p2.y) maxY = edge.projected.p2.y;
+		}
+		int yRange = maxY - minY + 1;
+
+		// intersection points for each scan line
+		ScanIntersection** intersections = new ScanIntersection * [yRange];
+		for (int i = 0; i < yRange; i++)
+		{
+			intersections[i] = new ScanIntersection[2];
+		}
+
+		// scan lines
+		for (int y = minY; y <= maxY; y++)
+		{
+			// intersections index
+			int yIndex = y - minY;
+
 			// find intersections
 			Line scanLine = Line(vec4(0, y, 0, 1), vec4(width, y, 0, 1));
-			std::list<vec4> intersections;
-			for (auto it = edges.begin(); it != edges.end(); it++)
+			int i = 0; // current intersection point, max 2 intersections per scan line (convex polygon)
+			for (auto it = edges.begin(); it != edges.end() && i < 2; it++)
 			{
-				// skip edges parallel to the scan line
-				if (it->line.p1.y == it->line.p2.y) continue;
-
 				vec4 p;
 				double t;
-				if (!it->line.IntersectionXY(scanLine, t, p)) continue;
+				if (!it->projected.IntersectionXY(scanLine, t, p)) continue;
 				p.FloorXY();
 				if (0 < t && t < 1)
 				{
-					intersections.push_back(p);
+					if (shading == PHONG) intersections[yIndex][i].interpolated = it->global.startNormal * (1 - t) + it->global.endNormal * t;
+					intersections[yIndex][i].projected = p;
+					intersections[yIndex][i++].global = it->global.line[t];
 				}
 				else if (t == 1)
 				{
-					const Edge* edge1 = &(*it);
+					const ScanEdge* edge1 = &(*it);
 					it++;
 					auto next = it != edges.end() ? it : edges.begin();
-					while (next->line.p1.y == next->line.p2.y)
+					while (next->projected.p1.y == next->projected.p2.y)
 					{
 						next++;
 						if (next == edges.end()) next = edges.begin();
 						if (it != edges.end()) it++;
 					}
-					const Edge* edge2 = &(*next);
-					
-					if ((edge1->line.p2.y - edge1->line.p1.y) * (edge2->line.p2.y - edge2->line.p1.y) > 0)
+					const ScanEdge* edge2 = &(*next);
+
+					if ((edge1->projected.p2.y - edge1->projected.p1.y) * (edge2->projected.p2.y - edge2->projected.p1.y) > 0)
 					{
-						intersections.push_back(edge1->line.p2);
+						if (shading == PHONG) intersections[yIndex][i].interpolated = edge1->global.endNormal;
+						intersections[yIndex][i].projected = edge1->projected.p2;
+						intersections[yIndex][i++].global = edge1->global.line.p2;
 					}
 					else
 					{
-						intersections.push_back(edge1->line.p2);
-						intersections.push_back(edge2->line.p1);
+						if (shading == PHONG) intersections[yIndex][i].interpolated = edge1->global.endNormal;
+						intersections[yIndex][i].projected = edge1->projected.p2;
+						intersections[yIndex][i++].global = edge1->global.line.p2;
+						if (shading == PHONG) intersections[yIndex][i].interpolated = edge2->global.startNormal;
+						intersections[yIndex][i].projected = edge2->projected.p1;
+						intersections[yIndex][i++].global = edge2->global.line.p1;
 					}
 					if (it == edges.end()) break;
 				}
 			}
-			intersections.sort(PointXComparator());
+
+			// sort intersections by x
+			if (intersections[yIndex][0].projected.x > intersections[yIndex][1].projected.x)
+			{
+				ScanIntersection tmp = intersections[yIndex][0];
+				intersections[yIndex][0] = intersections[yIndex][1];
+				intersections[yIndex][1] = tmp;
+			}
 
 			// fill pixels between intersections
-			for (auto it = intersections.begin(); it != intersections.end(); it++)
+			int xRange = intersections[yIndex][1].projected.x - intersections[yIndex][0].projected.x;
+			for (int t = 0; t <= xRange; t++)
 			{
-				vec4 p1 = *it;
-				it++;
-				vec4 p2 = *it;
-				int range = p2.x - p1.x;
+				double a = xRange == 0 ? 0 : (double)t / xRange;
+				int x = intersections[yIndex][0].projected.x + t;
+				double z = intersections[yIndex][0].projected.z * (1 - a) + intersections[yIndex][1].projected.z * a;
 
-				for (int t = 0; t <= range; t++)
+				if (shading == PHONG)
 				{
-					double a = range == 0 ? 0 : (double)t / range;
-					int x = p1.x + t;
-					double z = p1.z * (1 - a) + p2.z * a;
-
-					zBuffer.SetPixel(pDC, x, y, z, RGB(finalColor.x, finalColor.y, finalColor.z));
+					vec4 pixelPos = intersections[yIndex][0].global * (1 - a) + intersections[yIndex][1].global * a;
+					vec4 N = intersections[yIndex][0].interpolated * (1 - a) + intersections[yIndex][1].interpolated * a;
+					vec4 finalLight = CalcLighting(
+						cameraPos,
+						pixelPos,
+						N,
+						normalFlip,
+						lightSources,
+						cosineFactor,
+						ambient,
+						ambientIntensity
+					);
+					finalColor = finalLight * objectColor;
 				}
+				else if (shading == GOURAUD)
+				{
+					
+				}
+				zBuffer.SetPixel(pDC, x, y, z, RGB(finalColor.x, finalColor.y, finalColor.z));
 			}
 		}
+
+		// cleanup
+		for (int i = 0; i < yRange; i++)
+		{
+			delete[] intersections[i];
+		}
+		delete[] intersections;
 	}
 }

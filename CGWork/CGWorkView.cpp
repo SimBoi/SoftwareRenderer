@@ -124,7 +124,7 @@ CCGWorkView::CCGWorkView()
 	m_drawFaceNormals = false;
 	m_drawVertexNormals = false;
 	m_normalFlip = 1;
-	m_alwaysCalcNormals = false;
+	m_alwaysCalcNormals = true;
 	m_renderMode = SOLID;
 	m_backFaceCulling = true;
 
@@ -138,7 +138,7 @@ CCGWorkView::CCGWorkView()
 	BackgroundImageLayout = NONE;
 	SetDefaultPerspectiveSettings();
 
-	m_nLightShading = FLAT;
+	m_nLightShading = PHONG;
 
 	m_lMaterialAmbient = 0.2;
 	m_lMaterialDiffuse = 0.8;
@@ -416,20 +416,11 @@ void CCGWorkView::DrawFace(
 		Edge edge = Edge(Line(prevCoords, coords), prevNormal, currNormal);
 		if (ClipEdge(edge, camera)) edges.push_back(edge);
 		prevCoords = currCoords;
+		prevNormal = currNormal;
 	}
 
 	if (edges.size() == 0) return;
 	
-	// apply projection
-	for (auto& edge : edges)
-	{
-		vec4 p1 = screenProjection * edge.line.p1;
-		vec4 p2 = screenProjection * edge.line.p2;
-		p1.FloorXY();
-		p2.FloorXY();
-		edge.line = Line(p1, p2);
-	}
-
 	// connect edges outside of the frustum
 	Edge* prevEdge = &edges.back();
 	for (auto it = edges.begin(); it != edges.end(); it++)
@@ -441,6 +432,25 @@ void CCGWorkView::DrawFace(
 		prevEdge = &(*it);
 	}
 
+	// scan edges
+	std::list<ScanEdge> scanEdges;
+	for (auto& edge : edges)
+	{
+		// projection
+		vec4 projectedP1 = screenProjection * edge.line.p1;
+		vec4 projectedP2 = screenProjection * edge.line.p2;
+		projectedP1.FloorXY();
+		projectedP2.FloorXY();
+
+		// global
+		vec4 globalP1 = cameraToGlobalFrame * edge.line.p1;
+		vec4 globalP2 = cameraToGlobalFrame * edge.line.p2;
+		vec4 globalStartNormal = globalToModelFrameTranspose * edge.startNormal;
+		vec4 globalEndNormal = globalToModelFrameTranspose * edge.endNormal;
+
+		scanEdges.push_back(ScanEdge(Line(projectedP1, projectedP2), Edge(Line(globalP1, globalP2), globalStartNormal, globalEndNormal)));
+	}
+
 	if (renderMode == SOLID)
 	{
 		// render solid face
@@ -448,22 +458,21 @@ void CCGWorkView::DrawFace(
 			pDCToUse,
 			m_WindowHeight,
 			m_WindowWidth,
-			edges,
+			scanEdges,
 			projectionToModelFrame,
 			cameraToGlobalFrame,
 			modelToGlobalFrame,
 			globalToModelFrameTranspose,
-			face.center,
-			face.normal,
+			modelToGlobalFrame * face.center,
+			globalToModelFrameTranspose * face.normal,
 			m_normalFlip,
 			color,
 			m_ambientLight,
 			m_lights,
 			m_lMaterialAmbient,
-			m_lMaterialDiffuse,
-			m_lMaterialSpecular,
 			m_nMaterialCosineFactor,
-			m_nLightShading);
+			m_nLightShading
+		);
 	}
 	else
 	{
@@ -659,7 +668,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 				screenProjection,
 				child_color,
 				FaceNormalColor,
-				VertexNormalColor);
+				VertexNormalColor
+			);
 		}
 
 		//// draw child object bounding box
