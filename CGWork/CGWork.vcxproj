@@ -212,6 +212,7 @@
     <ClCompile Include="PerspectiveSettingsDialog.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
     <ClCompile Include="PolygonalFineNessDialog.cpp" />
+    <ClCompile Include="RenderToFileDialog.cpp" />
     <ClCompile Include="SelectObjectDialog.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
@@ -247,6 +248,7 @@
     <ClInclude Include="PerspectiveSettingsDialog.h" />
     <ClInclude Include="PngWrapper.h" />
     <ClInclude Include="PolygonalFineNessDialog.h" />
+    <ClInclude Include="RenderToFileDialog.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SelectObjectDialog.h" />
     <ClInclude Include="StdAfx.h" />

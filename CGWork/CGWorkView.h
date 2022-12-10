@@ -13,7 +13,7 @@
 #include "gl\gl.h"    // Include the standard CGWork  headers
 #include "gl\glu.h"   // Add the utility library
 
-
+#include "PngWrapper.h"
 #include "Light.h"
 #include "CG_Matrix.h"
 #include "CG_Object.h"
@@ -92,6 +92,11 @@ protected:
 	int old_x_position;		// to save the old mouse position
 	int old_y_position;		// to save the old mouse position
 
+	bool m_bRenderOnScreen;		// is the scene should be rendered on Screen
+	bool m_bRenderToPngFile;	// is the scene should be rendered to PNG file
+	CStringA m_strPngFileName;		// file name of PNG render to file
+	PngWrapper* m_pRenderToPng;		// holds the render to file
+
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;
 
@@ -140,7 +145,12 @@ public:
 	void doTranslate(int x_val, int y_val, CG::Object& object);
 	void doScale(int x_val, int y_val, CG::Object& object);
 
+	CDC* RenderOnScreen();		// Renders the scene on the screen
+	void RenderToPngFile();		// Renders the scene to a file in PNG format
+	void WriteDCToPngFile(const CDC* pDCImage, int width, int height);
+
 	void InitializeView();
+	void DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio);
 	void DrawFace(
 		CDC* pDCToUse,
 		CG::RenderMode renderMode,
@@ -172,6 +182,14 @@ public:
 	afx_msg void OnOptionsSelectObject();
 	afx_msg void OnPerspecctiveSettings();
 	afx_msg void OnOptionsBackgroundImage();
+	afx_msg void OnRendermodeSolid();
+	afx_msg void OnUpdateRendermodeSolid(CCmdUI* pCmdUI);
+	afx_msg void OnRendermodeWireframe();
+	afx_msg void OnUpdateRendermodeWireframe(CCmdUI* pCmdUI);
+	afx_msg void OnRenderOnscreen();
+	afx_msg void OnRenderTofile();
+	afx_msg void OnUpdateRenderTofile(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateRenderOnscreen(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

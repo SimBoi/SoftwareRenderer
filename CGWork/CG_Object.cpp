@@ -7,15 +7,6 @@ namespace CG
 	int rotation_sensitivity;
 	int translation_sensitivity;
 	int scale_sensitivity;
-
-	void setDefaultSensitivity()
-	{
-		// need to calc in an intuitive way
-		translation_sensitivity = 25;
-		rotation_sensitivity = 25;
-		scale_sensitivity = 25;
-	}
-
 	BackgroundLayout BackgroundImageLayout;		// background layout
 	bool IsBackgroundImageLoaded;
 	PngWrapper BackgroundImage;		// background image
@@ -26,6 +17,14 @@ namespace CG
 	COLORREF ModelColor;			// model color
 	bool bIsModelColor;			// is model color set
 	double zNear, zFar, fovY;
+
+	void setDefaultSensitivity()
+	{
+		// need to calc in an intuitive way
+		translation_sensitivity = 25;
+		rotation_sensitivity = 25;
+		scale_sensitivity = 25;
+	}
 
 	void setDefaultColors()
 	{

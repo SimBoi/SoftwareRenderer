@@ -39,6 +39,9 @@ namespace CG
 
 	extern ZBuffer zBuffer;
 
+	COLORREF PngValToColorRef(int png_value);
+	int ColorRefToPngVal(COLORREF color);
+
 	void DrawBackground(CRect& r, CDC* pDC);
 	void MoveTo(int x, int y, double z);
 	void LineTo(CDC* pDC, int endX, int endY, double endZ, const COLORREF& color);

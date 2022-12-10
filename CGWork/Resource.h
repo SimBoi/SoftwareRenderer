@@ -18,6 +18,7 @@
 #define IDD_SELECT_OBJECT_DIALOG        151
 #define IDD_PERSPECTIVE_SETTINGS        152
 #define IDD_BACKGROUND_IMAGE_DIALOG     153
+#define IDD_TOPNG_FILE_DIALOG           155
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -61,7 +62,6 @@
 #define IDC_BOUNDINGBOX_COLOR_BUTTON    1057
 #define IDC_BACKGROUND_COLOR_BUTTON     1058
 #define IDC_FINENESS_SLIDER             1059
-#define IDC_BACKGROUND__BUTTON          1059
 #define IDC_BACKGROUND_IMAGE_BUTTON     1059
 #define IDC_VERTIX_NORMAL_COLOR_BUTTON  1060
 #define IDC_FINENESS_STATIC             1061
@@ -78,7 +78,16 @@
 #define IDC_LOAD_IMAGE_BUTTON           1072
 #define IDC_RADIO_NONE                  1073
 #define IDC_RADIO_STRETCH               1074
+#define IDC_BUTTON_RENDERTO             1074
 #define IDC_RADIO_REPEAT                1075
+#define IDC_EDIT_FILE_PATH              1075
+#define IDC_STATIC_RENDERTO             1076
+#define IDC_STATIC_WIDTH                1077
+#define IDC_EDIT_WIDTH                  1078
+#define IDC_STATIC_HEIGHT               1079
+#define IDC_EDIT_HEIGHT                 1080
+#define IDC_BUTTON_DEFAULT_SIZE         1081
+#define IDC_BUTTON_CANCEL_RENDERTO_FILE 1082
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -114,14 +123,19 @@
 #define ID_PERS                         32823
 #define ID_OPTIONS_SELECTOBJECT         32824
 #define ID_OPTIONS_BACKGROUNDIMAGE      32825
+#define ID_RENDER_RENDERMODE            32826
+#define ID_RENDERMODE_WIREFRAME         32827
+#define ID_RENDERMODE_SOLID             32828
+#define ID_RENDER_ONSCREEN              32829
+#define ID_RENDER_TOFILE                32830
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        155
-#define _APS_NEXT_COMMAND_VALUE         32826
-#define _APS_NEXT_CONTROL_VALUE         1074
+#define _APS_NEXT_RESOURCE_VALUE        157
+#define _APS_NEXT_COMMAND_VALUE         32831
+#define _APS_NEXT_CONTROL_VALUE         1083
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
