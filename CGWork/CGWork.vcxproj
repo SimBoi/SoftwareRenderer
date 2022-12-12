@@ -196,6 +196,7 @@
     <ClCompile Include="CG_Object.cpp" />
     <ClCompile Include="ColorPickerDialog.cpp" />
     <ClCompile Include="iritSkel.cpp" />
+    <ClCompile Include="Light.cpp" />
     <ClCompile Include="LightDialog.cpp" />
     <ClCompile Include="MainFrm.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>

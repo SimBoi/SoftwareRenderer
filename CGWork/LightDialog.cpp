@@ -20,19 +20,47 @@ CLightDialog::~CLightDialog()
 {
 }
 
+static void DDV_Intensity(CDataExchange* pDX, double value)
+{
+	if (value < 0.0 || value > 1.0)
+	{
+		CString msg;
+		msg.Format(_T("Invalid Intensity %f, Enter a value between 0.0 and 1.0"), value);
+		AfxMessageBox(msg, MB_ICONSTOP);
+		pDX->Fail();
+	}
+}
+
+static void DDV_Color(CDataExchange* pDX, int value)
+{
+	if (value < 0 || value > 255)
+	{
+		CString msg;
+		msg.Format(_T("Invalid Color %d, Enter a value between 0 and 255"), value);
+		AfxMessageBox(msg, MB_ICONSTOP);
+		pDX->Fail();
+	}
+}
+
 void CLightDialog::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 
 	//ambient light
 	DDX_Text(pDX, IDC_AMBL_COLOR_R, m_ambiant.colorR);
+	DDV_Color(pDX, m_ambiant.colorR);
 	DDX_Text(pDX, IDC_AMBL_COLOR_G, m_ambiant.colorG);
+	DDV_Color(pDX, m_ambiant.colorG);
 	DDX_Text(pDX, IDC_AMBL_COLOR_B, m_ambiant.colorB);
+	DDV_Color(pDX, m_ambiant.colorB);
 
 	//update light parameters for the currently selected light
 	DDX_Text(pDX, IDC_LIGHT_COLOR_R, m_lights[m_currentLightIdx].colorR);
+	DDV_Color(pDX, m_lights[m_currentLightIdx].colorR);
 	DDX_Text(pDX, IDC_LIGHT_COLOR_G, m_lights[m_currentLightIdx].colorG);
+	DDV_Color(pDX, m_lights[m_currentLightIdx].colorG);
 	DDX_Text(pDX, IDC_LIGHT_COLOR_B, m_lights[m_currentLightIdx].colorB);
+	DDV_Color(pDX, m_lights[m_currentLightIdx].colorB);
 
 	DDX_Text(pDX, IDC_LIGHT_POS_X, m_lights[m_currentLightIdx].posX);
 	DDX_Text(pDX, IDC_LIGHT_POS_Y, m_lights[m_currentLightIdx].posY);
@@ -44,6 +72,13 @@ void CLightDialog::DoDataExchange(CDataExchange* pDX)
 
 	//NOTE:Add more dialog controls which are associated with the structure below this line		
 	//...
+
+	DDX_Text(pDX, IDC_LIGHT_DIFFUSE_INTENSITY, m_lights[m_currentLightIdx].diffuseIntensity);
+	DDV_Intensity(pDX, m_lights[m_currentLightIdx].diffuseIntensity);
+
+	DDX_Text(pDX, IDC_LIGHT_SPECULAR_INTENSITY, m_lights[m_currentLightIdx].specularIntensity);
+	DDV_Intensity(pDX, m_lights[m_currentLightIdx].specularIntensity);
+
 
 	//the following class members can't be updated directly through DDX
 	//using a helper variable for type-casting to solve the compilation error
@@ -94,12 +129,23 @@ LightParams CLightDialog::GetDialogData( LightID id )
 //this callback function is called when each of the radio buttons on the dialog is clicked
 void CLightDialog::OnBnClickedRadioLight()
 {
-    //save the dialog state into the data variables
-    UpdateData(TRUE);
-    //get the newly selected light index from the radio buttons
-    m_currentLightIdx=GetCheckedRadioButton(IDC_RADIO_LIGHT1,IDC_RADIO_LIGHT8)-IDC_RADIO_LIGHT1;
-    //Update all dialog fields according to the new light index
-    UpdateData(FALSE);
+	//save the dialog state into the data variables
+	UpdateData(TRUE);
+
+	// do not update invalid light values
+	if (!m_lights[m_currentLightIdx].isValidLight())
+	{
+		//Set the radio button of the current light to be selected
+		CheckRadioButton(IDC_RADIO_LIGHT1, IDC_RADIO_LIGHT8, m_currentLightIdx + IDC_RADIO_LIGHT1);
+	}
+	else
+	{
+		//get the newly selected light index from the radio buttons
+		m_currentLightIdx = GetCheckedRadioButton(IDC_RADIO_LIGHT1, IDC_RADIO_LIGHT8) - IDC_RADIO_LIGHT1;
+		//Update all dialog fields according to the new light index
+		UpdateData(FALSE);
+	}
+
     Invalidate();
 }
 

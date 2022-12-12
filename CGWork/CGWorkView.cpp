@@ -110,6 +110,8 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 //	ON_UPDATE_COMMAND_UI(ID_RENDER_ONSCREEN, &CCGWorkView::OnUpdateRenderOnscreen)
 ON_UPDATE_COMMAND_UI(ID_RENDER_ONSCREEN, &CCGWorkView::OnUpdateRenderOnscreen)
 ON_COMMAND(ID_FILE_SAVEASPNG, &CCGWorkView::OnFileSaveaspng)
+ON_COMMAND(ID_LIGHT_SHADING_PHONG, &CCGWorkView::OnLightShadingPhong)
+ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_PHONG, &CCGWorkView::OnUpdateLightShadingPhong)
 END_MESSAGE_MAP()
 
 
@@ -1236,6 +1238,17 @@ void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_nLightShading == GOURAUD);
 }
 
+
+void CCGWorkView::OnLightShadingPhong()
+{
+	m_nLightShading = PHONG;
+}
+
+void CCGWorkView::OnUpdateLightShadingPhong(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_nLightShading == PHONG);
+}
+
 // RENDER HANDLERS ///////////////////////////////////////////
 
 void CCGWorkView::OnRendermodeSolid()
@@ -1484,3 +1497,6 @@ void CCGWorkView::OnFileSaveaspng()
 	}
 	Invalidate();
 }
+
+
+

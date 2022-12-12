@@ -109,3 +109,4 @@ void BackgroundImageDialog::OnBnClickedRadioRepeat()
 {
 	CG::BackgroundImageLayout = CG::REPEAT;
 }
+

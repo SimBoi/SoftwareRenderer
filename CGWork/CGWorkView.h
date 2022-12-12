@@ -191,6 +191,8 @@ public:
 	afx_msg void OnUpdateRenderTofile(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateRenderOnscreen(CCmdUI* pCmdUI);
 	afx_msg void OnFileSaveaspng();
+	afx_msg void OnLightShadingPhong();
+	afx_msg void OnUpdateLightShadingPhong(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
