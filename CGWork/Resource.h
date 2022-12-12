@@ -128,13 +128,15 @@
 #define ID_RENDERMODE_SOLID             32828
 #define ID_RENDER_ONSCREEN              32829
 #define ID_RENDER_TOFILE                32830
+#define ID_BUTTON_SAVEAS_PNG            32831
+#define ID_FILE_SAVEASPNG               32832
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        157
-#define _APS_NEXT_COMMAND_VALUE         32831
+#define _APS_NEXT_COMMAND_VALUE         32833
 #define _APS_NEXT_CONTROL_VALUE         1083
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

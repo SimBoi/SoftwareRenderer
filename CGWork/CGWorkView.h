@@ -145,12 +145,12 @@ public:
 	void doTranslate(int x_val, int y_val, CG::Object& object);
 	void doScale(int x_val, int y_val, CG::Object& object);
 
-	CDC* RenderOnScreen();		// Renders the scene on the screen
-	void RenderToPngFile();		// Renders the scene to a file in PNG format
-	void WriteDCToPngFile(const CDC* pDCImage, int width, int height);
+	CDC* RenderOnScreen(CG::RenderMode renderMode);		// Renders the scene on the screen
+	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode);		// Renders the scene to a file in PNG format
+	void WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height);
 
 	void InitializeView();
-	void DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio);
+	void DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio, CG::RenderMode renderMode);
 	void DrawFace(
 		CDC* pDCToUse,
 		CG::RenderMode renderMode,
@@ -190,6 +190,7 @@ public:
 	afx_msg void OnRenderTofile();
 	afx_msg void OnUpdateRenderTofile(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateRenderOnscreen(CCmdUI* pCmdUI);
+	afx_msg void OnFileSaveaspng();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

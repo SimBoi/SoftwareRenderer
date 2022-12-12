@@ -51,7 +51,7 @@ IDR_VERTEX_NORMALS      BITMAP                  "res\\vertex_normals.bmp"
 IDR_MAINFRAME TOOLBAR 16, 16
 BEGIN
     BUTTON      ID_FILE_LOAD
-    SEPARATOR
+    BUTTON      ID_FILE_SAVEASPNG
     BUTTON      ID_VIEW_ORTHOGRAPHIC
     BUTTON      ID_VIEW_PERSPECTIVE
     SEPARATOR
@@ -87,6 +87,7 @@ BEGIN
     POPUP "&File"
     BEGIN
         MENUITEM "&Load",                       ID_FILE_LOAD
+        MENUITEM "Save as PNG",                 ID_FILE_SAVEASPNG
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
     POPUP "&View"

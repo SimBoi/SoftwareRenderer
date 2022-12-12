@@ -109,6 +109,7 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_RENDER_TOFILE, &CCGWorkView::OnUpdateRenderTofile)
 //	ON_UPDATE_COMMAND_UI(ID_RENDER_ONSCREEN, &CCGWorkView::OnUpdateRenderOnscreen)
 ON_UPDATE_COMMAND_UI(ID_RENDER_ONSCREEN, &CCGWorkView::OnUpdateRenderOnscreen)
+ON_COMMAND(ID_FILE_SAVEASPNG, &CCGWorkView::OnFileSaveaspng)
 END_MESSAGE_MAP()
 
 
@@ -605,7 +606,7 @@ void CCGWorkView::InitializeView()
 }
 
 
-void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio)
+void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio, RenderMode renderMode)
 {
 	zBuffer.resize(m_WindowHeight, m_WindowWidth);
 	zBuffer.init(); // reset zBuffer
@@ -665,7 +666,7 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 
 			DrawFace(
 				pDCToUse,
-				m_renderMode,
+				renderMode,
 				face,
 				m_drawFaceNormals,
 				m_drawVertexNormals,
@@ -713,19 +714,19 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	{
 		// in case of rendering on screen and to file of the same size
 		// no need to recalculate the scene
-		CDC* pDCImage = RenderOnScreen();
-		WriteDCToPngFile(pDCImage, m_WindowWidth, m_WindowHeight);
+		CDC* pDCImage = RenderOnScreen(m_renderMode);
+		WriteDCToPngFile(pDCImage, m_pRenderToPng, m_WindowWidth, m_WindowHeight);
 	}
 	else
 	{
 		if (m_bRenderOnScreen)
 		{
-			RenderOnScreen();
+			RenderOnScreen(m_renderMode);
 		}
 
 		if (m_bRenderToPngFile)
 		{
-			RenderToPngFile();
+			RenderToPngFile(m_pRenderToPng, m_renderMode);
 		}
 	}
 	
@@ -733,13 +734,13 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
 
 
-CDC* CCGWorkView::RenderOnScreen()
+CDC* CCGWorkView::RenderOnScreen(RenderMode renderMode)
 {
 	CRect r;
 	GetClientRect(&r);
 	CDC* pDCToUse = /*m_pDC*/m_pDbDC;
 
-	DrawScene(r, pDCToUse, m_WindowWidth, m_WindowHeight, m_AspectRatio);
+	DrawScene(r, pDCToUse, m_WindowWidth, m_WindowHeight, m_AspectRatio, renderMode);
 
 	if (pDCToUse != m_pDC)
 	{
@@ -750,13 +751,13 @@ CDC* CCGWorkView::RenderOnScreen()
 }
 
 
-void CCGWorkView::RenderToPngFile()
+void CCGWorkView::RenderToPngFile(PngWrapper* png_file, RenderMode renderMode)
 {
-	if (!m_bRenderToPngFile || m_pRenderToPng == nullptr)
+	if (png_file == nullptr)
 		return;
 
 	// image rect
-	CRect img_r(0, 0, m_pRenderToPng->GetWidth(), m_pRenderToPng->GetHeight());
+	CRect img_r(0, 0, png_file->GetWidth(), png_file->GetHeight());
 
 	// image Device Context
 	CDC* pDCToUse = new CDC();
@@ -765,26 +766,21 @@ void CCGWorkView::RenderToPngFile()
 	HBITMAP pImgBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, img_r.right, img_r.bottom);
 	pDCToUse->SelectObject(pImgBitMap);
 
-	// compute the aspect ratio
-	// this will keep all dimension scales equal
-	double TmpAspectRatio = (GLdouble)m_WindowWidth / (GLdouble)m_WindowHeight;  // ??
+	DrawScene(img_r, pDCToUse, png_file->GetWidth(), png_file->GetHeight(), m_AspectRatio, renderMode);
 
-
-	DrawScene(img_r, pDCToUse, m_pRenderToPng->GetWidth(), m_pRenderToPng->GetHeight(), m_AspectRatio);
-
-	WriteDCToPngFile(pDCToUse, img_r.Width(), img_r.Height());
+	WriteDCToPngFile(pDCToUse, png_file, img_r.Width(), img_r.Height());
 
 	delete pDCToUse;
 	pDCToUse = nullptr;
 }
 
 
-void CCGWorkView::WriteDCToPngFile(const CDC* pDCImage, int width, int height)
+void CCGWorkView::WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height)
 {
-	if (!m_bRenderToPngFile || m_pRenderToPng == nullptr)
+	if (png_file == nullptr)
 		return;
 
-	if (!m_pRenderToPng->InitWritePng())
+	if (!png_file->InitWritePng())
 		return;
 
 	for (unsigned int y = 0; y < height; y++)
@@ -792,11 +788,11 @@ void CCGWorkView::WriteDCToPngFile(const CDC* pDCImage, int width, int height)
 		for (unsigned int x = 0; x < width; x++)
 		{
 			int png_val = ColorRefToPngVal(pDCImage->GetPixel(x, y));
-			m_pRenderToPng->SetValue(x, y, png_val);
+			png_file->SetValue(x, y, png_val);
 		}
 	}
 
-	m_pRenderToPng->WritePng();
+	png_file->WritePng();
 }
 
 
@@ -1462,3 +1458,29 @@ void CCGWorkView::OnOptionsBackgroundImage()
 }
 
 
+
+
+void CCGWorkView::OnFileSaveaspng()
+{
+	RenderToFileDialog dialog;
+	dialog.m_FilePathString = "";
+	dialog.m_ImageWidth = m_WindowWidth;
+	dialog.m_ImageHeight = m_WindowHeight;
+	dialog.m_WindowWidth = m_WindowWidth;
+	dialog.m_WindowHeight = m_WindowHeight;
+
+	INT_PTR answer = dialog.DoModal();
+	if (answer == IDOK)
+	{
+		// init saveto png file
+		CStringA saveto_str = dialog.m_FilePathString;
+		PngWrapper* saveto_file = new PngWrapper(saveto_str, dialog.m_ImageWidth, dialog.m_ImageHeight);
+
+		// render the scence to saveto png file
+		RenderToPngFile(saveto_file, SOLID);
+
+		delete saveto_file;
+		saveto_file = nullptr;
+	}
+	Invalidate();
+}
