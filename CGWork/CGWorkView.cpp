@@ -112,6 +112,12 @@ ON_UPDATE_COMMAND_UI(ID_RENDER_ONSCREEN, &CCGWorkView::OnUpdateRenderOnscreen)
 ON_COMMAND(ID_FILE_SAVEASPNG, &CCGWorkView::OnFileSaveaspng)
 ON_COMMAND(ID_LIGHT_SHADING_PHONG, &CCGWorkView::OnLightShadingPhong)
 ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_PHONG, &CCGWorkView::OnUpdateLightShadingPhong)
+ON_COMMAND(ID_VIEW_BACKFACECULLING, &CCGWorkView::OnViewBackfaceculling)
+ON_UPDATE_COMMAND_UI(ID_VIEW_BACKFACECULLING, &CCGWorkView::OnUpdateViewBackfaceculling)
+ON_COMMAND(ID_VIEW_INVERTNORMALS, &CCGWorkView::OnViewInvertnormals)
+ON_UPDATE_COMMAND_UI(ID_VIEW_INVERTNORMALS, &CCGWorkView::OnUpdateViewInvertnormals)
+ON_COMMAND(ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS, &CCGWorkView::OnViewAlwayscalculateverticesnormals)
+ON_UPDATE_COMMAND_UI(ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS, &CCGWorkView::OnUpdateViewAlwayscalculateverticesnormals)
 END_MESSAGE_MAP()
 
 
@@ -1069,6 +1075,40 @@ void CCGWorkView::OnUpdateViewPerspective(CCmdUI* pCmdUI)
 }
 
 
+void CCGWorkView::OnViewBackfaceculling()
+{
+	m_backFaceCulling = !m_backFaceCulling;
+	Invalidate();		// redraw using the new view.
+}
+
+void CCGWorkView::OnUpdateViewBackfaceculling(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_backFaceCulling);
+}
+
+
+void CCGWorkView::OnViewInvertnormals()
+{
+	m_normalFlip = -1 * m_normalFlip;
+	Invalidate();		// redraw using the new view.
+}
+
+void CCGWorkView::OnUpdateViewInvertnormals(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_normalFlip == -1);
+}
+
+
+void CCGWorkView::OnViewAlwayscalculateverticesnormals()
+{
+	m_alwaysCalcNormals = !m_alwaysCalcNormals;
+	Invalidate();		// redraw using the new view.
+}
+
+void CCGWorkView::OnUpdateViewAlwayscalculateverticesnormals(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_alwaysCalcNormals);
+}
 
 
 // ACTION HANDLERS ///////////////////////////////////////////
@@ -1254,6 +1294,7 @@ void CCGWorkView::OnUpdateLightShadingPhong(CCmdUI* pCmdUI)
 void CCGWorkView::OnRendermodeSolid()
 {
 	m_renderMode = SOLID;
+	Invalidate();		// redraw using the new view.
 }
 
 
@@ -1266,6 +1307,7 @@ void CCGWorkView::OnUpdateRendermodeSolid(CCmdUI* pCmdUI)
 void CCGWorkView::OnRendermodeWireframe()
 {
 	m_renderMode = WIREFRAME;
+	Invalidate();		// redraw using the new view.
 }
 
 
@@ -1497,6 +1539,8 @@ void CCGWorkView::OnFileSaveaspng()
 	}
 	Invalidate();
 }
+
+
 
 
 

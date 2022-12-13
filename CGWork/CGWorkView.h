@@ -193,6 +193,12 @@ public:
 	afx_msg void OnFileSaveaspng();
 	afx_msg void OnLightShadingPhong();
 	afx_msg void OnUpdateLightShadingPhong(CCmdUI* pCmdUI);
+	afx_msg void OnViewBackfaceculling();
+	afx_msg void OnUpdateViewBackfaceculling(CCmdUI* pCmdUI);
+	afx_msg void OnViewInvertnormals();
+	afx_msg void OnUpdateViewInvertnormals(CCmdUI* pCmdUI);
+	afx_msg void OnViewAlwayscalculateverticesnormals();
+	afx_msg void OnUpdateViewAlwayscalculateverticesnormals(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
