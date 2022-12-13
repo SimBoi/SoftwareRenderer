@@ -57,6 +57,8 @@ public:
     //light intensity
     double diffuseIntensity;
     double specularIntensity;
+
+    bool isValidLight();
     
     LightParams():
 	    enabled(false),type(LIGHT_TYPE_DIRECTIONAL),space(LIGHT_SPACE_VIEW),
