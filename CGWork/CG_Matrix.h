@@ -1,6 +1,7 @@
 #ifndef CG_MATRIX
 #define CG_MATRIX
 #include <wtypes.h>
+#include <cmath>
 
 #define DEG_TO_RAD 0.0174532925
 #define EPSILON 1e-5
@@ -38,6 +39,8 @@ namespace CG
 		static vec4 HomogeneousToEuclidean(vec4& coords);
 		static vec4 ColorToVec(const COLORREF& color);
 	};
+
+	vec4 coordsKey(vec4& coords, double range);
 
 	class vec4Hash
 	{
@@ -81,7 +84,21 @@ namespace CG
 		vec4 p2;
 		Line(vec4& p1, vec4& p2);
 		vec4 operator[](double t) const;
+		bool operator==(const Line& other) const;
+		bool operator!=(const Line& other) const;
 		bool IntersectionXY(Line& other, double& t, vec4& p) const;
+	};
+
+	Line lineKey(Line& l, double range);
+
+	class LineHash
+	{
+	public:
+		size_t operator()(const Line& l) const
+		{
+			vec4Hash hash;
+			return (unsigned int)(hash(l.p1) + hash(l.p2));
+		}
 	};
 
 	class Plane

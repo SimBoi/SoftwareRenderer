@@ -41,6 +41,8 @@ static char THIS_FILE[] = __FILE__;
 
 using namespace CG;
 
+double objectSize;
+
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
 
@@ -162,7 +164,7 @@ CCGWorkView::CCGWorkView()
 	m_bRenderToPngFile = false;
 	m_pRenderToPng = nullptr;
 
-	m_nLightShading = FLAT;
+	m_nLightShading = PHONG;
 
 	m_lMaterialAmbient = 0.2;
 	m_lMaterialDiffuse = 0.8;
@@ -420,6 +422,8 @@ void CCGWorkView::DrawFace(
 	const mat4& modelToCameraFrame,
 	const mat4& projectionToModelFrame,
 	const mat4& cameraToGlobalFrame,
+	const mat4& cameraToModelFrame,
+	const mat4& cameraToModelFrameTranspose,
 	const mat4& modelToGlobalFrame,
 	const mat4& globalToModelFrameTranspose,
 	const mat4& screenProjection,
@@ -437,8 +441,7 @@ void CCGWorkView::DrawFace(
 	{
 		currCoords = modelToCameraFrame * vertex.localPosition;
 		currNormal = vertex.normal;
-		vec4 coords = currCoords;
-		Edge edge = Edge(Line(prevCoords, coords), prevNormal, currNormal);
+		Edge edge = Edge(Line(prevCoords, currCoords), prevNormal, currNormal);
 		if (ClipEdge(edge, camera)) edges.push_back(edge);
 		prevCoords = currCoords;
 		prevNormal = currNormal;
@@ -509,6 +512,45 @@ void CCGWorkView::DrawFace(
 		}
 	}
 
+	// draw Silhouette
+	auto it = face.adjacentFaces.begin();
+	for (Line line : face.edges)
+	{
+		Face* adjacentFace = *it;
+		bool isSilhouette = false;
+
+		if (adjacentFace == NULL)
+		{
+			isSilhouette = true;
+		}
+		else if (m_nView == ID_VIEW_PERSPECTIVE)
+		{
+			vec4 cameraModelPos = cameraToModelFrame * vec4(0, 0, 0, 1);
+			vec4 faceViewDirection = face.center - cameraModelPos;
+			double faceDirection = vec4::dot(faceViewDirection, face.normal * m_normalFlip);
+			vec4 adjacentFaceViewDirection = adjacentFace->center - cameraModelPos;
+			double adjacentFaceDirection = vec4::dot(adjacentFaceViewDirection, adjacentFace->normal * m_normalFlip);
+			if (faceDirection * adjacentFaceDirection <= 0) isSilhouette = true;
+		}
+		else
+		{
+			vec4 faceNormalCameraFrame = cameraToModelFrameTranspose * face.normal * m_normalFlip;
+			double faceDirection = vec4::dot(faceNormalCameraFrame, vec4(0, 0, -1, 0));
+			vec4 adjacentFaceNormalCameraFrame = cameraToModelFrameTranspose * adjacentFace->normal * m_normalFlip;
+			double adjacentFaceDirection = vec4::dot(adjacentFaceNormalCameraFrame, vec4(0, 0, -1, 0));
+			if (faceDirection * adjacentFaceDirection <= 0) isSilhouette = true;
+		}
+
+		if (isSilhouette)
+		{
+			vec4 from = modelToCameraFrame * line.p1;
+			vec4 to = modelToCameraFrame * line.p2;
+			DrawLine(pDCToUse, from, to, camera, screenProjection, vertexNormalColor);
+		}
+
+		it++;
+	}
+
 	// draw face normals
 	if (drawFaceNormal)
 	{
@@ -529,29 +571,8 @@ void CCGWorkView::DrawFace(
 	}
 }
 
-vec4 coordsKey(vec4& coords, double range, double precision)
+void CCGWorkView::CalculateVertexNormals()
 {
-	vec4 key = coords / range; 
-	key.x = std::round(key.x / precision) * precision;
-	key.y = std::round(key.y / precision) * precision;
-	key.z = std::round(key.z / precision) * precision;
-	key.w = 1;
-	return key;
-}
-
-void CCGWorkView::InitializeView()
-{
-	object_index = 0;
-	selectedObject = getObjectByIndex(object_index);
-
-	double objectSize = max(parentObject.maxX - parentObject.minX, parentObject.maxY - parentObject.minY);
-	objectSize = max(objectSize, parentObject.maxZ - parentObject.minZ);
-	double scale = 400 / objectSize;
-	double normalScale = 0.05 * objectSize;
- 	parentObject.Scale(vec4(scale, scale, scale));
-
-	// calculate vertex normals
-	double precision = 0.001;
 	std::unordered_map<vec4, std::list<Face*>, vec4Hash> incidentFaces;
 	for (auto& child : parentObject.children)
 	{
@@ -559,7 +580,7 @@ void CCGWorkView::InitializeView()
 		{
 			for (auto& vertex : face.vertices)
 			{
-				vec4 key = coordsKey(vertex.localPosition, objectSize, precision);
+				vec4 key = coordsKey(vertex.localPosition, objectSize);
 				incidentFaces[key].push_back(&face);
 			}
 		}
@@ -571,7 +592,7 @@ void CCGWorkView::InitializeView()
 		{
 			for (auto& vertex : face.vertices)
 			{
-				vec4 key = coordsKey(vertex.localPosition, objectSize, precision);
+				vec4 key = coordsKey(vertex.localPosition, objectSize);
 				incidentFaces[key].push_back(&face);
 			}
 		}
@@ -586,7 +607,7 @@ void CCGWorkView::InitializeView()
 			{
 				if (m_alwaysCalcNormals == false && vertex.normal != zeroVector) continue;
 
-				vec4 key = coordsKey(vertex.localPosition, objectSize, precision);
+				vec4 key = coordsKey(vertex.localPosition, objectSize);
 				if (incidentFaces.count(key) == 0) continue;
 				for (Face* incidentFace : incidentFaces[key])
 				{
@@ -596,6 +617,76 @@ void CCGWorkView::InitializeView()
 			}
 		}
 	}
+}
+
+void CCGWorkView::FindEdgeAdjacentFaces()
+{
+	std::unordered_map<Line, std::list<Face*>, LineHash> edgeAdjacentFaces;
+
+	for (auto& child : parentObject.children)
+	{
+		for (auto& face : child.faces)
+		{
+			for (auto& line : face.edges)
+			{
+				Line key = lineKey(line, objectSize);
+				edgeAdjacentFaces[key].push_back(&face);
+			}
+		}
+	}
+
+	for (auto& child : parentObject.children)
+	{
+		for (auto& face : child.faces)
+		{
+			for (auto& line : face.edges)
+			{
+				Line key = lineKey(line, objectSize);
+				bool foundFace = false;
+				for (auto adjacentFace : edgeAdjacentFaces[key])
+				{
+					if (&face != adjacentFace)
+					{
+						foundFace = true;
+						face.adjacentFaces.push_back(adjacentFace);
+						break;
+					}
+				}
+				if (!foundFace) face.adjacentFaces.push_back(NULL);
+			}
+		}
+	}
+}
+
+void CCGWorkView::InitializeView()
+{
+	object_index = 0;
+	selectedObject = getObjectByIndex(object_index);
+
+	objectSize = max(parentObject.maxX - parentObject.minX, parentObject.maxY - parentObject.minY);
+	objectSize = max(objectSize, parentObject.maxZ - parentObject.minZ);
+	double scale = 400 / objectSize;
+	double normalScale = 0.05 * objectSize;
+ 	parentObject.Scale(vec4(scale, scale, scale));
+
+	CalculateVertexNormals();
+
+	// initialize face edges
+	for (auto& child : parentObject.children)
+	{
+		for (auto& face : child.faces)
+		{
+			vec4 currCoords, prevCoords = face.vertices.back().localPosition;
+			for (auto& vertex : face.vertices)
+			{
+				currCoords = vertex.localPosition;
+				face.edges.push_back(Line(prevCoords, currCoords));
+				prevCoords = currCoords;
+			}
+		}
+	}
+
+	FindEdgeAdjacentFaces();
 
 	// set scale for normals
 	for (auto& child : parentObject.children)
@@ -687,6 +778,8 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 				childToCameraFrame,
 				projectionToChildFrame,
 				camera.cTransform,
+				cameraToChildFrame,
+				cameraToChildFrameTranspose,
 				childToGlobalFrame,
 				globalToChildFrameTranspose,
 				screenProjection,

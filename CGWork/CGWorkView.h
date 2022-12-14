@@ -149,6 +149,8 @@ public:
 	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode);		// Renders the scene to a file in PNG format
 	void WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height);
 
+	void CalculateVertexNormals();
+	void FindEdgeAdjacentFaces();
 	void InitializeView();
 	void DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio, CG::RenderMode renderMode);
 	void DrawFace(
@@ -161,6 +163,8 @@ public:
 		const CG::mat4& modelToCameraFrame,
 		const CG::mat4& projectionToModelFrame,
 		const CG::mat4& cameraToGlobalFrame,
+		const CG::mat4& cameraToModelFrame,
+		const CG::mat4& cameraToModelFrameTranspose,
 		const CG::mat4& modelToGlobalFrame,
 		const CG::mat4& globalToModelFrameTranspose,
 		const CG::mat4& screenProjection,

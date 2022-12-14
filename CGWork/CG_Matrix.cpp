@@ -145,6 +145,17 @@ namespace CG
 		return vec4(GetRValue(color), GetGValue(color), GetBValue(color), 0);
 	}
 
+	vec4 coordsKey(vec4& coords, double range)
+	{
+		static const double roundingPrecision = 0.001;
+		vec4 key = coords / range;
+		key.x = std::round(key.x / roundingPrecision) * roundingPrecision;
+		key.y = std::round(key.y / roundingPrecision) * roundingPrecision;
+		key.z = std::round(key.z / roundingPrecision) * roundingPrecision;
+		key.w = 1;
+		return key;
+	}
+
 	///////////// mat4
 
 	mat4::mat4(const double d)
@@ -303,6 +314,18 @@ namespace CG
 		return p1 * (1 - t) + p2 * t;
 	}
 
+	bool Line::operator==(const Line& other) const
+	{
+		if (p1 == other.p1 && p2 == other.p2) return true;
+		if (p1 == other.p2 && p2 == other.p1) return true;
+		return false;
+	}
+
+	bool Line::operator!=(const Line& other) const
+	{
+		return !(*this == other);
+	}
+
 	bool Line::IntersectionXY(Line& other, double& t, vec4& p) const
 	{
 		double a = (p1.x - other.p1.x) * (other.p1.y - other.p2.y);
@@ -315,6 +338,13 @@ namespace CG
 		t = (a - b) / (c - d);
 		p = (*this)[t];
 		return true;
+	}
+
+	Line lineKey(Line& l, double range)
+	{
+		vec4 p1 = coordsKey(l.p1, range);
+		vec4 p2 = coordsKey(l.p2, range);
+		return Line(p1, p2);
 	}
 
 	///////////// Plane

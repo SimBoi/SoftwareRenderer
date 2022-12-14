@@ -54,7 +54,7 @@ namespace CG
 		Line line;
 		vec4 startNormal;
 		vec4 endNormal;
-		Edge(Line line, vec4 startNormal, vec4 endNormal) :
+		Edge(Line& line, vec4& startNormal, vec4& endNormal) :
 			line(line), startNormal(startNormal), endNormal(endNormal)
 		{ };
 	};
@@ -65,6 +65,8 @@ namespace CG
 		std::list<Vertex> vertices;
 		vec4 normal;
 		vec4 center;
+		std::list<Line> edges;
+		std::list<Face*> adjacentFaces; // null if there is no adjacent face for an edge
 	};
 
 	bool IsConvex(Face& face);
