@@ -2,7 +2,8 @@
 #define CG_MATRIX
 #include <wtypes.h>
 
-#define DEG_TO_RAD 0.0174532925;
+#define DEG_TO_RAD 0.0174532925
+#define EPSILON 1e-5
 
 namespace CG
 {

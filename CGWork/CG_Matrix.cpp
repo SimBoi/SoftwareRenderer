@@ -79,7 +79,10 @@ namespace CG
 
 	bool vec4::operator==(const vec4& other) const
 	{
-		return (x == other.x && y == other.y && z == other.z);
+		if (x > other.x + EPSILON || x < other.x - EPSILON) return false;
+		if (y > other.y + EPSILON || y < other.y - EPSILON) return false;
+		if (z > other.z + EPSILON || z < other.z - EPSILON) return false;
+		return true;
 	}
 
 	bool vec4::operator!=(const vec4& other) const
@@ -96,12 +99,14 @@ namespace CG
 	void vec4::normalize()
 	{
 		double length = sqrt(x * x + y * y + z * z);
+		if (length == 0) return;
 		*this *= 1 / length;
 	}
 
 	vec4 vec4::normalized() const
 	{
 		double length = sqrt(x * x + y * y + z * z);
+		if (length == 0) return vec4();
 		return *this / length;
 	}
 

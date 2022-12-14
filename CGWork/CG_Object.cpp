@@ -49,6 +49,35 @@ namespace CG
 		this->normal = normal;
 	}
 
+	bool IsConvex(Face& face)
+	{
+		if (face.vertices.size() < 3) return false;
+		vec4 n;
+
+		// check if all the cross products are in the same direction
+		auto p3 = face.vertices.begin();
+		auto p1 = p3; p3++;
+		auto p2 = p3; p3++;
+		for (int i = 0; i < face.vertices.size(); i++)
+		{
+			vec4 u = (*p2).localPosition - (*p1).localPosition;
+			vec4 v = (*p3).localPosition - (*p2).localPosition;
+
+			vec4 cross = vec4::cross(u, v).normalized();
+			if (cross == vec4()) continue;
+
+			if (n == vec4()) n = cross;
+			else if (n != cross) return false;
+
+			p1 = p2;
+			p2 = p3;
+			p3++;
+			if (p3 == face.vertices.end()) p3 = face.vertices.begin();
+		}
+
+		return true;
+	}
+
 	vec4 Object::mPosition() const
 	{
 		return mTransform * vec4(0, 0, 0, 1);

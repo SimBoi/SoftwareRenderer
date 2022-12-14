@@ -610,6 +610,11 @@ void CCGWorkView::InitializeView()
 		}
 	}
 
+	// check if all the polygons are convex
+	for (auto& child : parentObject.children)
+		for (auto& face : child.faces)
+			if (!IsConvex(face)) throw;
+
 	camera.LookAt(vec4(0, 0, 600, 1), parentObject.wPosition(), vec4(0, 1, 0).normalized());
 }
 

@@ -67,6 +67,8 @@ namespace CG
 		vec4 center;
 	};
 
+	bool IsConvex(Face& face);
+
 	class Object
 	{
 	public:
