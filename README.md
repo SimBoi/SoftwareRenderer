@@ -12,4 +12,6 @@ Features:
 - Object hierarchy with support for individual object transformations
 - Polygon/Vertex normal calculation and highlighting
 - Render scene to png file
+- Z buffer rendering
+- Back face culling
 - many other smaller features
