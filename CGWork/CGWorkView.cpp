@@ -712,7 +712,7 @@ void CCGWorkView::InitializeView()
 
 void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio, RenderMode renderMode)
 {
-	zBuffer.resize(m_WindowHeight, m_WindowWidth);
+	zBuffer.resize(SceneHeight, SceneWidth);
 	zBuffer.init(); // reset zBuffer
 
 	// draw background
@@ -862,8 +862,11 @@ void CCGWorkView::RenderToPngFile(PngWrapper* png_file, RenderMode renderMode)
 	if (png_file == nullptr)
 		return;
 
+	int img_width = png_file->GetWidth();
+	int img_height = png_file->GetHeight();
+
 	// image rect
-	CRect img_r(0, 0, png_file->GetWidth(), png_file->GetHeight());
+	CRect img_r(0, 0, img_width, img_height);
 
 	// image Device Context
 	CDC* pDCToUse = new CDC();
@@ -872,7 +875,11 @@ void CCGWorkView::RenderToPngFile(PngWrapper* png_file, RenderMode renderMode)
 	HBITMAP pImgBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, img_r.right, img_r.bottom);
 	pDCToUse->SelectObject(pImgBitMap);
 
-	DrawScene(img_r, pDCToUse, png_file->GetWidth(), png_file->GetHeight(), m_AspectRatio, renderMode);
+	// compute the aspect ratio
+	// this will keep all dimension scales equal
+	double ImgAspectRatio = (GLdouble)(img_width) / (GLdouble)(img_height);
+
+	DrawScene(img_r, pDCToUse, img_width, img_height, ImgAspectRatio, renderMode);
 
 	WriteDCToPngFile(pDCToUse, png_file, img_r.Width(), img_r.Height());
 
