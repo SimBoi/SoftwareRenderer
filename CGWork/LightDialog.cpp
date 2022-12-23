@@ -47,12 +47,12 @@ void CLightDialog::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 
 	//ambient light
-	DDX_Text(pDX, IDC_AMBL_COLOR_R, m_ambiant.colorR);
-	DDV_Color(pDX, m_ambiant.colorR);
-	DDX_Text(pDX, IDC_AMBL_COLOR_G, m_ambiant.colorG);
-	DDV_Color(pDX, m_ambiant.colorG);
-	DDX_Text(pDX, IDC_AMBL_COLOR_B, m_ambiant.colorB);
-	DDV_Color(pDX, m_ambiant.colorB);
+	DDX_Text(pDX, IDC_AMBL_COLOR_R, m_ambient.colorR);
+	DDV_Color(pDX, m_ambient.colorR);
+	DDX_Text(pDX, IDC_AMBL_COLOR_G, m_ambient.colorG);
+	DDV_Color(pDX, m_ambient.colorG);
+	DDX_Text(pDX, IDC_AMBL_COLOR_B, m_ambient.colorB);
+	DDV_Color(pDX, m_ambient.colorB);
 
 	//update light parameters for the currently selected light
 	DDX_Text(pDX, IDC_LIGHT_COLOR_R, m_lights[m_currentLightIdx].colorR);
@@ -70,7 +70,7 @@ void CLightDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_LIGHT_DIR_Y, m_lights[m_currentLightIdx].dirY);
 	DDX_Text(pDX, IDC_LIGHT_DIR_Z, m_lights[m_currentLightIdx].dirZ);
 
-	//NOTE:Add more dialog controls which are associated with the structure below this line		
+	//NOTE:Add more dialog controls which are associated with the structure below this line
 	//...
 
 	DDX_Text(pDX, IDC_LIGHT_DIFFUSE_INTENSITY, m_lights[m_currentLightIdx].diffuseIntensity);
@@ -79,6 +79,11 @@ void CLightDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_LIGHT_SPECULAR_INTENSITY, m_lights[m_currentLightIdx].specularIntensity);
 	DDV_Intensity(pDX, m_lights[m_currentLightIdx].specularIntensity);
 
+	DDX_Text(pDX, IDC_LIGHT_AMBIENT_INTENSITY, m_ambient.ambientIntensity);
+	DDV_Intensity(pDX, m_ambient.ambientIntensity);
+
+	DDX_Text(pDX, IDC_LIGHT_COSINE_FACTOR, m_cosineFactor);
+	DDV_MinMaxInt(pDX, m_cosineFactor, 1, 500);
 
 	//the following class members can't be updated directly through DDX
 	//using a helper variable for type-casting to solve the compilation error
@@ -109,21 +114,32 @@ BEGIN_MESSAGE_MAP(CLightDialog, CDialog)
     ON_BN_CLICKED(IDC_RADIO_LIGHT8, &CLightDialog::OnBnClickedRadioLight)
 END_MESSAGE_MAP()
 
-void CLightDialog::SetDialogData( LightID id,const LightParams& light )
-{    
+void CLightDialog::SetLightData( LightID id,const LightParams& light )
+{
     if (id<=LIGHT_ID_AMBIENT)
-	m_ambiant = light;
+	m_ambient = light;
     else
 	m_lights[id]=light;
 }
 
-LightParams CLightDialog::GetDialogData( LightID id )
+LightParams CLightDialog::GetLightData( LightID id )
 {
     if (id==LIGHT_ID_AMBIENT)
-	return m_ambiant;
+	return m_ambient;
     else
 	return m_lights[id];
 }
+
+void CLightDialog::SetCosineFactor(int cosineFactor)
+{
+	m_cosineFactor = cosineFactor;
+}
+
+int CLightDialog::GetCosineFactor()
+{
+	return m_cosineFactor;
+}
+
 // CLightDialog message handlers
 
 //this callback function is called when each of the radio buttons on the dialog is clicked

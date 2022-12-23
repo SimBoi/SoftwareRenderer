@@ -45,7 +45,7 @@ private:
 	bool m_alwaysCalcNormals;	// calculate vertex normals instead of using the provided normals
 	CG::RenderMode m_renderMode;	// rendering: wireframe, solid
 	bool m_backFaceCulling;
-	
+
 	CString m_strItdFileName;		// file name of IRIT data
 
 	CG::Shading m_nLightShading;			// shading: Flat, Gouraud, Phong.
@@ -56,7 +56,8 @@ private:
 	int m_nMaterialCosineFactor;		// The cosine factor for the specular
 
 	LightParams m_lights[MAX_LIGHT];	//configurable lights array
-	LightParams m_ambientLight;		//ambient light (only RGB is used)
+	LightParams m_ambientLight;		//ambient light
+	int m_cosineFactor;
 
 
 // Overrides
