@@ -101,6 +101,7 @@ BEGIN
         MENUITEM "Back Face Culling",           ID_VIEW_BACKFACECULLING
         MENUITEM "Invert Normals",              ID_VIEW_INVERTNORMALS
         MENUITEM "Always Calculate the Vertices’ Normals", ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS
+        MENUITEM "Silhouette Highlighting",     ID_VIEW_SILHOUETTEHIGHLIGHTING
     END
     POPUP "A&ction"
     BEGIN
@@ -750,6 +751,11 @@ BEGIN
     ID_FACE_NORMALS         "show/hide face normals"
     ID_VERTEX_NORMALS       "show/hide vertex normals"
     ID_PERSPECCTIVE_SETTINGS "Perspective settings"
+END
+
+STRINGTABLE
+BEGIN
+    ID_VIEW_SILHOUETTEHIGHLIGHTING "Render Silhouette"
 END
 
 #endif    // English (United States) resources

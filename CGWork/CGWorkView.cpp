@@ -120,6 +120,8 @@ ON_COMMAND(ID_VIEW_INVERTNORMALS, &CCGWorkView::OnViewInvertnormals)
 ON_UPDATE_COMMAND_UI(ID_VIEW_INVERTNORMALS, &CCGWorkView::OnUpdateViewInvertnormals)
 ON_COMMAND(ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS, &CCGWorkView::OnViewAlwayscalculateverticesnormals)
 ON_UPDATE_COMMAND_UI(ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS, &CCGWorkView::OnUpdateViewAlwayscalculateverticesnormals)
+ON_COMMAND(ID_VIEW_SILHOUETTEHIGHLIGHTING, &CCGWorkView::ToggleSilhouette)
+ON_UPDATE_COMMAND_UI(ID_VIEW_SILHOUETTEHIGHLIGHTING, &CCGWorkView::OnUpdateToggleSilhouette)
 END_MESSAGE_MAP()
 
 
@@ -537,42 +539,45 @@ void CCGWorkView::DrawFace(
 	}
 
 	// draw Silhouette
-	auto it = face.adjacentFaces.begin();
-	for (Line line : face.edges)
+	if (m_renderSilhouette)
 	{
-		Face* adjacentFace = *it;
-		bool isSilhouette = false;
+		auto it = face.adjacentFaces.begin();
+		for (Line line : face.edges)
+		{
+			Face* adjacentFace = *it;
+			bool isSilhouette = false;
 
-		if (adjacentFace == NULL)
-		{
-			isSilhouette = true;
-		}
-		else if (m_nView == ID_VIEW_PERSPECTIVE)
-		{
-			vec4 cameraModelPos = cameraToModelFrame * vec4(0, 0, 0, 1);
-			vec4 faceViewDirection = face.center - cameraModelPos;
-			double faceDirection = vec4::dot(faceViewDirection, face.normal * m_normalFlip);
-			vec4 adjacentFaceViewDirection = adjacentFace->center - cameraModelPos;
-			double adjacentFaceDirection = vec4::dot(adjacentFaceViewDirection, adjacentFace->normal * m_normalFlip);
-			if (faceDirection * adjacentFaceDirection <= 0) isSilhouette = true;
-		}
-		else
-		{
-			vec4 faceNormalCameraFrame = cameraToModelFrameTranspose * face.normal * m_normalFlip;
-			double faceDirection = vec4::dot(faceNormalCameraFrame, vec4(0, 0, -1, 0));
-			vec4 adjacentFaceNormalCameraFrame = cameraToModelFrameTranspose * adjacentFace->normal * m_normalFlip;
-			double adjacentFaceDirection = vec4::dot(adjacentFaceNormalCameraFrame, vec4(0, 0, -1, 0));
-			if (faceDirection * adjacentFaceDirection <= 0) isSilhouette = true;
-		}
+			if (adjacentFace == NULL)
+			{
+				isSilhouette = true;
+			}
+			else if (m_nView == ID_VIEW_PERSPECTIVE)
+			{
+				vec4 cameraModelPos = cameraToModelFrame * vec4(0, 0, 0, 1);
+				vec4 faceViewDirection = face.center - cameraModelPos;
+				double faceDirection = vec4::dot(faceViewDirection, face.normal * m_normalFlip);
+				vec4 adjacentFaceViewDirection = adjacentFace->center - cameraModelPos;
+				double adjacentFaceDirection = vec4::dot(adjacentFaceViewDirection, adjacentFace->normal * m_normalFlip);
+				if (faceDirection * adjacentFaceDirection <= 0) isSilhouette = true;
+			}
+			else
+			{
+				vec4 faceNormalCameraFrame = cameraToModelFrameTranspose * face.normal * m_normalFlip;
+				double faceDirection = vec4::dot(faceNormalCameraFrame, vec4(0, 0, -1, 0));
+				vec4 adjacentFaceNormalCameraFrame = cameraToModelFrameTranspose * adjacentFace->normal * m_normalFlip;
+				double adjacentFaceDirection = vec4::dot(adjacentFaceNormalCameraFrame, vec4(0, 0, -1, 0));
+				if (faceDirection * adjacentFaceDirection <= 0) isSilhouette = true;
+			}
 
-		if (isSilhouette)
-		{
-			vec4 from = modelToCameraFrame * line.p1;
-			vec4 to = modelToCameraFrame * line.p2;
-			DrawThickLine(pDCToUse, from, to, camera, screenProjection, vertexNormalColor);
-		}
+			if (isSilhouette)
+			{
+				vec4 from = modelToCameraFrame * line.p1;
+				vec4 to = modelToCameraFrame * line.p2;
+				DrawThickLine(pDCToUse, from, to, camera, screenProjection, vertexNormalColor);
+			}
 
-		it++;
+			it++;
+		}
 	}
 
 	// draw face normals
@@ -1671,7 +1676,13 @@ void CCGWorkView::OnFileSaveaspng()
 	Invalidate();
 }
 
+void CCGWorkView::ToggleSilhouette()
+{
+	m_renderSilhouette = !m_renderSilhouette;
+	Invalidate();		// redraw using the new view.
+}
 
-
-
-
+void CCGWorkView::OnUpdateToggleSilhouette(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_renderSilhouette == true);
+}

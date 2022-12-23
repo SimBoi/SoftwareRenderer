@@ -45,6 +45,7 @@ private:
 	bool m_alwaysCalcNormals;	// calculate vertex normals instead of using the provided normals
 	CG::RenderMode m_renderMode;	// rendering: wireframe, solid
 	bool m_backFaceCulling;
+	bool m_renderSilhouette;
 
 	CString m_strItdFileName;		// file name of IRIT data
 
@@ -204,6 +205,8 @@ public:
 	afx_msg void OnUpdateViewInvertnormals(CCmdUI* pCmdUI);
 	afx_msg void OnViewAlwayscalculateverticesnormals();
 	afx_msg void OnUpdateViewAlwayscalculateverticesnormals(CCmdUI* pCmdUI);
+	afx_msg void ToggleSilhouette();
+	afx_msg void OnUpdateToggleSilhouette(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
