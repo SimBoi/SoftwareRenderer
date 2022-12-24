@@ -61,7 +61,6 @@ namespace CG
 		const COLORREF& objectColor,
 		const LightParams& ambientLight,
 		LightParams lightSources[8],
-		double ambientIntensity,
 		int cosineFactor,
 		int shading);
 }

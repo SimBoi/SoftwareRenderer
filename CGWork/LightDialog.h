@@ -14,15 +14,18 @@ public:
 	virtual ~CLightDialog();
 
 	//dialog interface
-	void SetDialogData(LightID id,const LightParams& light);
-	LightParams GetDialogData(LightID id);
+	void SetLightData(LightID id,const LightParams& light);
+	LightParams GetLightData(LightID id);
+	void SetCosineFactor(int cosineFactor);
+	int GetCosineFactor();
 
 // Dialog Data
 	enum { IDD = IDD_LIGHTS_DLG };
 
 protected:
 	LightParams m_lights[MAX_LIGHT];
-	LightParams m_ambiant;
+	LightParams m_ambient;
+	int m_cosineFactor;
 	int m_currentLightIdx;
 	int GetCurrentLightIndex();
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

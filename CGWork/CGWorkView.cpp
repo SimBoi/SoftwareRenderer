@@ -120,6 +120,8 @@ ON_COMMAND(ID_VIEW_INVERTNORMALS, &CCGWorkView::OnViewInvertnormals)
 ON_UPDATE_COMMAND_UI(ID_VIEW_INVERTNORMALS, &CCGWorkView::OnUpdateViewInvertnormals)
 ON_COMMAND(ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS, &CCGWorkView::OnViewAlwayscalculateverticesnormals)
 ON_UPDATE_COMMAND_UI(ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS, &CCGWorkView::OnUpdateViewAlwayscalculateverticesnormals)
+ON_COMMAND(ID_VIEW_SILHOUETTEHIGHLIGHTING, &CCGWorkView::ToggleSilhouette)
+ON_UPDATE_COMMAND_UI(ID_VIEW_SILHOUETTEHIGHLIGHTING, &CCGWorkView::OnUpdateToggleSilhouette)
 END_MESSAGE_MAP()
 
 
@@ -139,7 +141,7 @@ CCGWorkView::CCGWorkView()
 	// Set default values
 	m_nAxis = ID_AXIS_X;
 	m_nAction = ID_ACTION_ROTATE;
-	m_nView = ID_VIEW_ORTHOGRAPHIC;	
+	m_nView = ID_VIEW_ORTHOGRAPHIC;
 	m_bIsPerspective = false;
 	m_nSpace = VIEW;
 	m_drawFaceNormals = false;
@@ -170,6 +172,8 @@ CCGWorkView::CCGWorkView()
 	m_lMaterialDiffuse = 0.8;
 	m_lMaterialSpecular = 1.0;
 	m_nMaterialCosineFactor = 32;
+	m_ambientLight.ambientIntensity = 0.2;
+	m_cosineFactor = 32;
 
 	//init the first light to be enabled
 	m_lights[LIGHT_ID_1].enabled=true;
@@ -179,7 +183,7 @@ CCGWorkView::CCGWorkView()
 
 CCGWorkView::~CCGWorkView()
 {
-	
+
 }
 
 
@@ -224,7 +228,7 @@ BOOL CCGWorkView::PreCreateWindow(CREATESTRUCT& cs)
 
 
 
-int CCGWorkView::OnCreate(LPCREATESTRUCT lpCreateStruct) 
+int CCGWorkView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	if (CView::OnCreate(lpCreateStruct) == -1)
 		return -1;
@@ -239,7 +243,7 @@ int CCGWorkView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 BOOL CCGWorkView::InitializeCGWork()
 {
 	m_pDC = new CClientDC(this);
-	
+
 	if ( NULL == m_pDC ) { // failure to get DC
 		::AfxMessageBox(CString("Couldn't get a valid DC."));
 		return FALSE;
@@ -250,7 +254,7 @@ BOOL CCGWorkView::InitializeCGWork()
 	m_pDbDC = new CDC();
 	m_pDbDC->CreateCompatibleDC(m_pDC);
 	SetTimer(1, 1, NULL);
-	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);	
+	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);
 	m_pDbDC->SelectObject(m_pDbBitMap);
 	return TRUE;
 }
@@ -260,7 +264,7 @@ BOOL CCGWorkView::InitializeCGWork()
 // CCGWorkView message handlers
 
 
-void CCGWorkView::OnSize(UINT nType, int cx, int cy) 
+void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 {
 	CView::OnSize(nType, cx, cy);
 
@@ -279,7 +283,7 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	CRect r;
 	GetClientRect(&r);
 	DeleteObject(m_pDbBitMap);
-    	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);	
+    	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);
 	m_pDbDC->SelectObject(m_pDbBitMap);
 }
 
@@ -301,12 +305,12 @@ BOOL CCGWorkView::SetupViewingOrthoConstAspect(void)
 
 
 
-BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC) 
+BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 {
-	// Windows will clear the window with the background color every time your window 
+	// Windows will clear the window with the background color every time your window
 	// is redrawn, and then CGWork will clear the viewport with its own background color.
 
-	
+
 	return true;
 }
 
@@ -407,9 +411,32 @@ void DrawLine(CDC* pDCToUse, vec4 from, vec4 to, const Camera& camera, const mat
 	if (!ClipLine(from, to, camera)) return; // ClipLine will return false if line is out of frustum
 	from = screenProjection * from;
 	to = screenProjection * to;
-	
+	from.FloorXY();
+	from.FloorXY();
+
 	MoveTo(from.x, from.y, from.z);
 	LineTo(pDCToUse, to.x, to.y, to.z, color);
+}
+
+// renders line between two points in camera frame
+void DrawThickLine(CDC* pDCToUse, vec4 from, vec4 to, const Camera& camera, const mat4& screenProjection, const COLORREF& color)
+{
+	if (!ClipLine(from, to, camera)) return; // ClipLine will return false if line is out of frustum
+	from = screenProjection * from;
+	to = screenProjection * to;
+	from.FloorXY();
+	from.FloorXY();
+
+	MoveTo(from.x, from.y, from.z);
+	LineTo(pDCToUse, to.x, to.y, to.z, color);
+	MoveTo(from.x + 1, from.y, from.z);
+	LineTo(pDCToUse, to.x + 1, to.y, to.z, color);
+	MoveTo(from.x - 1, from.y, from.z);
+	LineTo(pDCToUse, to.x - 1, to.y, to.z, color);
+	MoveTo(from.x, from.y + 1, from.z);
+	LineTo(pDCToUse, to.x, to.y + 1, to.z, color);
+	MoveTo(from.x, from.y - 1, from.z);
+	LineTo(pDCToUse, to.x, to.y - 1, to.z, color);
 }
 
 void CCGWorkView::DrawFace(
@@ -448,7 +475,7 @@ void CCGWorkView::DrawFace(
 	}
 
 	if (edges.size() == 0) return;
-	
+
 	// connect edges outside of the frustum
 	Edge* prevEdge = &edges.back();
 	for (auto it = edges.begin(); it != edges.end(); it++)
@@ -497,8 +524,7 @@ void CCGWorkView::DrawFace(
 			color,
 			m_ambientLight,
 			m_lights,
-			m_lMaterialAmbient,
-			m_nMaterialCosineFactor,
+			m_cosineFactor,
 			m_nLightShading
 		);
 	}
@@ -513,42 +539,45 @@ void CCGWorkView::DrawFace(
 	}
 
 	// draw Silhouette
-	auto it = face.adjacentFaces.begin();
-	for (Line line : face.edges)
+	if (m_renderSilhouette)
 	{
-		Face* adjacentFace = *it;
-		bool isSilhouette = false;
+		auto it = face.adjacentFaces.begin();
+		for (Line line : face.edges)
+		{
+			Face* adjacentFace = *it;
+			bool isSilhouette = false;
 
-		if (adjacentFace == NULL)
-		{
-			isSilhouette = true;
-		}
-		else if (m_nView == ID_VIEW_PERSPECTIVE)
-		{
-			vec4 cameraModelPos = cameraToModelFrame * vec4(0, 0, 0, 1);
-			vec4 faceViewDirection = face.center - cameraModelPos;
-			double faceDirection = vec4::dot(faceViewDirection, face.normal * m_normalFlip);
-			vec4 adjacentFaceViewDirection = adjacentFace->center - cameraModelPos;
-			double adjacentFaceDirection = vec4::dot(adjacentFaceViewDirection, adjacentFace->normal * m_normalFlip);
-			if (faceDirection * adjacentFaceDirection <= 0) isSilhouette = true;
-		}
-		else
-		{
-			vec4 faceNormalCameraFrame = cameraToModelFrameTranspose * face.normal * m_normalFlip;
-			double faceDirection = vec4::dot(faceNormalCameraFrame, vec4(0, 0, -1, 0));
-			vec4 adjacentFaceNormalCameraFrame = cameraToModelFrameTranspose * adjacentFace->normal * m_normalFlip;
-			double adjacentFaceDirection = vec4::dot(adjacentFaceNormalCameraFrame, vec4(0, 0, -1, 0));
-			if (faceDirection * adjacentFaceDirection <= 0) isSilhouette = true;
-		}
+			if (adjacentFace == NULL)
+			{
+				isSilhouette = true;
+			}
+			else if (m_nView == ID_VIEW_PERSPECTIVE)
+			{
+				vec4 cameraModelPos = cameraToModelFrame * vec4(0, 0, 0, 1);
+				vec4 faceViewDirection = face.center - cameraModelPos;
+				double faceDirection = vec4::dot(faceViewDirection, face.normal * m_normalFlip);
+				vec4 adjacentFaceViewDirection = adjacentFace->center - cameraModelPos;
+				double adjacentFaceDirection = vec4::dot(adjacentFaceViewDirection, adjacentFace->normal * m_normalFlip);
+				if (faceDirection * adjacentFaceDirection <= 0) isSilhouette = true;
+			}
+			else
+			{
+				vec4 faceNormalCameraFrame = cameraToModelFrameTranspose * face.normal * m_normalFlip;
+				double faceDirection = vec4::dot(faceNormalCameraFrame, vec4(0, 0, -1, 0));
+				vec4 adjacentFaceNormalCameraFrame = cameraToModelFrameTranspose * adjacentFace->normal * m_normalFlip;
+				double adjacentFaceDirection = vec4::dot(adjacentFaceNormalCameraFrame, vec4(0, 0, -1, 0));
+				if (faceDirection * adjacentFaceDirection <= 0) isSilhouette = true;
+			}
 
-		if (isSilhouette)
-		{
-			vec4 from = modelToCameraFrame * line.p1;
-			vec4 to = modelToCameraFrame * line.p2;
-			DrawLine(pDCToUse, from, to, camera, screenProjection, vertexNormalColor);
-		}
+			if (isSilhouette)
+			{
+				vec4 from = modelToCameraFrame * line.p1;
+				vec4 to = modelToCameraFrame * line.p2;
+				DrawThickLine(pDCToUse, from, to, camera, screenProjection, vertexNormalColor);
+			}
 
-		it++;
+			it++;
+		}
 	}
 
 	// draw face normals
@@ -835,7 +864,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 			RenderToPngFile(m_pRenderToPng, m_renderMode);
 		}
 	}
-	
+
 }
 
 
@@ -912,7 +941,7 @@ void CCGWorkView::WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, in
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView CGWork Finishing and clearing...
 
-void CCGWorkView::OnDestroy() 
+void CCGWorkView::OnDestroy()
 {
 	CView::OnDestroy();
 
@@ -943,7 +972,7 @@ void CCGWorkView::RenderScene() {
 }
 
 
-void CCGWorkView::OnFileLoad() 
+void CCGWorkView::OnFileLoad()
 {
 	TCHAR szFilters[] = _T ("IRIT Data Files (*.itd)|*.itd|All Files (*.*)|*.*||");
 
@@ -957,7 +986,7 @@ void CCGWorkView::OnFileLoad()
 		// Your code here...
 
 		Invalidate();	// force a WM_PAINT for drawing.
-	} 
+	}
 
 }
 
@@ -1155,26 +1184,26 @@ void CCGWorkView::doScale(int x_val, int y_val, Object& object)
 // Note: that all the following Message Handlers act in a similar way.
 // Each control or command has two functions associated with it.
 
-void CCGWorkView::OnViewOrthographic() 
+void CCGWorkView::OnViewOrthographic()
 {
 	m_nView = ID_VIEW_ORTHOGRAPHIC;
 	m_bIsPerspective = false;
 	Invalidate();		// redraw using the new view.
 }
 
-void CCGWorkView::OnUpdateViewOrthographic(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateViewOrthographic(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nView == ID_VIEW_ORTHOGRAPHIC);
 }
 
-void CCGWorkView::OnViewPerspective() 
+void CCGWorkView::OnViewPerspective()
 {
 	m_nView = ID_VIEW_PERSPECTIVE;
 	m_bIsPerspective = true;
 	Invalidate();
 }
 
-void CCGWorkView::OnUpdateViewPerspective(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateViewPerspective(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nView == ID_VIEW_PERSPECTIVE);
 }
@@ -1218,32 +1247,32 @@ void CCGWorkView::OnUpdateViewAlwayscalculateverticesnormals(CCmdUI* pCmdUI)
 
 // ACTION HANDLERS ///////////////////////////////////////////
 
-void CCGWorkView::OnActionRotate() 
+void CCGWorkView::OnActionRotate()
 {
 	m_nAction = ID_ACTION_ROTATE;
 }
 
-void CCGWorkView::OnUpdateActionRotate(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateActionRotate(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAction == ID_ACTION_ROTATE);
 }
 
-void CCGWorkView::OnActionTranslate() 
+void CCGWorkView::OnActionTranslate()
 {
 	m_nAction = ID_ACTION_TRANSLATE;
 }
 
-void CCGWorkView::OnUpdateActionTranslate(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateActionTranslate(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAction == ID_ACTION_TRANSLATE);
 }
 
-void CCGWorkView::OnActionScale() 
+void CCGWorkView::OnActionScale()
 {
 	m_nAction = ID_ACTION_SCALE;
 }
 
-void CCGWorkView::OnUpdateActionScale(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateActionScale(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAction == ID_ACTION_SCALE);
 }
@@ -1255,9 +1284,9 @@ void CCGWorkView::OnUpdateActionScale(CCmdUI* pCmdUI)
 
 
 // Gets calles when the X button is pressed or when the Axis->X menu is selected.
-// The only thing we do here is set the ChildView member variable m_nAxis to the 
+// The only thing we do here is set the ChildView member variable m_nAxis to the
 // selected axis.
-void CCGWorkView::OnAxisX() 
+void CCGWorkView::OnAxisX()
 {
 	m_nAxis = ID_AXIS_X;
 }
@@ -1266,27 +1295,27 @@ void CCGWorkView::OnAxisX()
 // The control is responsible for its redrawing.
 // It sets itself disabled when the action is a Scale action.
 // It sets itself Checked if the current axis is the X axis.
-void CCGWorkView::OnUpdateAxisX(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateAxisX(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_X);
 }
 
-void CCGWorkView::OnAxisY() 
+void CCGWorkView::OnAxisY()
 {
 	m_nAxis = ID_AXIS_Y;
 }
 
-void CCGWorkView::OnUpdateAxisY(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateAxisY(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Y);
 }
 
-void CCGWorkView::OnAxisZ() 
+void CCGWorkView::OnAxisZ()
 {
 	m_nAxis = ID_AXIS_Z;
 }
 
-void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Z);
 }
@@ -1362,23 +1391,23 @@ void CCGWorkView::OnUpdateVertexNormals(CCmdUI* pCmdUI)
 
 // LIGHT SHADING HANDLERS ///////////////////////////////////////////
 
-void CCGWorkView::OnLightShadingFlat() 
+void CCGWorkView::OnLightShadingFlat()
 {
 	m_nLightShading = FLAT;
 }
 
-void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nLightShading == FLAT);
 }
 
 
-void CCGWorkView::OnLightShadingGouraud() 
+void CCGWorkView::OnLightShadingGouraud()
 {
 	m_nLightShading = GOURAUD;
 }
 
-void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI) 
+void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_nLightShading == GOURAUD);
 }
@@ -1462,7 +1491,7 @@ void CCGWorkView::OnRenderTofile()
 		m_bRenderToPngFile = false;
 	}
 	Invalidate();
-	
+
 }
 
 
@@ -1474,24 +1503,26 @@ void CCGWorkView::OnUpdateRenderTofile(CCmdUI* pCmdUI)
 
 // LIGHT SETUP HANDLER ///////////////////////////////////////////
 
-void CCGWorkView::OnLightConstants() 
+void CCGWorkView::OnLightConstants()
 {
 	CLightDialog dlg;
 
 	for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
-	{	    
-	    dlg.SetDialogData((LightID)id,m_lights[id]);
+	{
+	    dlg.SetLightData((LightID)id,m_lights[id]);
 	}
-	dlg.SetDialogData(LIGHT_ID_AMBIENT,m_ambientLight);
+	dlg.SetLightData(LIGHT_ID_AMBIENT,m_ambientLight);
+	dlg.SetCosineFactor(m_cosineFactor);
 
-	if (dlg.DoModal() == IDOK) 
+	if (dlg.DoModal() == IDOK)
 	{
 	    for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
 	    {
-		m_lights[id] = dlg.GetDialogData((LightID)id);
+		m_lights[id] = dlg.GetLightData((LightID)id);
 	    }
-	    m_ambientLight = dlg.GetDialogData(LIGHT_ID_AMBIENT);
-	}	
+	    m_ambientLight = dlg.GetLightData(LIGHT_ID_AMBIENT);
+		m_cosineFactor = dlg.GetCosineFactor();
+	}
 	Invalidate();
 }
 
@@ -1645,7 +1676,13 @@ void CCGWorkView::OnFileSaveaspng()
 	Invalidate();
 }
 
+void CCGWorkView::ToggleSilhouette()
+{
+	m_renderSilhouette = !m_renderSilhouette;
+	Invalidate();		// redraw using the new view.
+}
 
-
-
-
+void CCGWorkView::OnUpdateToggleSilhouette(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_renderSilhouette == true);
+}

@@ -1,6 +1,6 @@
 #pragma once
 
-typedef enum 
+typedef enum
 {
     LIGHT_ID_AMBIENT=-1,
     LIGHT_ID_1=0,
@@ -14,14 +14,14 @@ typedef enum
     MAX_LIGHT
 } LightID;
 
-typedef  enum 
+typedef  enum
 {
     LIGHT_TYPE_DIRECTIONAL,
     LIGHT_TYPE_POINT,
     LIGHT_TYPE_SPOT
 } LightType;
 
-typedef  enum 
+typedef  enum
 {
     LIGHT_SPACE_VIEW,
     LIGHT_SPACE_LOCAL
@@ -55,11 +55,12 @@ public:
     double dirZ;
 
     //light intensity
+    double ambientIntensity; // for ambient light only
     double diffuseIntensity;
     double specularIntensity;
 
     bool isValidLight();
-    
+
     LightParams():
 	    enabled(false),type(LIGHT_TYPE_DIRECTIONAL),space(LIGHT_SPACE_VIEW),
 	    colorR(255),colorG(255),colorB(255),posX(0),posY(0),posZ(0),

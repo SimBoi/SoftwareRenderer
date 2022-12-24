@@ -52,7 +52,7 @@ namespace CG
 	{
 		SetPixel(pDC, x, y, z + 1e-5, color);
 	}
-	
+
 	void ZBuffer::SetPixel(CDC* pDC, int x, int y, double z, const COLORREF& color)
 	{
 		if (x < 0 || x >= width || y < 0 || y >= height || z < arr[x][y]) return;
@@ -168,7 +168,7 @@ namespace CG
 		}
 	}
 
-	
+
 	void MoveTo(int x, int y, double z)
 	{
 		prevX = x;
@@ -199,7 +199,7 @@ namespace CG
 		const int dx = x2 - x1;
 		int dy = y2 - y1;
 		const double dz = (z2 - z1);
-		
+
 		const int yi = (dy < 0 ? -1 : 1);
 		dy = dy * yi;
 
@@ -304,7 +304,7 @@ namespace CG
 		int normalFlip,
 		LightParams lightSources[8],
 		int cosineFactor,
-		vec4& ambient,
+		const vec4& ambient,
 		double ambientIntensity)
 	{
 		vec4 diffuse, specular;
@@ -355,7 +355,6 @@ namespace CG
 		const COLORREF& objectColorref,
 		const LightParams& ambientLight,
 		LightParams lightSources[8],
-		double ambientIntensity,
 		int cosineFactor,
 		int shading)
 	{
@@ -375,7 +374,7 @@ namespace CG
 				lightSources,
 				cosineFactor,
 				ambient,
-				ambientIntensity
+				ambientLight.ambientIntensity
 			);
 			finalColor = finalLight * objectColor;
 		}
@@ -394,7 +393,7 @@ namespace CG
 					lightSources,
 					cosineFactor,
 					ambient,
-					ambientIntensity
+					ambientLight.ambientIntensity
 				);
 				curr->shadingP2 = vertexLight;
 				next->shadingP1 = vertexLight;
@@ -507,7 +506,7 @@ namespace CG
 						lightSources,
 						cosineFactor,
 						ambient,
-						ambientIntensity
+						ambientLight.ambientIntensity
 					);
 					finalColor = finalLight * objectColor;
 				}
