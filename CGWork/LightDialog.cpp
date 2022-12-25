@@ -84,6 +84,8 @@ void CLightDialog::DoDataExchange(CDataExchange* pDX)
 
 	DDX_Text(pDX, IDC_LIGHT_COSINE_FACTOR, m_cosineFactor);
 	DDV_MinMaxInt(pDX, m_cosineFactor, 1, 500);
+	DDX_Text(pDX, IDC_DYNAMIC_RANGE, m_dynamicRange);
+	DDV_MinMaxDouble(pDX, m_dynamicRange, 1, 5000);
 
 	//the following class members can't be updated directly through DDX
 	//using a helper variable for type-casting to solve the compilation error
@@ -135,9 +137,19 @@ void CLightDialog::SetCosineFactor(int cosineFactor)
 	m_cosineFactor = cosineFactor;
 }
 
+void CLightDialog::SetDynamicRange(double dynamicRange)
+{
+	m_dynamicRange = dynamicRange;
+}
+
 int CLightDialog::GetCosineFactor()
 {
 	return m_cosineFactor;
+}
+
+double CLightDialog::GetDynamicRange()
+{
+	return m_dynamicRange;
 }
 
 // CLightDialog message handlers

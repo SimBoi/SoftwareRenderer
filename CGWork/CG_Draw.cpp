@@ -4,7 +4,7 @@
 
 namespace CG
 {
-	double dynamicRange = 300;
+	double dynamicRange = 350;
 	ZBuffer zBuffer;
 	int prevX;
 	int prevY;

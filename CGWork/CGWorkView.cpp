@@ -147,9 +147,10 @@ CCGWorkView::CCGWorkView()
 	m_drawFaceNormals = false;
 	m_drawVertexNormals = false;
 	m_normalFlip = 1;
-	m_alwaysCalcNormals = true;
-	m_renderMode = SOLID;
+	m_alwaysCalcNormals = false;
+	m_renderMode = WIREFRAME;
 	m_backFaceCulling = true;
+	m_renderSilhouette = false;
 
 	old_x_position = 0;
 	old_y_position = 0;
@@ -166,7 +167,7 @@ CCGWorkView::CCGWorkView()
 	m_bRenderToPngFile = false;
 	m_pRenderToPng = nullptr;
 
-	m_nLightShading = PHONG;
+	m_nLightShading = FLAT;
 
 	m_lMaterialAmbient = 0.2;
 	m_lMaterialDiffuse = 0.8;
@@ -176,7 +177,8 @@ CCGWorkView::CCGWorkView()
 	m_cosineFactor = 32;
 
 	//init the first light to be enabled
-	m_lights[LIGHT_ID_1].enabled=true;
+	m_lights[LIGHT_ID_1].enabled = true;
+	m_lights[LIGHT_ID_1].dirZ = -1;
 	m_pDbBitMap = NULL;
 	m_pDbDC = NULL;
 }
@@ -429,6 +431,7 @@ void DrawThickLine(CDC* pDCToUse, vec4 from, vec4 to, const Camera& camera, cons
 
 	MoveTo(from.x, from.y, from.z);
 	LineTo(pDCToUse, to.x, to.y, to.z, color);
+
 	MoveTo(from.x + 1, from.y, from.z);
 	LineTo(pDCToUse, to.x + 1, to.y, to.z, color);
 	MoveTo(from.x - 1, from.y, from.z);
@@ -437,6 +440,15 @@ void DrawThickLine(CDC* pDCToUse, vec4 from, vec4 to, const Camera& camera, cons
 	LineTo(pDCToUse, to.x, to.y + 1, to.z, color);
 	MoveTo(from.x, from.y - 1, from.z);
 	LineTo(pDCToUse, to.x, to.y - 1, to.z, color);
+
+	MoveTo(from.x + 1, from.y + 1, from.z);
+	LineTo(pDCToUse, to.x + 1, to.y + 1, to.z, color);
+	MoveTo(from.x - 1, from.y - 1, from.z);
+	LineTo(pDCToUse, to.x - 1, to.y - 1, to.z, color);
+	MoveTo(from.x - 1, from.y + 1, from.z);
+	LineTo(pDCToUse, to.x - 1, to.y + 1, to.z, color);
+	MoveTo(from.x + 1, from.y - 1, from.z);
+	LineTo(pDCToUse, to.x + 1, to.y - 1, to.z, color);
 }
 
 void CCGWorkView::DrawFace(
@@ -1513,6 +1525,7 @@ void CCGWorkView::OnLightConstants()
 	}
 	dlg.SetLightData(LIGHT_ID_AMBIENT,m_ambientLight);
 	dlg.SetCosineFactor(m_cosineFactor);
+	dlg.SetDynamicRange(dynamicRange);
 
 	if (dlg.DoModal() == IDOK)
 	{
@@ -1522,6 +1535,7 @@ void CCGWorkView::OnLightConstants()
 	    }
 	    m_ambientLight = dlg.GetLightData(LIGHT_ID_AMBIENT);
 		m_cosineFactor = dlg.GetCosineFactor();
+		dynamicRange = dlg.GetDynamicRange();
 	}
 	Invalidate();
 }

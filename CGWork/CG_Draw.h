@@ -7,6 +7,8 @@
 
 namespace CG
 {
+	extern double dynamicRange;
+
 	typedef enum Shading { FLAT, GOURAUD, PHONG } Shading;
 	typedef enum RenderMode { WIREFRAME, SOLID} RenderMode;
 
