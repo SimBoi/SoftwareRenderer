@@ -178,20 +178,8 @@ namespace CG
 
 	double getZDepth(double z)
 	{
+		// ViewProjection == PERSPECTIVE
 		return (((zFar + zNear) / (zFar - zNear)) + (1 / z) * ((-2 * zFar * zNear) / (zFar - zNear)));
-
-		//return z;
-		//return 2 * ((z - zNear) / (zFar - zNear)) - 1;
-		//if (ViewProjection == ORTHOGRAPHIC)
-		{
-			return 2 * ((z - zNear) / (zFar - zNear)) - 1;
-		}
-		//else if (ViewProjection == PERSPECTIVE)
-		{
-			return (((zFar + zNear) / (zFar - zNear)) + (1 / z) * ((-2 * zFar * zNear) / (zFar - zNear)));
-		}
-
-		//return 0;
 	}
 
 	void DrawLowLine(CDC* pDC, int x1, int y1, double z1, int x2, int y2, double z2, const COLORREF& color)
