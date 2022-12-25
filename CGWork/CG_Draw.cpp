@@ -176,12 +176,6 @@ namespace CG
 		prevZ = z;
 	}
 
-	double getZDepth(double z)
-	{
-		// ViewProjection == PERSPECTIVE
-		return (((zFar + zNear) / (zFar - zNear)) + (1 / z) * ((-2 * zFar * zNear) / (zFar - zNear)));
-	}
-
 	void DrawLowLine(CDC* pDC, int x1, int y1, double z1, int x2, int y2, double z2, const COLORREF& color)
 	{
 		const int dx = x2 - x1;
@@ -200,7 +194,6 @@ namespace CG
 		while (x < x2)
 		{
 			z = (((x - x1) / dx) * dz) + z1;
-			z = getZDepth(z);
 			zBuffer.SetPixel(pDC, x, y, z, color);
 			if (d > 0)
 			{
@@ -233,7 +226,6 @@ namespace CG
 		while (y < y2)
 		{
 			z = (((y - y1) / dy) * dz) + z1;
-			z = getZDepth(z);
 			zBuffer.SetPixel(pDC, x, y, z, color);
 			if (d > 0)
 			{
