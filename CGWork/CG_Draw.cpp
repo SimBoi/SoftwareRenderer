@@ -194,7 +194,7 @@ namespace CG
 		while (x < x2)
 		{
 			z = (((x - x1) / dx) * dz) + z1;
-			zBuffer.SetPixel(pDC, x, y, z, color);
+			zBuffer.OverridePixel(pDC, x, y, z, color);
 			if (d > 0)
 			{
 				d += northeast;
@@ -226,7 +226,7 @@ namespace CG
 		while (y < y2)
 		{
 			z = (((y - y1) / dy) * dz) + z1;
-			zBuffer.SetPixel(pDC, x, y, z, color);
+			zBuffer.OverridePixel(pDC, x, y, z, color);
 			if (d > 0)
 			{
 				d += southeast;
