@@ -17,7 +17,9 @@ public:
 	void SetLightData(LightID id,const LightParams& light);
 	LightParams GetLightData(LightID id);
 	void SetCosineFactor(int cosineFactor);
+	void SetDynamicRange(double dynamicRange);
 	int GetCosineFactor();
+	double GetDynamicRange();
 
 // Dialog Data
 	enum { IDD = IDD_LIGHTS_DLG };
@@ -26,6 +28,7 @@ protected:
 	LightParams m_lights[MAX_LIGHT];
 	LightParams m_ambient;
 	int m_cosineFactor;
+	double m_dynamicRange;
 	int m_currentLightIdx;
 	int GetCurrentLightIndex();
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
