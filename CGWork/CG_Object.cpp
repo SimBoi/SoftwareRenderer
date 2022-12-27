@@ -155,7 +155,7 @@ namespace CG
 		mInverse = mat4::InverseTransform(mTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
-	
+
 	void Object::LocalRotateY(double angle)
 	{
 		vec4 p = mPosition();
@@ -164,7 +164,7 @@ namespace CG
 		mInverse = mat4::InverseTransform(mTransform);
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
-	
+
 	void Object::LocalRotateZ(double angle)
 	{
 		vec4 p = mPosition();
@@ -373,7 +373,7 @@ namespace CG
 	{
 		double angle = fovY / 2;
 		angle *= DEG_TO_RAD;
-		
+
 		double yMax = zFar * tan(angle);
 		double xMax = aspectRatio * yMax;
 

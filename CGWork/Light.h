@@ -54,6 +54,8 @@ public:
     double dirY;
     double dirZ;
 
+    double spotLightAngle; // for spot light only
+
     //light intensity
     double ambientIntensity; // for ambient light only
     double diffuseIntensity;
@@ -65,6 +67,8 @@ public:
 	    enabled(false),type(LIGHT_TYPE_DIRECTIONAL),space(LIGHT_SPACE_VIEW),
 	    colorR(255),colorG(255),colorB(255),posX(0),posY(0),posZ(0),
 	    dirX(0),dirY(0),dirZ(0),
+        spotLightAngle(20),
+        ambientIntensity(0.2),
         diffuseIntensity(0.8),
         specularIntensity(1)
     {}

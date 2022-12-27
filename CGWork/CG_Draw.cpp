@@ -296,7 +296,7 @@ namespace CG
 			vec4 L, R, V;
 			vec4 light = vec4(lightSources[i].colorR, lightSources[i].colorG, lightSources[i].colorB);
 			vec4 lightPos = vec4(lightSources[i].posX, lightSources[i].posY, lightSources[i].posZ, 1);
-			// calculare light direction in global frame
+			// calculare the direction of the light hitting the pixel in global frame
 			if (lightSources[i].type == LIGHT_TYPE_DIRECTIONAL)
 				L = vec4(lightSources[i].dirX, lightSources[i].dirY, lightSources[i].dirZ, 0);
 			else
@@ -306,6 +306,15 @@ namespace CG
 			N *= normalFlip;
 			R = (N * (2 * vec4::dot(N, -L)) + L).normalized();
 			V = (cameraPos - pixelPos).normalized();
+
+			if (lightSources[i].type == LIGHT_TYPE_SPOT)
+			{
+				vec4 SpotDirection = vec4(lightSources[i].dirX, lightSources[i].dirY, lightSources[i].dirZ, 0);
+				SpotDirection.normalize();
+				double minCosineTheta = cos(lightSources[i].spotLightAngle * DEG_TO_RAD);
+				double cosineTheta = vec4::dot(SpotDirection, L);
+				if (cosineTheta < minCosineTheta) continue;
+			}
 
 			diffuse += light * max(vec4::dot(L, -N), 0) * lightSources[i].diffuseIntensity;
 			specular += light * pow(max(vec4::dot(R, V), 0), cosineFactor) * lightSources[i].specularIntensity;
