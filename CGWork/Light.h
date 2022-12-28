@@ -31,6 +31,12 @@ typedef  enum
     LIGHT_SPACE_LOCAL
 } LightSpace;
 
+typedef  enum
+{
+    SHADOW_TYPE_NONE,
+    SHADOW_TYPE_MAP
+} ShadowType;
+
 
 class LightParams
 {
@@ -65,11 +71,15 @@ public:
     double diffuseIntensity;
     double specularIntensity;
 
+    ShadowType shadowType;
+
     CG::Camera directionalPerspective;
+    CG::mat4 directionalFinalProjection;
     CG::ZBuffer directionalBuffer;
     CG::Camera pointPerspective[6];
     CG::ZBuffer pointBuffer[6];
-    int shadowNearPlane, shadowFarPlane;
+
+    int shadowNearPlane, shadowFarPlane, shadowMapResolution;
 
     void CalculatePerspective()
     {
@@ -79,6 +89,7 @@ public:
             CG::vec4 dir(dirX, dirY, dirZ);
             directionalPerspective.LookAt(pos, pos + dir, CG::vec4(0, 1, 0));
             directionalPerspective.Ortho(-1000, 1000, -1000, 1000, shadowNearPlane, shadowFarPlane);
+            directionalFinalProjection = CG::Camera::ToScreenSpace(shadowMapResolution, shadowMapResolution) * directionalPerspective.projection;
         }
         else
         {
@@ -96,8 +107,10 @@ public:
         ambientIntensity(0.2),
         diffuseIntensity(0.8),
         specularIntensity(1),
+        shadowType(SHADOW_TYPE_MAP),
         shadowNearPlane(10),
-        shadowFarPlane(1000)
+        shadowFarPlane(1000),
+        shadowMapResolution(2000)
     {}
 
 protected:

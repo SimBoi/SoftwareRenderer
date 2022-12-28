@@ -17,13 +17,12 @@ namespace CG
 	class ScanEdge
 	{
 	public:
-		Line camera;
 		Line projected;
 		Edge global;
 		vec4 shadingP1;
 		vec4 shadingP2;
 		ScanEdge(Line camera, Line projected, Edge global) :
-			camera (camera), projected(projected), global(global)
+			projected(projected), global(global)
 		{ };
 	};
 
@@ -33,7 +32,7 @@ namespace CG
 	void DrawBackground(CRect& r, CDC* pDC);
 	void MoveTo(int x, int y, double z);
 	void LineTo(CDC* pDC, int endX, int endY, double endZ, const COLORREF& color);
-	void ShadowScanConversion(int height, int width, std::list<ScanEdge>& edges, ZBuffer& shadowZBuffer);
+	void ShadowScanConversion(int height, int width, std::list<Line>& edges, ZBuffer& shadowZBuffer);
 	// faceCenter and faceNormal should be in global frame
 	void DrawScanConversion(
 		CDC* pDC,

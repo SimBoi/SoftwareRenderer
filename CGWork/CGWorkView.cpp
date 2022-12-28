@@ -451,6 +451,50 @@ void DrawThickLine(CDC* pDCToUse, vec4 from, vec4 to, const Camera& camera, cons
 	LineTo(pDCToUse, to.x + 1, to.y - 1, to.z, color);
 }
 
+void CCGWorkView::MapShadows(const Face& face, LightParams& lightSource, mat4& modelToLightFrame)
+{
+	if (lightSource.type == LIGHT_TYPE_DIRECTIONAL)
+	{
+		// clip face edges
+		std::list<Line> edges;
+		vec4 currCoords, prevCoords = modelToLightFrame * face.vertices.back().localPosition;
+		for (auto const& vertex : face.vertices)
+		{
+			currCoords = modelToLightFrame * vertex.localPosition;
+			vec4 from = prevCoords;
+			vec4 to = currCoords;
+			if (ClipLine(from, to, lightSource.directionalPerspective)) edges.push_back(Line(from, to));
+			prevCoords = currCoords;
+		}
+
+		if (edges.size() == 0) return;
+
+		// connect edges outside of the frustum
+		Line* prevEdge = &edges.back();
+		for (auto it = edges.begin(); it != edges.end(); it++)
+		{
+			if (prevEdge->p2 != it->p1) edges.insert(it, Line(prevEdge->p2, it->p1));
+			prevEdge = &(*it);
+		}
+
+		// projection
+		for (auto& edge : edges)
+		{
+			vec4 projectedP1 = lightSource.directionalFinalProjection * edge.p1;
+			vec4 projectedP2 = lightSource.directionalFinalProjection * edge.p2;
+			projectedP1.FloorXY();
+			projectedP2.FloorXY();
+			edge = Line(projectedP1, projectedP2);
+		}
+
+		ShadowScanConversion(lightSource.shadowMapResolution, lightSource.shadowMapResolution, edges, lightSource.directionalBuffer);
+	}
+	else
+	{
+
+	}
+}
+
 void CCGWorkView::DrawFace(
 	CDC* pDCToUse,
 	RenderMode renderMode,
@@ -503,50 +547,23 @@ void CCGWorkView::DrawFace(
 	std::list<ScanEdge> scanEdges;
 	for (auto& edge : edges)
 	{
+		// projection
+		vec4 projectedP1 = screenProjection * edge.line.p1;
+		vec4 projectedP2 = screenProjection * edge.line.p2;
+		projectedP1.FloorXY();
+		projectedP2.FloorXY();
+
 		// global
 		vec4 globalP1 = cameraToGlobalFrame * edge.line.p1;
 		vec4 globalP2 = cameraToGlobalFrame * edge.line.p2;
 		vec4 globalStartNormal = globalToModelFrameTranspose * edge.startNormal;
 		vec4 globalEndNormal = globalToModelFrameTranspose * edge.endNormal;
 
-		scanEdges.push_back(ScanEdge(edge.line, Line(vec4(), vec4()), Edge(Line(globalP1, globalP2), globalStartNormal, globalEndNormal)));
+		scanEdges.push_back(ScanEdge(edge.line, Line(projectedP1, projectedP2), Edge(Line(globalP1, globalP2), globalStartNormal, globalEndNormal)));
 	}
 
 	if (renderMode == SOLID)
 	{
-		// calculate shadow z buffer
-		for (int i = 0; i < MAX_LIGHT; i++)
-		{
-			if (m_lights[i].enabled)
-			{
-				if (m_lights[i].type == LIGHT_TYPE_DIRECTIONAL)
-				{
-					// light projection
-					for (auto& scanEdge : scanEdges)
-					{
-						mat4 projection = Camera::ToScreenSpace(2000, 2000) * m_lights[i].directionalPerspective.projection;
-						vec4 projectedP1 = projection * scanEdge.camera.p1;
-						vec4 projectedP2 = projection * scanEdge.camera.p2;
-						projectedP1.FloorXY();
-						projectedP2.FloorXY();
-						scanEdge.projected = Line(projectedP1, projectedP2);
-					}
-
-					ShadowScanConversion(m_WindowHeight, m_WindowWidth, scanEdges, m_lights[i].directionalBuffer);
-				}
-			}
-		}
-
-		// camera projection
-		for (auto& scanEdge : scanEdges)
-		{
-			vec4 projectedP1 = screenProjection * scanEdge.camera.p1;
-			vec4 projectedP2 = screenProjection * scanEdge.camera.p2;
-			projectedP1.FloorXY();
-			projectedP2.FloorXY();
-			scanEdge.projected = Line(projectedP1, projectedP2);
-		}
-
 		// render solid face
 		DrawScanConversion(
 			pDCToUse,
@@ -569,15 +586,6 @@ void CCGWorkView::DrawFace(
 	}
 	else
 	{
-		for (auto& scanEdge : scanEdges)
-		{
-			vec4 projectedP1 = screenProjection * scanEdge.camera.p1;
-			vec4 projectedP2 = screenProjection * scanEdge.camera.p2;
-			projectedP1.FloorXY();
-			projectedP2.FloorXY();
-			scanEdge.projected = Line(projectedP1, projectedP2);
-		}
-
 		// render wireframe
 		for (auto const& edge : scanEdges)
 		{
@@ -803,15 +811,28 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 	{
 		if (m_lights[i].enabled)
 		{
-			if (m_lights[i].type == LIGHT_TYPE_DIRECTIONAL)
+			if (m_lights[i].shadowType == SHADOW_TYPE_MAP)
 			{
-				m_lights[i].directionalBuffer.init();
-			}
-			else
-			{
-				for (int j = 0; j < 6; j++)
+				if (m_lights[i].type == LIGHT_TYPE_DIRECTIONAL)
 				{
-					m_lights[i].pointBuffer[j].init();
+					m_lights[i].directionalBuffer.init();
+					for (auto& child : parentObject.children)
+					{
+						mat4 modelToLightFrame;
+
+						// draw child object faces
+						for (auto const& face : child.faces)
+						{
+							MapShadows(face, m_lights[i], modelToLightFrame);
+						}
+					}
+				}
+				else
+				{
+					//for (int j = 0; j < 6; j++)
+					//{
+					//	m_lights[i].pointBuffer[j].init();
+					//}
 				}
 			}
 		}

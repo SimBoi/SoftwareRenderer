@@ -227,24 +227,24 @@ namespace CG
 		}
 	};
 
-	void ShadowScanConversion(int height, int width, std::list<ScanEdge>& edges, ZBuffer& shadowZBuffer)
+	void ShadowScanConversion(int height, int width, std::list<Line>& edges, ZBuffer& shadowZBuffer)
 	{
 		// calculate the y range
 		int minY = height, maxY = 0;
 		for (auto edge : edges)
 		{
-			if (minY > edge.projected.p1.y) minY = edge.projected.p1.y;
-			if (minY > edge.projected.p2.y) minY = edge.projected.p2.y;
-			if (maxY < edge.projected.p1.y) maxY = edge.projected.p1.y;
-			if (maxY < edge.projected.p2.y) maxY = edge.projected.p2.y;
+			if (minY > edge.p1.y) minY = edge.p1.y;
+			if (minY > edge.p2.y) minY = edge.p2.y;
+			if (maxY < edge.p1.y) maxY = edge.p1.y;
+			if (maxY < edge.p2.y) maxY = edge.p2.y;
 		}
 		int yRange = maxY - minY + 1;
 
 		// intersection points for each scan line
-		ScanIntersection** intersections = new ScanIntersection * [yRange];
+		vec4** intersections = new vec4 * [yRange];
 		for (int i = 0; i < yRange; i++)
 		{
-			intersections[i] = new ScanIntersection[2];
+			intersections[i] = new vec4[2];
 		}
 
 		// scan lines
@@ -260,57 +260,53 @@ namespace CG
 			{
 				vec4 p;
 				double t;
-				if (!it->projected.IntersectionXY(scanLine, t, p)) continue;
+				if (!it->IntersectionXY(scanLine, t, p)) continue;
 				p.FloorXY();
 				if (0 < t && t < 1)
 				{
-					intersections[yIndex][i].projected = p;
-					intersections[yIndex][i++].global = it->global.line[t];
+					intersections[yIndex][i++] = p;
 				}
 				else if (t == 1)
 				{
-					const ScanEdge* edge1 = &(*it);
+					const Line* edge1 = &(*it);
 					it++;
 					auto next = it != edges.end() ? it : edges.begin();
-					while (next->projected.p1.y == next->projected.p2.y)
+					while (next->p1.y == next->p2.y)
 					{
 						next++;
 						if (next == edges.end()) next = edges.begin();
 						if (it != edges.end()) it++;
 					}
-					const ScanEdge* edge2 = &(*next);
+					const Line* edge2 = &(*next);
 
-					if ((edge1->projected.p2.y - edge1->projected.p1.y) * (edge2->projected.p2.y - edge2->projected.p1.y) > 0)
+					if ((edge1->p2.y - edge1->p1.y) * (edge2->p2.y - edge2->p1.y) > 0)
 					{
-						intersections[yIndex][i].projected = edge1->projected.p2;
-						intersections[yIndex][i++].global = edge1->global.line.p2;
+						intersections[yIndex][i++] = edge1->p2;
 					}
 					else
 					{
-						intersections[yIndex][i].projected = edge1->projected.p2;
-						intersections[yIndex][i++].global = edge1->global.line.p2;
-						intersections[yIndex][i].projected = edge2->projected.p1;
-						intersections[yIndex][i++].global = edge2->global.line.p1;
+						intersections[yIndex][i++] = edge1->p2;
+						intersections[yIndex][i++] = edge2->p1;
 					}
 					if (it == edges.end()) break;
 				}
 			}
 
 			// sort intersections by x
-			if (intersections[yIndex][0].projected.x > intersections[yIndex][1].projected.x)
+			if (intersections[yIndex][0].x > intersections[yIndex][1].x)
 			{
-				ScanIntersection tmp = intersections[yIndex][0];
+				vec4 tmp = intersections[yIndex][0];
 				intersections[yIndex][0] = intersections[yIndex][1];
 				intersections[yIndex][1] = tmp;
 			}
 
 			// fill pixels between intersections
-			int xRange = intersections[yIndex][1].projected.x - intersections[yIndex][0].projected.x;
+			int xRange = intersections[yIndex][1].x - intersections[yIndex][0].x;
 			for (int t = 0; t <= xRange; t++)
 			{
 				double a = xRange == 0 ? 0 : (double)t / xRange;
-				int x = intersections[yIndex][0].projected.x + t;
-				double z = intersections[yIndex][0].projected.z * (1 - a) + intersections[yIndex][1].projected.z * a;
+				int x = intersections[yIndex][0].x + t;
+				double z = intersections[yIndex][0].z * (1 - a) + intersections[yIndex][1].z * a;
 
 				shadowZBuffer.SetDepth(x, y, z);
 			}
@@ -339,14 +335,29 @@ namespace CG
 
 		for (int i = 0; i < 8; i++)
 		{
-			if (!lightSources[i].enabled) continue;
+			LightParams& lightSource = lightSources[i];
+			if (!lightSource.enabled) continue;
+
+			if (lightSource.shadowType == SHADOW_TYPE_MAP)
+			{
+				if (lightSource.type == LIGHT_TYPE_DIRECTIONAL)
+				{
+					vec4 pixelPosLightFrame = lightSource.directionalPerspective.cInverse * pixelPos;
+					vec4 pixelLightProjection = lightSource.directionalFinalProjection * pixelPosLightFrame;
+					if (!lightSource.directionalBuffer.InBuffer(pixelLightProjection.x, pixelLightProjection.y, pixelLightProjection.z)) continue;
+				}
+				else
+				{
+
+				}
+			}
 
 			vec4 L, R, V;
-			vec4 light = vec4(lightSources[i].colorR, lightSources[i].colorG, lightSources[i].colorB);
-			vec4 lightPos = vec4(lightSources[i].posX, lightSources[i].posY, lightSources[i].posZ, 1);
-			// calculare the direction of the light hitting the pixel in global frame
-			if (lightSources[i].type == LIGHT_TYPE_DIRECTIONAL)
-				L = vec4(lightSources[i].dirX, lightSources[i].dirY, lightSources[i].dirZ, 0);
+			vec4 light = vec4(lightSource.colorR, lightSource.colorG, lightSource.colorB);
+			vec4 lightPos = vec4(lightSource.posX, lightSource.posY, lightSource.posZ, 1);
+			// calculate the direction of the light hitting the pixel in global frame
+			if (lightSource.type == LIGHT_TYPE_DIRECTIONAL)
+				L = vec4(lightSource.dirX, lightSource.dirY, lightSource.dirZ, 0);
 			else
 				L = pixelPos - lightPos;
 			L.normalize();
@@ -355,17 +366,17 @@ namespace CG
 			R = (N * (2 * vec4::dot(N, -L)) + L).normalized();
 			V = (cameraPos - pixelPos).normalized();
 
-			if (lightSources[i].type == LIGHT_TYPE_SPOT)
+			if (lightSource.type == LIGHT_TYPE_SPOT)
 			{
-				vec4 SpotDirection = vec4(lightSources[i].dirX, lightSources[i].dirY, lightSources[i].dirZ, 0);
+				vec4 SpotDirection = vec4(lightSource.dirX, lightSource.dirY, lightSource.dirZ, 0);
 				SpotDirection.normalize();
-				double minCosineTheta = cos(lightSources[i].spotLightAngle * DEG_TO_RAD);
+				double minCosineTheta = cos(lightSource.spotLightAngle * DEG_TO_RAD);
 				double cosineTheta = vec4::dot(SpotDirection, L);
 				if (cosineTheta < minCosineTheta) continue;
 			}
 
-			diffuse += light * max(vec4::dot(L, -N), 0) * lightSources[i].diffuseIntensity;
-			specular += light * pow(max(vec4::dot(R, V), 0), cosineFactor) * lightSources[i].specularIntensity;
+			diffuse += light * max(vec4::dot(L, -N), 0) * lightSource.diffuseIntensity;
+			specular += light * pow(max(vec4::dot(R, V), 0), cosineFactor) * lightSource.specularIntensity;
 		}
 
 		vec4 finalLight = ambient * ambientIntensity + diffuse + specular;

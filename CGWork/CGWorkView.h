@@ -173,6 +173,7 @@ public:
 		const COLORREF& color,
 		const COLORREF& faceNormalColor,
 		const COLORREF& vertexNormalColor);
+	void MapShadows(const CG::Face& face, LightParams& lightSource, CG::mat4& modelToLightFrame);
 
 	afx_msg void OnOptionsMouseSensitivity();
 	afx_msg void OnViewSpace();
