@@ -1,4 +1,8 @@
-#pragma once
+#ifndef CG_LIGHT
+#define CG_LIGHT
+
+#include "CG_Buffer.h"
+#include "CG_Object.h"
 
 typedef enum
 {
@@ -61,6 +65,27 @@ public:
     double diffuseIntensity;
     double specularIntensity;
 
+    CG::Camera directionalPerspective;
+    CG::ZBuffer directionalBuffer;
+    CG::Camera pointPerspective[6];
+    CG::ZBuffer pointBuffer[6];
+    int shadowNearPlane, shadowFarPlane;
+
+    void CalculatePerspective()
+    {
+        if (type == LIGHT_TYPE_DIRECTIONAL)
+        {
+            CG::vec4 pos(posX, posY, posZ, 1);
+            CG::vec4 dir(dirX, dirY, dirZ);
+            directionalPerspective.LookAt(pos, pos + dir, CG::vec4(0, 1, 0));
+            directionalPerspective.Ortho(-1000, 1000, -1000, 1000, shadowNearPlane, shadowFarPlane);
+        }
+        else
+        {
+
+        }
+    }
+
     bool isValidLight();
 
     LightParams():
@@ -70,9 +95,13 @@ public:
         spotLightAngle(20),
         ambientIntensity(0.2),
         diffuseIntensity(0.8),
-        specularIntensity(1)
+        specularIntensity(1),
+        shadowNearPlane(10),
+        shadowFarPlane(1000)
     {}
 
 protected:
 private:
 };
+
+#endif

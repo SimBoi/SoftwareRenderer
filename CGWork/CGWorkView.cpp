@@ -503,25 +503,52 @@ void CCGWorkView::DrawFace(
 	std::list<ScanEdge> scanEdges;
 	for (auto& edge : edges)
 	{
-		// projection
-		vec4 projectedP1 = screenProjection * edge.line.p1;
-		vec4 projectedP2 = screenProjection * edge.line.p2;
-		projectedP1.FloorXY();
-		projectedP2.FloorXY();
-
 		// global
 		vec4 globalP1 = cameraToGlobalFrame * edge.line.p1;
 		vec4 globalP2 = cameraToGlobalFrame * edge.line.p2;
 		vec4 globalStartNormal = globalToModelFrameTranspose * edge.startNormal;
 		vec4 globalEndNormal = globalToModelFrameTranspose * edge.endNormal;
 
-		scanEdges.push_back(ScanEdge(Line(projectedP1, projectedP2), Edge(Line(globalP1, globalP2), globalStartNormal, globalEndNormal)));
+		scanEdges.push_back(ScanEdge(edge.line, Line(vec4(), vec4()), Edge(Line(globalP1, globalP2), globalStartNormal, globalEndNormal)));
 	}
 
 	if (renderMode == SOLID)
 	{
+		// calculate shadow z buffer
+		for (int i = 0; i < MAX_LIGHT; i++)
+		{
+			if (m_lights[i].enabled)
+			{
+				if (m_lights[i].type == LIGHT_TYPE_DIRECTIONAL)
+				{
+					// light projection
+					for (auto& scanEdge : scanEdges)
+					{
+						mat4 projection = Camera::ToScreenSpace(2000, 2000) * m_lights[i].directionalPerspective.projection;
+						vec4 projectedP1 = projection * scanEdge.camera.p1;
+						vec4 projectedP2 = projection * scanEdge.camera.p2;
+						projectedP1.FloorXY();
+						projectedP2.FloorXY();
+						scanEdge.projected = Line(projectedP1, projectedP2);
+					}
+
+					ShadowScanConversion(m_WindowHeight, m_WindowWidth, scanEdges, m_lights[i].directionalBuffer);
+				}
+			}
+		}
+
+		// camera projection
+		for (auto& scanEdge : scanEdges)
+		{
+			vec4 projectedP1 = screenProjection * scanEdge.camera.p1;
+			vec4 projectedP2 = screenProjection * scanEdge.camera.p2;
+			projectedP1.FloorXY();
+			projectedP2.FloorXY();
+			scanEdge.projected = Line(projectedP1, projectedP2);
+		}
+
 		// render solid face
-		ScanConversion(
+		DrawScanConversion(
 			pDCToUse,
 			m_WindowHeight,
 			m_WindowWidth,
@@ -542,6 +569,15 @@ void CCGWorkView::DrawFace(
 	}
 	else
 	{
+		for (auto& scanEdge : scanEdges)
+		{
+			vec4 projectedP1 = screenProjection * scanEdge.camera.p1;
+			vec4 projectedP2 = screenProjection * scanEdge.camera.p2;
+			projectedP1.FloorXY();
+			projectedP2.FloorXY();
+			scanEdge.projected = Line(projectedP1, projectedP2);
+		}
+
 		// render wireframe
 		for (auto const& edge : scanEdges)
 		{
@@ -748,13 +784,38 @@ void CCGWorkView::InitializeView()
 			if (!IsConvex(face)) throw;
 
 	camera.LookAt(vec4(0, 0, 600, 1), parentObject.wPosition(), vec4(0, 1, 0).normalized());
-}
 
+	for (int i = 0; i < MAX_LIGHT; i++)
+	{
+		if (m_lights[i].enabled)
+		{
+			m_lights[i].CalculatePerspective();
+		}
+	}
+}
 
 void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio, RenderMode renderMode)
 {
 	zBuffer.resize(SceneHeight, SceneWidth);
 	zBuffer.init(); // reset zBuffer
+
+	for (int i = 0; i < MAX_LIGHT; i++)
+	{
+		if (m_lights[i].enabled)
+		{
+			if (m_lights[i].type == LIGHT_TYPE_DIRECTIONAL)
+			{
+				m_lights[i].directionalBuffer.init();
+			}
+			else
+			{
+				for (int j = 0; j < 6; j++)
+				{
+					m_lights[i].pointBuffer[j].init();
+				}
+			}
+		}
+	}
 
 	// draw background
 	CG::DrawBackground(SceneRect, pDCToUse);
@@ -846,8 +907,6 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 	//}
 }
 
-
-
 void CCGWorkView::OnDraw(CDC* pDC)
 {
 	CCGWorkDoc* pDoc = GetDocument();
@@ -879,8 +938,6 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
 }
 
-
-
 CDC* CCGWorkView::RenderOnScreen(RenderMode renderMode)
 {
 	CRect r;
@@ -896,7 +953,6 @@ CDC* CCGWorkView::RenderOnScreen(RenderMode renderMode)
 
 	return pDCToUse;
 }
-
 
 void CCGWorkView::RenderToPngFile(PngWrapper* png_file, RenderMode renderMode)
 {
@@ -928,7 +984,6 @@ void CCGWorkView::RenderToPngFile(PngWrapper* png_file, RenderMode renderMode)
 	pDCToUse = nullptr;
 }
 
-
 void CCGWorkView::WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height)
 {
 	if (png_file == nullptr)
@@ -948,7 +1003,6 @@ void CCGWorkView::WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, in
 
 	png_file->WritePng();
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView CGWork Finishing and clearing...
@@ -1531,11 +1585,15 @@ void CCGWorkView::OnLightConstants()
 	{
 	    for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
 	    {
-		m_lights[id] = dlg.GetLightData((LightID)id);
+			m_lights[id] = dlg.GetLightData((LightID)id);
 	    }
 	    m_ambientLight = dlg.GetLightData(LIGHT_ID_AMBIENT);
 		m_cosineFactor = dlg.GetCosineFactor();
 		dynamicRange = dlg.GetDynamicRange();
+		for (int id = LIGHT_ID_1; id < MAX_LIGHT; id++)
+		{
+			m_lights[id].CalculatePerspective();
+		}
 	}
 	Invalidate();
 }
