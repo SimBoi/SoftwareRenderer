@@ -87,8 +87,9 @@ public:
         {
             CG::vec4 pos(posX, posY, posZ, 1);
             CG::vec4 dir(dirX, dirY, dirZ);
-            directionalPerspective.LookAt(pos, pos + dir, CG::vec4(0, 1, 0));
-            directionalPerspective.Ortho(-1000, 1000, -1000, 1000, shadowNearPlane, shadowFarPlane);
+            dir.normalize();
+            directionalPerspective.LookAt(pos - dir * (shadowFarPlane / 2), pos + dir, CG::vec4(0, 1, 0));
+            directionalPerspective.Ortho(-shadowFarPlane / 2, shadowFarPlane / 2, -shadowFarPlane / 2, shadowFarPlane / 2, 0, shadowFarPlane);
             directionalFinalProjection = CG::Camera::ToScreenSpace(shadowMapResolution, shadowMapResolution) * directionalPerspective.projection;
         }
         else

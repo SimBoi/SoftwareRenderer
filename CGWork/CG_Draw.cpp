@@ -261,7 +261,7 @@ namespace CG
 				vec4 p;
 				double t;
 				if (!it->IntersectionXY(scanLine, t, p)) continue;
-				p.FloorXY();
+				p.RoundXY();
 				if (0 < t && t < 1)
 				{
 					intersections[yIndex][i++] = p;
@@ -338,20 +338,6 @@ namespace CG
 			LightParams& lightSource = lightSources[i];
 			if (!lightSource.enabled) continue;
 
-			if (lightSource.shadowType == SHADOW_TYPE_MAP)
-			{
-				if (lightSource.type == LIGHT_TYPE_DIRECTIONAL)
-				{
-					vec4 pixelPosLightFrame = lightSource.directionalPerspective.cInverse * pixelPos;
-					vec4 pixelLightProjection = lightSource.directionalFinalProjection * pixelPosLightFrame;
-					if (!lightSource.directionalBuffer.InBuffer(pixelLightProjection.x, pixelLightProjection.y, pixelLightProjection.z)) continue;
-				}
-				else
-				{
-
-				}
-			}
-
 			vec4 L, R, V;
 			vec4 light = vec4(lightSource.colorR, lightSource.colorG, lightSource.colorB);
 			vec4 lightPos = vec4(lightSource.posX, lightSource.posY, lightSource.posZ, 1);
@@ -366,6 +352,7 @@ namespace CG
 			R = (N * (2 * vec4::dot(N, -L)) + L).normalized();
 			V = (cameraPos - pixelPos).normalized();
 
+			// outside spot light range
 			if (lightSource.type == LIGHT_TYPE_SPOT)
 			{
 				vec4 SpotDirection = vec4(lightSource.dirX, lightSource.dirY, lightSource.dirZ, 0);
@@ -373,6 +360,22 @@ namespace CG
 				double minCosineTheta = cos(lightSource.spotLightAngle * DEG_TO_RAD);
 				double cosineTheta = vec4::dot(SpotDirection, L);
 				if (cosineTheta < minCosineTheta) continue;
+			}
+
+			// in the shadow
+			if (lightSource.shadowType == SHADOW_TYPE_MAP)
+			{
+				if (lightSource.type == LIGHT_TYPE_DIRECTIONAL)
+				{
+					vec4 pixelPosLightFrame = lightSource.directionalPerspective.cInverse * pixelPos;
+					vec4 pixelLightProjection = lightSource.directionalFinalProjection * pixelPosLightFrame;
+					double bias = 0.005 * tan(acos(max(vec4::dot(L, -N), 0)));
+					if (!lightSource.directionalBuffer.IsVisible(round(pixelLightProjection.x), round(pixelLightProjection.y), pixelLightProjection.z + bias)) continue;
+				}
+				else
+				{
+
+				}
 			}
 
 			diffuse += light * max(vec4::dot(L, -N), 0) * lightSource.diffuseIntensity;
@@ -483,7 +486,7 @@ namespace CG
 				vec4 p;
 				double t;
 				if (!it->projected.IntersectionXY(scanLine, t, p)) continue;
-				p.FloorXY();
+				p.RoundXY();
 				if (0 < t && t < 1)
 				{
 					if (shading == PHONG) intersections[yIndex][i].interpolated = it->global.startNormal * (1 - t) + it->global.endNormal * t;

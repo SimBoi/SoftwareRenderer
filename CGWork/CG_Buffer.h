@@ -64,10 +64,10 @@ namespace CG
 			pDC->SetPixel(x, y, color);
 		}
 
-		bool InBuffer(int x, int y, double z)
+		bool IsVisible(int x, int y, double z)
 		{
 			if (x < 0 || x >= width || y < 0 || y >= height) return false;
-			return z <= arr[x][y] + 1e-5 && z >= arr[x][y] - 1e-5;
+			return z >= arr[x][y] - 1e-4;
 		}
 
 	private:

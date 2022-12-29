@@ -90,10 +90,10 @@ namespace CG
 		return !(*this == other);
 	}
 
-	void vec4::FloorXY()
+	void vec4::RoundXY()
 	{
-		x = floor(x);
-		y = floor(y);
+		x = round(x);
+		y = round(y);
 	}
 
 	void vec4::normalize()
@@ -274,7 +274,7 @@ namespace CG
 			0, sin(angle), cos(angle), 0,
 			0, 0, 0, 1);
 	}
-	
+
 	mat4 mat4::RotateY(double angle)
 	{
 		angle *= DEG_TO_RAD;
@@ -284,7 +284,7 @@ namespace CG
 			-sin(angle), 0, cos(angle), 0,
 			0, 0, 0, 1);
 	}
-	
+
 	mat4 mat4::RotateZ(double angle)
 	{
 		angle *= DEG_TO_RAD;

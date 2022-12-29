@@ -413,8 +413,8 @@ void DrawLine(CDC* pDCToUse, vec4 from, vec4 to, const Camera& camera, const mat
 	if (!ClipLine(from, to, camera)) return; // ClipLine will return false if line is out of frustum
 	from = screenProjection * from;
 	to = screenProjection * to;
-	from.FloorXY();
-	from.FloorXY();
+	from.RoundXY();
+	from.RoundXY();
 
 	MoveTo(from.x, from.y, from.z);
 	LineTo(pDCToUse, to.x, to.y, to.z, color);
@@ -426,8 +426,8 @@ void DrawThickLine(CDC* pDCToUse, vec4 from, vec4 to, const Camera& camera, cons
 	if (!ClipLine(from, to, camera)) return; // ClipLine will return false if line is out of frustum
 	from = screenProjection * from;
 	to = screenProjection * to;
-	from.FloorXY();
-	from.FloorXY();
+	from.RoundXY();
+	from.RoundXY();
 
 	MoveTo(from.x, from.y, from.z);
 	LineTo(pDCToUse, to.x, to.y, to.z, color);
@@ -482,8 +482,8 @@ void CCGWorkView::MapShadows(const Face& face, LightParams& lightSource, mat4& m
 		{
 			vec4 projectedP1 = lightSource.directionalFinalProjection * edge.p1;
 			vec4 projectedP2 = lightSource.directionalFinalProjection * edge.p2;
-			projectedP1.FloorXY();
-			projectedP2.FloorXY();
+			projectedP1.RoundXY();
+			projectedP2.RoundXY();
 			edge = Line(projectedP1, projectedP2);
 		}
 
@@ -550,8 +550,8 @@ void CCGWorkView::DrawFace(
 		// projection
 		vec4 projectedP1 = screenProjection * edge.line.p1;
 		vec4 projectedP2 = screenProjection * edge.line.p2;
-		projectedP1.FloorXY();
-		projectedP2.FloorXY();
+		projectedP1.RoundXY();
+		projectedP2.RoundXY();
 
 		// global
 		vec4 globalP1 = cameraToGlobalFrame * edge.line.p1;
@@ -791,8 +791,10 @@ void CCGWorkView::InitializeView()
 		for (auto& face : child.faces)
 			if (!IsConvex(face)) throw;
 
+	// set camera position and orientation
 	camera.LookAt(vec4(0, 0, 600, 1), parentObject.wPosition(), vec4(0, 1, 0).normalized());
 
+	// initialize light sources
 	for (int i = 0; i < MAX_LIGHT; i++)
 	{
 		if (m_lights[i].enabled)
@@ -804,40 +806,6 @@ void CCGWorkView::InitializeView()
 
 void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio, RenderMode renderMode)
 {
-	zBuffer.resize(SceneHeight, SceneWidth);
-	zBuffer.init(); // reset zBuffer
-
-	for (int i = 0; i < MAX_LIGHT; i++)
-	{
-		if (m_lights[i].enabled)
-		{
-			if (m_lights[i].shadowType == SHADOW_TYPE_MAP)
-			{
-				if (m_lights[i].type == LIGHT_TYPE_DIRECTIONAL)
-				{
-					m_lights[i].directionalBuffer.init();
-					for (auto& child : parentObject.children)
-					{
-						mat4 modelToLightFrame;
-
-						// draw child object faces
-						for (auto const& face : child.faces)
-						{
-							MapShadows(face, m_lights[i], modelToLightFrame);
-						}
-					}
-				}
-				else
-				{
-					//for (int j = 0; j < 6; j++)
-					//{
-					//	m_lights[i].pointBuffer[j].init();
-					//}
-				}
-			}
-		}
-	}
-
 	// draw background
 	CG::DrawBackground(SceneRect, pDCToUse);
 
@@ -846,6 +814,43 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 	{
 		initialized = true;
 		InitializeView();
+	}
+
+	// reset zBuffer
+	zBuffer.resize(SceneHeight, SceneWidth);
+	zBuffer.init();
+
+	// commpute shadow map
+	if (renderMode == SOLID)
+	{
+		for (int i = 0; i < MAX_LIGHT; i++)
+		{
+			if (m_lights[i].enabled)
+			{
+				if (m_lights[i].shadowType == SHADOW_TYPE_MAP)
+				{
+					if (m_lights[i].type == LIGHT_TYPE_DIRECTIONAL)
+					{
+						m_lights[i].directionalBuffer.resize(m_lights[i].shadowMapResolution, m_lights[i].shadowMapResolution);
+						m_lights[i].directionalBuffer.init();
+
+						mat4 parentToLightFrame = m_lights[i].directionalPerspective.cInverse * parentObject.wTransform * parentObject.mTransform;
+						for (auto& child : parentObject.children)
+						{
+							mat4 childToLightFrame = parentToLightFrame * child.wTransform * child.mTransform;
+							for (auto const& face : child.faces) MapShadows(face, m_lights[i], childToLightFrame);
+						}
+					}
+					else
+					{
+						//for (int j = 0; j < 6; j++)
+						//{
+						//	m_lights[i].pointBuffer[j].init();
+						//}
+					}
+				}
+			}
+		}
 	}
 
 	// Orthographic or Perspective View
@@ -858,7 +863,7 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 	mat4 parentToCameraFrame = camera.cInverse * parentToGlobalFrame;
 	mat4 screenProjection = camera.ToScreenSpace(SceneRect.Width(), SceneRect.Height()) * camera.projection;
 
-
+	// render to screen
 	int i = 0;
 	for (auto& child : parentObject.children)
 	{
@@ -1596,9 +1601,9 @@ void CCGWorkView::OnLightConstants()
 
 	for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
 	{
-	    dlg.SetLightData((LightID)id,m_lights[id]);
+	    dlg.SetLightData((LightID)id, &m_lights[id]);
 	}
-	dlg.SetLightData(LIGHT_ID_AMBIENT,m_ambientLight);
+	dlg.SetLightData(LIGHT_ID_AMBIENT, &m_ambientLight);
 	dlg.SetCosineFactor(m_cosineFactor);
 	dlg.SetDynamicRange(dynamicRange);
 
@@ -1606,9 +1611,9 @@ void CCGWorkView::OnLightConstants()
 	{
 	    for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
 	    {
-			m_lights[id] = dlg.GetLightData((LightID)id);
+			m_lights[id] = *dlg.GetLightData((LightID)id);
 	    }
-	    m_ambientLight = dlg.GetLightData(LIGHT_ID_AMBIENT);
+	    m_ambientLight = *dlg.GetLightData(LIGHT_ID_AMBIENT);
 		m_cosineFactor = dlg.GetCosineFactor();
 		dynamicRange = dlg.GetDynamicRange();
 		for (int id = LIGHT_ID_1; id < MAX_LIGHT; id++)
