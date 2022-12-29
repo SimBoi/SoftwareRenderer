@@ -17,55 +17,6 @@ namespace CG
 		vec4 interpolated; // holds interpolated normals for phong shading, interpolared lighting for gouraud shading
 	};
 
-	ZBuffer::~ZBuffer()
-	{
-		free();
-	}
-
-	double* ZBuffer::operator[](int index)
-	{
-		return arr[index];
-	}
-
-	void ZBuffer::resize(int height, int width)
-	{
-		if (this->height == height && this->width == width) return;
-		free();
-		this->height = height;
-		this->width = width;
-		arr = new double* [width];
-		for (int i = 0; i < width; i++) arr[i] = new double[height];
-	}
-
-	void ZBuffer::init()
-	{
-		for (int i = 0; i < width; i++)
-		{
-			for (int j = 0; j < height; j++)
-			{
-				arr[i][j] = -1;
-			}
-		}
-	}
-
-	void ZBuffer::OverridePixel(CDC* pDC, int x, int y, double z, const COLORREF& color)
-	{
-		SetPixel(pDC, x, y, z + 1e-5, color);
-	}
-
-	void ZBuffer::SetPixel(CDC* pDC, int x, int y, double z, const COLORREF& color)
-	{
-		if (x < 0 || x >= width || y < 0 || y >= height || z < arr[x][y]) return;
-		arr[x][y] = z;
-		pDC->SetPixel(x, y, color);
-	}
-
-	void ZBuffer::free()
-	{
-		for (int i = 0; i < width; ++i) delete[] arr[i];
-		delete[] arr;
-	}
-
 	int ColorRefToPngVal(COLORREF color)
 	{
 		return SET_RGB(GetRValue(color), GetGValue(color), GetBValue(color));
@@ -276,6 +227,99 @@ namespace CG
 		}
 	};
 
+	void ShadowScanConversion(int height, int width, std::list<Line>& edges, ZBuffer& shadowZBuffer)
+	{
+		// calculate the y range
+		int minY = height, maxY = 0;
+		for (auto edge : edges)
+		{
+			if (minY > edge.p1.y) minY = edge.p1.y;
+			if (minY > edge.p2.y) minY = edge.p2.y;
+			if (maxY < edge.p1.y) maxY = edge.p1.y;
+			if (maxY < edge.p2.y) maxY = edge.p2.y;
+		}
+		int yRange = maxY - minY + 1;
+
+		// intersection points for each scan line
+		vec4** intersections = new vec4 * [yRange];
+		for (int i = 0; i < yRange; i++)
+		{
+			intersections[i] = new vec4[2];
+		}
+
+		// scan lines
+		for (int y = minY; y <= maxY; y++)
+		{
+			// intersections index
+			int yIndex = y - minY;
+
+			// find intersections
+			Line scanLine = Line(vec4(0, y, 0, 1), vec4(width, y, 0, 1));
+			int i = 0; // current intersection point, max 2 intersections per scan line (convex polygon)
+			for (auto it = edges.begin(); it != edges.end() && i < 2; it++)
+			{
+				vec4 p;
+				double t;
+				if (!it->IntersectionXY(scanLine, t, p)) continue;
+				p.RoundXY();
+				if (0 < t && t < 1)
+				{
+					intersections[yIndex][i++] = p;
+				}
+				else if (t == 1)
+				{
+					const Line* edge1 = &(*it);
+					it++;
+					auto next = it != edges.end() ? it : edges.begin();
+					while (next->p1.y == next->p2.y)
+					{
+						next++;
+						if (next == edges.end()) next = edges.begin();
+						if (it != edges.end()) it++;
+					}
+					const Line* edge2 = &(*next);
+
+					if ((edge1->p2.y - edge1->p1.y) * (edge2->p2.y - edge2->p1.y) > 0)
+					{
+						intersections[yIndex][i++] = edge1->p2;
+					}
+					else
+					{
+						intersections[yIndex][i++] = edge1->p2;
+						intersections[yIndex][i++] = edge2->p1;
+					}
+					if (it == edges.end()) break;
+				}
+			}
+
+			// sort intersections by x
+			if (intersections[yIndex][0].x > intersections[yIndex][1].x)
+			{
+				vec4 tmp = intersections[yIndex][0];
+				intersections[yIndex][0] = intersections[yIndex][1];
+				intersections[yIndex][1] = tmp;
+			}
+
+			// fill pixels between intersections
+			int xRange = intersections[yIndex][1].x - intersections[yIndex][0].x;
+			for (int t = 0; t <= xRange; t++)
+			{
+				double a = xRange == 0 ? 0 : (double)t / xRange;
+				int x = intersections[yIndex][0].x + t;
+				double z = intersections[yIndex][0].z * (1 - a) + intersections[yIndex][1].z * a;
+
+				shadowZBuffer.SetDepth(x, y, z);
+			}
+		}
+
+		// cleanup
+		for (int i = 0; i < yRange; i++)
+		{
+			delete[] intersections[i];
+		}
+		delete[] intersections;
+	}
+
 	// takes arguments in global frame
 	vec4 CalcLighting(
 		const vec4& cameraPos,
@@ -291,14 +335,15 @@ namespace CG
 
 		for (int i = 0; i < 8; i++)
 		{
-			if (!lightSources[i].enabled) continue;
+			LightParams& lightSource = lightSources[i];
+			if (!lightSource.enabled) continue;
 
 			vec4 L, R, V;
-			vec4 light = vec4(lightSources[i].colorR, lightSources[i].colorG, lightSources[i].colorB);
-			vec4 lightPos = vec4(lightSources[i].posX, lightSources[i].posY, lightSources[i].posZ, 1);
-			// calculare the direction of the light hitting the pixel in global frame
-			if (lightSources[i].type == LIGHT_TYPE_DIRECTIONAL)
-				L = vec4(lightSources[i].dirX, lightSources[i].dirY, lightSources[i].dirZ, 0);
+			vec4 light = vec4(lightSource.colorR, lightSource.colorG, lightSource.colorB);
+			vec4 lightPos = vec4(lightSource.posX, lightSource.posY, lightSource.posZ, 1);
+			// calculate the direction of the light hitting the pixel in global frame
+			if (lightSource.type == LIGHT_TYPE_DIRECTIONAL)
+				L = vec4(lightSource.dirX, lightSource.dirY, lightSource.dirZ, 0);
 			else
 				L = pixelPos - lightPos;
 			L.normalize();
@@ -307,17 +352,50 @@ namespace CG
 			R = (N * (2 * vec4::dot(N, -L)) + L).normalized();
 			V = (cameraPos - pixelPos).normalized();
 
-			if (lightSources[i].type == LIGHT_TYPE_SPOT)
+			// outside spot light range
+			if (lightSource.type == LIGHT_TYPE_SPOT)
 			{
-				vec4 SpotDirection = vec4(lightSources[i].dirX, lightSources[i].dirY, lightSources[i].dirZ, 0);
+				vec4 SpotDirection = vec4(lightSource.dirX, lightSource.dirY, lightSource.dirZ, 0);
 				SpotDirection.normalize();
-				double minCosineTheta = cos(lightSources[i].spotLightAngle * DEG_TO_RAD);
+				double minCosineTheta = cos(lightSource.spotLightAngle * DEG_TO_RAD);
 				double cosineTheta = vec4::dot(SpotDirection, L);
 				if (cosineTheta < minCosineTheta) continue;
 			}
 
-			diffuse += light * max(vec4::dot(L, -N), 0) * lightSources[i].diffuseIntensity;
-			specular += light * pow(max(vec4::dot(R, V), 0), cosineFactor) * lightSources[i].specularIntensity;
+			// in the shadow
+			if (lightSource.shadowType == SHADOW_TYPE_MAP)
+			{
+				if (lightSource.type == LIGHT_TYPE_DIRECTIONAL)
+				{
+					vec4 pixelPosLightFrame = lightSource.directionalPerspective.cInverse * pixelPos;
+					vec4 pixelLightProjection = lightSource.directionalFinalProjection * pixelPosLightFrame;
+					double bias = 0.005 * tan(acos(max(vec4::dot(L, -N), 0)));
+					bias = min(0.05, bias);
+					bias = max(0, bias);
+					if (!lightSource.directionalBuffer.IsVisible(round(pixelLightProjection.x), round(pixelLightProjection.y), pixelLightProjection.z + bias)) continue;
+				}
+				else
+				{
+					bool isVisible = false;
+					for (int j = 0; j < 6; j++)
+					{
+						vec4 pixelPosLightFrame = lightSource.pointPerspective[j].cInverse * pixelPos;
+						vec4 pixelLightProjection = lightSource.pointFinalProjection[j] * pixelPosLightFrame;
+						double bias = 0.005 * tan(acos(max(vec4::dot(L, -N), 0)));
+						bias = min(0.05, bias);
+						bias = max(0, bias);
+						if (lightSource.pointBuffer[j].IsVisible(round(pixelLightProjection.x), round(pixelLightProjection.y), pixelLightProjection.z + bias))
+						{
+							isVisible = true;
+							break;
+						}
+					}
+					if (!isVisible) continue;
+				}
+			}
+
+			diffuse += light * max(vec4::dot(L, -N), 0) * lightSource.diffuseIntensity;
+			specular += light * pow(max(vec4::dot(R, V), 0), cosineFactor) * lightSource.specularIntensity;
 		}
 
 		vec4 finalLight = ambient * ambientIntensity + diffuse + specular;
@@ -329,7 +407,7 @@ namespace CG
 		return finalLight;
 	}
 
-	void ScanConversion(
+	void DrawScanConversion(
 		CDC* pDC,
 		int height,
 		int width,
@@ -424,7 +502,7 @@ namespace CG
 				vec4 p;
 				double t;
 				if (!it->projected.IntersectionXY(scanLine, t, p)) continue;
-				p.FloorXY();
+				p.RoundXY();
 				if (0 < t && t < 1)
 				{
 					if (shading == PHONG) intersections[yIndex][i].interpolated = it->global.startNormal * (1 - t) + it->global.endNormal * t;
@@ -455,7 +533,7 @@ namespace CG
 					else
 					{
 						if (shading == PHONG) intersections[yIndex][i].interpolated = edge1->global.endNormal;
-						else if (shading == GOURAUD) intersections[yIndex][i].interpolated = edge2->shadingP2;
+						else if (shading == GOURAUD) intersections[yIndex][i].interpolated = edge1->shadingP2;
 						intersections[yIndex][i].projected = edge1->projected.p2;
 						intersections[yIndex][i++].global = edge1->global.line.p2;
 						if (shading == PHONG) intersections[yIndex][i].interpolated = edge2->global.startNormal;

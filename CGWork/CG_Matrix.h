@@ -29,7 +29,7 @@ namespace CG
 		vec4 operator-() const;
 		bool operator==(const vec4& other) const;
 		bool operator!=(const vec4& other) const;
-		void FloorXY();
+		void RoundXY();
 		void normalize();
 		vec4 normalized() const;
 		void ToArray(double arr[4]) const;

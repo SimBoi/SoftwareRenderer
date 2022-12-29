@@ -14,8 +14,8 @@ public:
 	virtual ~CLightDialog();
 
 	//dialog interface
-	void SetLightData(LightID id,const LightParams& light);
-	LightParams GetLightData(LightID id);
+	void SetLightData(LightID id, LightParams* light);
+	LightParams* GetLightData(LightID id);
 	void SetCosineFactor(int cosineFactor);
 	void SetDynamicRange(double dynamicRange);
 	int GetCosineFactor();
@@ -25,8 +25,8 @@ public:
 	enum { IDD = IDD_LIGHTS_DLG };
 
 protected:
-	LightParams m_lights[MAX_LIGHT];
-	LightParams m_ambient;
+	LightParams* m_lights[MAX_LIGHT];
+	LightParams* m_ambient;
 	int m_cosineFactor;
 	double m_dynamicRange;
 	int m_currentLightIdx;
