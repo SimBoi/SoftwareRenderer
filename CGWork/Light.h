@@ -77,10 +77,13 @@ public:
     CG::mat4 directionalFinalProjection;
     CG::ZBuffer directionalBuffer;
     CG::Camera pointPerspective[6];
+    CG::mat4 pointFinalProjection[6];
     CG::ZBuffer pointBuffer[6];
 
     int shadowNearPlane, shadowFarPlane, shadowMapResolution;
+    int cubeMapSideResolution;
 
+public:
     void CalculatePerspective()
     {
         if (type == LIGHT_TYPE_DIRECTIONAL)
@@ -94,7 +97,21 @@ public:
         }
         else
         {
+            CG::vec4 dir, pos(posX, posY, posZ, 1);
 
+            pointPerspective[0].LookAt(pos, pos + CG::vec4(1, 0, 0), CG::vec4(0, 1, 0));
+            pointPerspective[1].LookAt(pos, pos + CG::vec4(-1, 0, 0), CG::vec4(0, 1, 0));
+            pointPerspective[2].LookAt(pos, pos + CG::vec4(0, 0, 1), CG::vec4(0, 1, 0));
+            pointPerspective[3].LookAt(pos, pos + CG::vec4(0, 0, -1), CG::vec4(0, 1, 0));
+            pointPerspective[4].LookAt(pos, pos + CG::vec4(0, 1, 0), CG::vec4(0, 0, 1));
+            pointPerspective[5].LookAt(pos, pos + CG::vec4(0, -1, 0), CG::vec4(0, 0, 1));
+
+            cubeMapSideResolution = shadowMapResolution / 2.44948974;
+            for (int i = 0; i < 6; i++)
+            {
+                pointPerspective[i].Perspective(90, 1, shadowNearPlane, shadowFarPlane);
+                pointFinalProjection[i] = CG::Camera::ToScreenSpace(cubeMapSideResolution, cubeMapSideResolution) * pointPerspective[i].projection;
+            }
         }
     }
 
@@ -111,7 +128,8 @@ public:
         shadowType(SHADOW_TYPE_MAP),
         shadowNearPlane(10),
         shadowFarPlane(1000),
-        shadowMapResolution(2000)
+        shadowMapResolution(2000),
+        cubeMapSideResolution(2000 / 2.44948974)
     {}
 
 protected:

@@ -374,7 +374,19 @@ namespace CG
 				}
 				else
 				{
-
+					bool isVisible = false;
+					for (int j = 0; j < 6; j++)
+					{
+						vec4 pixelPosLightFrame = lightSource.pointPerspective[j].cInverse * pixelPos;
+						vec4 pixelLightProjection = lightSource.pointFinalProjection[j] * pixelPosLightFrame;
+						double bias = 0.005 * tan(acos(max(vec4::dot(L, -N), 0)));
+						if (lightSource.pointBuffer[j].IsVisible(round(pixelLightProjection.x), round(pixelLightProjection.y), pixelLightProjection.z + bias))
+						{
+							isVisible = true;
+							break;
+						}
+					}
+					if (!isVisible) continue;
 				}
 			}
 

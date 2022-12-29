@@ -451,48 +451,41 @@ void DrawThickLine(CDC* pDCToUse, vec4 from, vec4 to, const Camera& camera, cons
 	LineTo(pDCToUse, to.x + 1, to.y - 1, to.z, color);
 }
 
-void CCGWorkView::MapShadows(const Face& face, LightParams& lightSource, mat4& modelToLightFrame)
+void CCGWorkView::MapShadows(const Face& face, const Camera perspective, int mapResolution, const mat4& finalProjection, const mat4& modelToLightFrame, ZBuffer& buffer)
 {
-	if (lightSource.type == LIGHT_TYPE_DIRECTIONAL)
+	// clip face edges
+	std::list<Line> edges;
+	vec4 currCoords, prevCoords = modelToLightFrame * face.vertices.back().localPosition;
+	for (auto const& vertex : face.vertices)
 	{
-		// clip face edges
-		std::list<Line> edges;
-		vec4 currCoords, prevCoords = modelToLightFrame * face.vertices.back().localPosition;
-		for (auto const& vertex : face.vertices)
-		{
-			currCoords = modelToLightFrame * vertex.localPosition;
-			vec4 from = prevCoords;
-			vec4 to = currCoords;
-			if (ClipLine(from, to, lightSource.directionalPerspective)) edges.push_back(Line(from, to));
-			prevCoords = currCoords;
-		}
-
-		if (edges.size() == 0) return;
-
-		// connect edges outside of the frustum
-		Line* prevEdge = &edges.back();
-		for (auto it = edges.begin(); it != edges.end(); it++)
-		{
-			if (prevEdge->p2 != it->p1) edges.insert(it, Line(prevEdge->p2, it->p1));
-			prevEdge = &(*it);
-		}
-
-		// projection
-		for (auto& edge : edges)
-		{
-			vec4 projectedP1 = lightSource.directionalFinalProjection * edge.p1;
-			vec4 projectedP2 = lightSource.directionalFinalProjection * edge.p2;
-			projectedP1.RoundXY();
-			projectedP2.RoundXY();
-			edge = Line(projectedP1, projectedP2);
-		}
-
-		ShadowScanConversion(lightSource.shadowMapResolution, lightSource.shadowMapResolution, edges, lightSource.directionalBuffer);
+		currCoords = modelToLightFrame * vertex.localPosition;
+		vec4 from = prevCoords;
+		vec4 to = currCoords;
+		if (ClipLine(from, to, perspective)) edges.push_back(Line(from, to));
+		prevCoords = currCoords;
 	}
-	else
+
+	if (edges.size() == 0) return;
+
+	// connect edges outside of the frustum
+	Line* prevEdge = &edges.back();
+	for (auto it = edges.begin(); it != edges.end(); it++)
 	{
-
+		if (prevEdge->p2 != it->p1) edges.insert(it, Line(prevEdge->p2, it->p1));
+		prevEdge = &(*it);
 	}
+
+	// projection
+	for (auto& edge : edges)
+	{
+		vec4 projectedP1 = finalProjection * edge.p1;
+		vec4 projectedP2 = finalProjection * edge.p2;
+		projectedP1.RoundXY();
+		projectedP2.RoundXY();
+		edge = Line(projectedP1, projectedP2);
+	}
+
+	ShadowScanConversion(mapResolution, mapResolution, edges, buffer);
 }
 
 void CCGWorkView::DrawFace(
@@ -838,15 +831,41 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 						for (auto& child : parentObject.children)
 						{
 							mat4 childToLightFrame = parentToLightFrame * child.wTransform * child.mTransform;
-							for (auto const& face : child.faces) MapShadows(face, m_lights[i], childToLightFrame);
+							for (auto const& face : child.faces)
+							{
+								MapShadows(
+									face,
+									m_lights[i].directionalPerspective,
+									m_lights[i].shadowMapResolution,
+									m_lights[i].directionalFinalProjection,
+									childToLightFrame,
+									m_lights[i].directionalBuffer);
+							}
 						}
 					}
 					else
 					{
-						//for (int j = 0; j < 6; j++)
-						//{
-						//	m_lights[i].pointBuffer[j].init();
-						//}
+						for (int j = 0; j < 6; j++)
+						{
+							m_lights[i].pointBuffer[j].resize(m_lights[i].cubeMapSideResolution, m_lights[i].cubeMapSideResolution);
+							m_lights[i].pointBuffer[j].init();
+
+							mat4 parentToLightFrame = m_lights[i].pointPerspective[j].cInverse * parentObject.wTransform * parentObject.mTransform;
+							for (auto& child : parentObject.children)
+							{
+								mat4 childToLightFrame = parentToLightFrame * child.wTransform * child.mTransform;
+								for (auto const& face : child.faces)
+								{
+									MapShadows(
+										face,
+										m_lights[i].pointPerspective[j],
+										m_lights[i].cubeMapSideResolution,
+										m_lights[i].pointFinalProjection[j],
+										childToLightFrame,
+										m_lights[i].pointBuffer[j]);
+								}
+							}
+						}
 					}
 				}
 			}
