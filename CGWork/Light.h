@@ -80,8 +80,8 @@ public:
     CG::mat4 pointFinalProjection[6];
     CG::ZBuffer pointBuffer[6];
 
-    int shadowNearPlane, shadowFarPlane, shadowMapResolution;
-    int cubeMapSideResolution;
+    double shadowNearPlane, shadowFarPlane;
+    int shadowMapResolution, cubeMapSideResolution;
 
 public:
     void CalculatePerspective()
@@ -125,7 +125,7 @@ public:
         ambientIntensity(0.2),
         diffuseIntensity(0.8),
         specularIntensity(1),
-        shadowType(SHADOW_TYPE_MAP),
+        shadowType(SHADOW_TYPE_NONE),
         shadowNearPlane(10),
         shadowFarPlane(1000),
         shadowMapResolution(2000),

@@ -53,8 +53,20 @@ void CLightDialog::DoDataExchange(CDataExchange* pDX)
 	DDV_Color(pDX, (*m_ambient).colorG);
 	DDX_Text(pDX, IDC_AMBL_COLOR_B, (*m_ambient).colorB);
 	DDV_Color(pDX, (*m_ambient).colorB);
+	DDX_Text(pDX, IDC_LIGHT_AMBIENT_INTENSITY, (*m_ambient).ambientIntensity);
+	DDV_Intensity(pDX, (*m_ambient).ambientIntensity);
 
+	//scene settings
+	DDX_Text(pDX, IDC_LIGHT_COSINE_FACTOR, m_cosineFactor);
+	DDV_MinMaxInt(pDX, m_cosineFactor, 1, 500);
+	DDX_Text(pDX, IDC_DYNAMIC_RANGE, m_dynamicRange);
+	DDV_MinMaxDouble(pDX, m_dynamicRange, 1, 5000);
+
+	//
 	//update light parameters for the currently selected light
+	//
+
+	// light settings
 	DDX_Text(pDX, IDC_LIGHT_COLOR_R, (*m_lights[m_currentLightIdx]).colorR);
 	DDV_Color(pDX, (*m_lights[m_currentLightIdx]).colorR);
 	DDX_Text(pDX, IDC_LIGHT_COLOR_G, (*m_lights[m_currentLightIdx]).colorG);
@@ -73,25 +85,11 @@ void CLightDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_SPOT_LIGHT_ANGLE, (*m_lights[m_currentLightIdx]).spotLightAngle);
 	DDV_MinMaxDouble(pDX, (*m_lights[m_currentLightIdx]).spotLightAngle, 1, 89);
 
-	//NOTE:Add more dialog controls which are associated with the structure below this line
-	//...
-
 	DDX_Text(pDX, IDC_LIGHT_DIFFUSE_INTENSITY, (*m_lights[m_currentLightIdx]).diffuseIntensity);
 	DDV_Intensity(pDX, (*m_lights[m_currentLightIdx]).diffuseIntensity);
 
 	DDX_Text(pDX, IDC_LIGHT_SPECULAR_INTENSITY, (*m_lights[m_currentLightIdx]).specularIntensity);
 	DDV_Intensity(pDX, (*m_lights[m_currentLightIdx]).specularIntensity);
-
-	DDX_Text(pDX, IDC_LIGHT_AMBIENT_INTENSITY, (*m_ambient).ambientIntensity);
-	DDV_Intensity(pDX, (*m_ambient).ambientIntensity);
-
-	DDX_Text(pDX, IDC_LIGHT_COSINE_FACTOR, m_cosineFactor);
-	DDV_MinMaxInt(pDX, m_cosineFactor, 1, 500);
-	DDX_Text(pDX, IDC_DYNAMIC_RANGE, m_dynamicRange);
-	DDV_MinMaxDouble(pDX, m_dynamicRange, 1, 5000);
-
-	//the following class members can't be updated directly through DDX
-	//using a helper variable for type-casting to solve the compilation error
 
 	int helper= (*m_lights[m_currentLightIdx]).enabled;
 	DDX_Check(pDX,IDC_LIGHT_ENABLED,helper);
@@ -105,6 +103,19 @@ void CLightDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX,IDC_LIGHT_SPACE,helper);
 	(*m_lights[m_currentLightIdx]).space = (LightSpace)helper;
 
+	// shadow settings
+
+	helper = (*m_lights[m_currentLightIdx]).shadowType;
+	DDX_CBIndex(pDX, IDC_SHADOW_TYPE, helper);
+	(*m_lights[m_currentLightIdx]).shadowType = (ShadowType)helper;
+
+	DDX_Text(pDX, IDC_SHADOW_NEAR, (*m_lights[m_currentLightIdx]).shadowNearPlane);
+	DDX_Text(pDX, IDC_SHADOW_FAR, (*m_lights[m_currentLightIdx]).shadowFarPlane);
+	DDV_MinMaxDouble(pDX, (*m_lights[m_currentLightIdx]).shadowNearPlane, 10, (*m_lights[m_currentLightIdx]).shadowFarPlane);
+	DDV_MinMaxDouble(pDX, (*m_lights[m_currentLightIdx]).shadowFarPlane, (*m_lights[m_currentLightIdx]).shadowNearPlane, 10000);
+
+	DDX_Text(pDX, IDC_SHADOW_RESOLUTION, (*m_lights[m_currentLightIdx]).shadowMapResolution);
+	DDV_MinMaxInt(pDX, (*m_lights[m_currentLightIdx]).shadowMapResolution, 500, 5000);
 }
 
 

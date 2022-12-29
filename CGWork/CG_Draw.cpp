@@ -370,6 +370,8 @@ namespace CG
 					vec4 pixelPosLightFrame = lightSource.directionalPerspective.cInverse * pixelPos;
 					vec4 pixelLightProjection = lightSource.directionalFinalProjection * pixelPosLightFrame;
 					double bias = 0.005 * tan(acos(max(vec4::dot(L, -N), 0)));
+					bias = min(0.05, bias);
+					bias = max(0, bias);
 					if (!lightSource.directionalBuffer.IsVisible(round(pixelLightProjection.x), round(pixelLightProjection.y), pixelLightProjection.z + bias)) continue;
 				}
 				else
@@ -380,6 +382,8 @@ namespace CG
 						vec4 pixelPosLightFrame = lightSource.pointPerspective[j].cInverse * pixelPos;
 						vec4 pixelLightProjection = lightSource.pointFinalProjection[j] * pixelPosLightFrame;
 						double bias = 0.005 * tan(acos(max(vec4::dot(L, -N), 0)));
+						bias = min(0.05, bias);
+						bias = max(0, bias);
 						if (lightSource.pointBuffer[j].IsVisible(round(pixelLightProjection.x), round(pixelLightProjection.y), pixelLightProjection.z + bias))
 						{
 							isVisible = true;
