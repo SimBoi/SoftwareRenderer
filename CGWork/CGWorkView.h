@@ -99,6 +99,8 @@ protected:
 	CStringA m_strPngFileName;		// file name of PNG render to file
 	PngWrapper* m_pRenderToPng;		// holds the render to file
 
+	CG::TransformationsQueue m_TransQueue;	// holds key-frame transformation for the animation
+
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;
 
@@ -208,6 +210,8 @@ public:
 	afx_msg void OnUpdateViewAlwayscalculateverticesnormals(CCmdUI* pCmdUI);
 	afx_msg void ToggleSilhouette();
 	afx_msg void OnUpdateToggleSilhouette(CCmdUI* pCmdUI);
+	afx_msg void OnRecordButton();
+	afx_msg void OnPlayButton();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

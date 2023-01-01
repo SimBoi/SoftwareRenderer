@@ -305,6 +305,19 @@ namespace CG
 		return t;
 	}
 
+	mat4 mat4::InterpolatedMatrix(mat4& A, mat4& B, double t)
+	{
+		mat4 C;
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				C[i][j] = t * A[i][j] + (1 - t) * B[i][j];
+			}
+		}
+		return C;
+	}
+
 	///////////// Line
 
 	Line::Line(vec4& p1, vec4& p2) : p1(p1), p2(p2) { }

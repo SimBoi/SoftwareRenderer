@@ -33,6 +33,7 @@ static char THIS_FILE[] = __FILE__;
 #include "PerspectiveSettingsDialog.h"
 #include "BackgroundImageDialog.h"
 #include "RenderToFileDialog.h"
+#include "CG_Animation.h"
 
 #include <string>
 #include <unordered_map>
@@ -122,6 +123,8 @@ ON_COMMAND(ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS, &CCGWorkView::OnViewAlwayscal
 ON_UPDATE_COMMAND_UI(ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS, &CCGWorkView::OnUpdateViewAlwayscalculateverticesnormals)
 ON_COMMAND(ID_VIEW_SILHOUETTEHIGHLIGHTING, &CCGWorkView::ToggleSilhouette)
 ON_UPDATE_COMMAND_UI(ID_VIEW_SILHOUETTEHIGHLIGHTING, &CCGWorkView::OnUpdateToggleSilhouette)
+ON_COMMAND(ID_RECORD_BUTTON, &CCGWorkView::OnRecordButton)
+ON_COMMAND(ID_PLAY_BUTTON, &CCGWorkView::OnPlayButton)
 END_MESSAGE_MAP()
 
 
@@ -1802,4 +1805,33 @@ void CCGWorkView::ToggleSilhouette()
 void CCGWorkView::OnUpdateToggleSilhouette(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_renderSilhouette == true);
+}
+
+void CCGWorkView::OnRecordButton()
+{
+	// TODO: Add your command handler code here
+	m_TransQueue.push(parentObject.wTransform);
+	//STATUS_BAR_TEXT("recorded");
+}
+
+double t = 1;
+mat4 prev_mat, next_mat;
+KeyFrame my_frame;
+void CCGWorkView::OnPlayButton()
+{
+	if (t <= 0)
+		return;
+	// TODO: Add your command handler code here
+	if (t == 1)
+	{
+		prev_mat = m_TransQueue.front();
+		m_TransQueue.pop();
+		next_mat = m_TransQueue.front();
+		my_frame = KeyFrame(&parentObject, m_nSpace, prev_mat, next_mat);
+	}
+
+	parentObject.setWTransform(mat4::InterpolatedMatrix(
+		my_frame.prev_transform_matrix, my_frame.next_transform_matrix, t));
+	t -= 0.05;
+	Invalidate();
 }

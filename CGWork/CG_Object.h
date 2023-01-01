@@ -4,7 +4,10 @@
 #include "CG_Matrix.h"
 #include "PngWrapper.h"
 #include <list>
+#include <queue>
 #include <windows.h>
+
+using namespace std;
 
 #define FAR_PLANE 0
 #define NEAR_PLANE 1
@@ -17,6 +20,8 @@ namespace CG
 {
 	typedef enum SpaceType { VIEW, OBJECT } TSpace;
 	typedef enum LayoutType { NONE, STRETCH, REPEAT } BackgroundLayout;
+
+	typedef queue<CG::mat4> TransformationsQueue;
 
 	extern int rotation_sensitivity;
 	extern int translation_sensitivity;
@@ -85,6 +90,9 @@ namespace CG
 		std::list<Object> children;
 		double normalScale;
 
+
+		void setWTransform(mat4& transform_matrix);
+		void setMTransform(mat4& transform_matrix);
 		vec4 mPosition() const;
 		vec4 wPosition() const;
 		void Translate(vec4& amount);

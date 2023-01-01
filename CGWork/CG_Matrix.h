@@ -75,6 +75,8 @@ namespace CG
 		static mat4 RotateY(double angle);
 		static mat4 RotateZ(double angle);
 		static mat4 Scale(vec4& amount);
+
+		static mat4 InterpolatedMatrix(mat4& A, mat4& B, double t);
 	};
 
 	class Line
