@@ -43,6 +43,7 @@
 #define IDC_LIGHT_DIR_Z                 1037
 #define IDC_LIGHT_TYPE                  1038
 #define IDC_MATERIAL_AMBIENT            1039
+#define IDC_LIGHT_TYPE2                 1039
 #define IDC_MATERIAL_DIFFUSE            1040
 #define IDC_MATERIAL_SHININESS          1041
 #define IDC_MATERIAL_SPECULAR           1042
@@ -96,8 +97,14 @@
 #define IDC_LIGHT_AMBIENT_INTENSITY     1088
 #define IDC_LIGHT_COSINE_FACTOR         1089
 #define IDC_DYNAMIC_RANGE               1090
-#define IDC_EDIT1                       1091
 #define IDC_SPOT_LIGHT_ANGLE            1091
+#define IDC_SHADOW_TYPE                 1092
+#define IDC_STATIC_DIFFUSE2             1094
+#define IDC_SHADOW_FAR                  1095
+#define IDC_STATIC_DIFFUSE3             1096
+#define IDC_SHADOW_NEAR                 1097
+#define IDC_STATIC_DIFFUSE4             1098
+#define IDC_SHADOW_RESOLUTION           1099
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -154,7 +161,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        159
 #define _APS_NEXT_COMMAND_VALUE         32841
-#define _APS_NEXT_CONTROL_VALUE         1092
+#define _APS_NEXT_CONTROL_VALUE         1093
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

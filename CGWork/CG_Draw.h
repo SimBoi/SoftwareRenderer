@@ -4,10 +4,12 @@
 #include "CG_Matrix.h"
 #include "Light.h"
 #include <list>
+#include "CG_Buffer.h"
 
 namespace CG
 {
 	extern double dynamicRange;
+	extern ZBuffer zBuffer;
 
 	typedef enum Shading { FLAT, GOURAUD, PHONG } Shading;
 	typedef enum RenderMode { WIREFRAME, SOLID} RenderMode;
@@ -19,27 +21,10 @@ namespace CG
 		Edge global;
 		vec4 shadingP1;
 		vec4 shadingP2;
-		ScanEdge(Line projected, Edge(global)) :
+		ScanEdge(Line camera, Line projected, Edge global) :
 			projected(projected), global(global)
 		{ };
 	};
-
-	class ZBuffer
-	{
-		int height = 0, width = 0;
-		double** arr = NULL;
-	public:
-		~ZBuffer();
-		double* operator[](int index);
-		void resize(int height, int width);
-		void init();
-		void OverridePixel(CDC* pDC, int x, int y, double z, const COLORREF& color); // draws if z >= previous z
-		void SetPixel(CDC* pDC, int x, int y, double z, const COLORREF& color); // draws if z > previous z
-	private:
-		void free();
-	};
-
-	extern ZBuffer zBuffer;
 
 	COLORREF PngValToColorRef(int png_value);
 	int ColorRefToPngVal(COLORREF color);
@@ -47,8 +32,9 @@ namespace CG
 	void DrawBackground(CRect& r, CDC* pDC);
 	void MoveTo(int x, int y, double z);
 	void LineTo(CDC* pDC, int endX, int endY, double endZ, const COLORREF& color);
+	void ShadowScanConversion(int height, int width, std::list<Line>& edges, ZBuffer& shadowZBuffer);
 	// faceCenter and faceNormal should be in global frame
-	void ScanConversion(
+	void DrawScanConversion(
 		CDC* pDC,
 		int height,
 		int width,

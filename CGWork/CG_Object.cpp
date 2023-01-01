@@ -392,11 +392,11 @@ namespace CG
 		);
 	}
 
-	mat4 Camera::ToScreenSpace(double width, double height)
+	mat4 Camera::ToScreenSpace(int width, int height)
 	{
 		return mat4(
-			width / 2, 0, 0, width / 2,
-			0, -height / 2, 0, height / 2,
+			width / 2.0, 0, 0, width / 2.0,
+			0, -height / 2.0, 0, height / 2.0,
 			0, 0, 1, 0,
 			0, 0, 0, 1
 		);
