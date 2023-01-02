@@ -19,6 +19,7 @@
 #define IDD_PERSPECTIVE_SETTINGS        152
 #define IDD_BACKGROUND_IMAGE_DIALOG     153
 #define IDD_TOPNG_FILE_DIALOG           155
+#define IDR_RECORD_BAR                  161
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -155,15 +156,26 @@
 #define ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS 32839
 #define ID_VIEW_SILHOUETTEHIGHLIGHTING  32840
 #define ID_RECORD_BUTTON                32846
-#define ID_BUTTON32847                  32847
 #define ID_PLAY_BUTTON                  32847
+#define ID_BUTTON32850                  32850
+#define ID_BUTTON32851                  32851
+#define ID_VIEW_                        32852
+#define ID_VIEW_RECORDINGBAR            32853
+#define ID_BUTTON32855                  32855
+#define ID_BUTTON32859                  32859
+#define ID_BUTTON32862                  32862
+#define ID_BUTTON32864                  32864
+#define ID_BUTTON32865                  32865
+#define ID_BUTTON32866                  32866
+#define ID_BUTTON32868                  32868
+#define ID_BUTTON32869                  32869
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        159
-#define _APS_NEXT_COMMAND_VALUE         32848
+#define _APS_NEXT_RESOURCE_VALUE        163
+#define _APS_NEXT_COMMAND_VALUE         32870
 #define _APS_NEXT_CONTROL_VALUE         1093
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

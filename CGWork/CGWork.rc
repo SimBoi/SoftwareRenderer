@@ -42,6 +42,8 @@ IDR_FACE_NORMALS        BITMAP                  "res\\face_normals.bmp"
 
 IDR_VERTEX_NORMALS      BITMAP                  "res\\vertex_normals.bmp"
 
+IDR_RECORD_BAR          BITMAP                  "res\\toolbar1.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -74,8 +76,21 @@ BEGIN
     BUTTON      ID_OPTIONS_COLORPICKER
     BUTTON      ID_OPTIONS_POLYGONALFINENESS
     BUTTON      ID_PERSPECCTIVE_SETTINGS
+END
+
+IDR_RECORD_BAR TOOLBAR 16, 16
+BEGIN
     BUTTON      ID_RECORD_BUTTON
+    BUTTON      ID_BUTTON32855
+    BUTTON      ID_BUTTON32859
+    SEPARATOR
+    BUTTON      ID_BUTTON32862
+    BUTTON      ID_BUTTON32864
+    SEPARATOR
     BUTTON      ID_PLAY_BUTTON
+    BUTTON      ID_BUTTON32866
+    BUTTON      ID_BUTTON32868
+    BUTTON      ID_BUTTON32869
 END
 
 
@@ -95,6 +110,7 @@ BEGIN
     POPUP "&View"
     BEGIN
         MENUITEM "&Toolbar",                    ID_VIEW_TOOLBAR
+        MENUITEM "Recording Bar",               ID_VIEW_RECORDINGBAR
         MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
         MENUITEM SEPARATOR
         MENUITEM "&Orthographic",               ID_VIEW_ORTHOGRAPHIC
@@ -767,14 +783,32 @@ END
 
 STRINGTABLE
 BEGIN
-    ID_FACE_NORMALS         "show/hide face normals"
-    ID_VERTEX_NORMALS       "show/hide vertex normals"
-    ID_PERSPECCTIVE_SETTINGS "Perspective settings"
+    ID_FACE_NORMALS         "show/hide face normals\nface normals"
+    ID_VERTEX_NORMALS       "show/hide vertex normals\nvertex normals"
+    ID_PERSPECCTIVE_SETTINGS "Perspective settings\nPerspective settings"
 END
 
 STRINGTABLE
 BEGIN
+    ID_FILE_SAVEASPNG       "Save Scene as PNG\nSave Scene"
     ID_VIEW_SILHOUETTEHIGHLIGHTING "Render Silhouette"
+    ID_RECORD_BUTTON        "Start Recording\nRecord"
+    ID_PLAY_BUTTON          "Play Record\nPlay"
+END
+
+STRINGTABLE
+BEGIN
+    ID_BUTTON32855          "Stop Recording\nStop Recording"
+    ID_BUTTON32859          "Snapshot - Capture Current Frame\nSnapshot"
+    ID_BUTTON32862          "Save Record to Folder\nSave Record"
+END
+
+STRINGTABLE
+BEGIN
+    ID_BUTTON32864          "Discard Record\nDiscard Record"
+    ID_BUTTON32866          "Pause Player\nPause"
+    ID_BUTTON32868          "take step to next frame\nNext Frame"
+    ID_BUTTON32869          "Reset Player\nReset Player"
 END
 
 #endif    // English (United States) resources

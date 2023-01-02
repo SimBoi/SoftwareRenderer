@@ -125,6 +125,8 @@ ON_COMMAND(ID_VIEW_SILHOUETTEHIGHLIGHTING, &CCGWorkView::ToggleSilhouette)
 ON_UPDATE_COMMAND_UI(ID_VIEW_SILHOUETTEHIGHLIGHTING, &CCGWorkView::OnUpdateToggleSilhouette)
 ON_COMMAND(ID_RECORD_BUTTON, &CCGWorkView::OnRecordButton)
 ON_COMMAND(ID_PLAY_BUTTON, &CCGWorkView::OnPlayButton)
+ON_COMMAND(ID_VIEW_RECORDINGBAR, &CCGWorkView::OnViewRecordingbar)
+ON_UPDATE_COMMAND_UI(ID_VIEW_RECORDINGBAR, &CCGWorkView::OnUpdateViewRecordingbar)
 END_MESSAGE_MAP()
 
 
@@ -1814,15 +1816,15 @@ void CCGWorkView::OnRecordButton()
 	//STATUS_BAR_TEXT("recorded");
 }
 
-double t = 1;
+double t = 0;
 mat4 prev_mat, next_mat;
 KeyFrame my_frame;
 void CCGWorkView::OnPlayButton()
 {
-	if (t <= 0)
+	if (t >= 1)
 		return;
 	// TODO: Add your command handler code here
-	if (t == 1)
+	if (t == 0)
 	{
 		prev_mat = m_TransQueue.front();
 		m_TransQueue.pop();
@@ -1832,6 +1834,32 @@ void CCGWorkView::OnPlayButton()
 
 	parentObject.setWTransform(mat4::InterpolatedMatrix(
 		my_frame.prev_transform_matrix, my_frame.next_transform_matrix, t));
-	t -= 0.05;
+	t += 0.05;
 	Invalidate();
+}
+
+
+void CCGWorkView::OnViewRecordingbar()
+{
+	// TODO: Add your command handler code here
+	CToolBar& RecordingBar = ((CMainFrame*)GetParentFrame())->getRecordingBar();
+	if (RecordingBar.IsWindowVisible())
+	{
+		RecordingBar.ShowWindow(SW_HIDE);
+	}
+	else
+	{
+		RecordingBar.ShowWindow(SW_NORMAL);
+	}
+
+	Invalidate();
+	UpdateWindow();
+}
+
+
+void CCGWorkView::OnUpdateViewRecordingbar(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	CToolBar& RecordingBar = ((CMainFrame*)GetParentFrame())->getRecordingBar();
+	pCmdUI->SetCheck(RecordingBar.IsWindowVisible());
 }
