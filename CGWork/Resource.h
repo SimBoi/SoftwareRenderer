@@ -165,17 +165,23 @@
 #define ID_BUTTON32859                  32859
 #define ID_BUTTON32862                  32862
 #define ID_BUTTON32864                  32864
-#define ID_BUTTON32865                  32865
 #define ID_BUTTON32866                  32866
 #define ID_BUTTON32868                  32868
 #define ID_BUTTON32869                  32869
+#define ID_STOP_RECORDING_BUTTON        32870
+#define ID_SNAPSHOT_BUTTON              32871
+#define ID_SAVE_RECORD_BUTTON           32872
+#define ID_DISCARD_RECORD_BUTTON        32873
+#define ID_PAUSE_BUTTON                 32874
+#define ID_NEXT_FRAME_BUTTON            32875
+#define ID_RESET_PLAYER_BUTTON          32876
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        163
-#define _APS_NEXT_COMMAND_VALUE         32870
+#define _APS_NEXT_COMMAND_VALUE         32877
 #define _APS_NEXT_CONTROL_VALUE         1093
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

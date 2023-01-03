@@ -18,6 +18,7 @@
 #include "CG_Matrix.h"
 #include "CG_Object.h"
 #include "CG_Draw.h"
+#include "CG_Animation.h"
 
 
 class CCGWorkView : public CView
@@ -99,7 +100,10 @@ protected:
 	CStringA m_strPngFileName;		// file name of PNG render to file
 	PngWrapper* m_pRenderToPng;		// holds the render to file
 
-	CG::TransformationsQueue m_TransQueue;	// holds key-frame transformation for the animation
+	CG::Object* last_toched_object;				// holds a pointer to last changed (transformed) object
+	CG::RecordingStatus m_nRecordingStatus;		// the status of m_pRecord, m_pPlayer
+	CG::AnimationRecord* m_pRecord;				// holds the record of key-frames transformations
+	CG::AnimationPlayer* m_pPlayer;				// holds player for m_pRecord
 
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;
@@ -214,6 +218,22 @@ public:
 	afx_msg void OnPlayButton();
 	afx_msg void OnViewRecordingbar();
 	afx_msg void OnUpdateViewRecordingbar(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateRecordButton(CCmdUI* pCmdUI);
+	afx_msg void OnStopRecordingButton();
+	afx_msg void OnUpdateStopRecordingButton(CCmdUI* pCmdUI);
+	afx_msg void OnSnapshotButton();
+	afx_msg void OnUpdateSnapshotButton(CCmdUI* pCmdUI);
+	afx_msg void OnSaveRecordButton();
+	afx_msg void OnUpdateSaveRecordButton(CCmdUI* pCmdUI);
+	afx_msg void OnDiscardRecordButton();
+	afx_msg void OnUpdateDiscardRecordButton(CCmdUI* pCmdUI);
+	afx_msg void OnUpdatePlayButton(CCmdUI* pCmdUI);
+	afx_msg void OnPauseButton();
+	afx_msg void OnUpdatePauseButton(CCmdUI* pCmdUI);
+	afx_msg void OnNextFrameButton();
+	afx_msg void OnUpdateNextFrameButton(CCmdUI* pCmdUI);
+	afx_msg void OnResetPlayerButton();
+	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

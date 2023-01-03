@@ -76,6 +76,8 @@ namespace CG
 		static mat4 RotateZ(double angle);
 		static mat4 Scale(vec4& amount);
 
+		bool operator==(const mat4& other) const;
+		bool operator!=(const mat4& other) const;
 		static mat4 InterpolatedMatrix(mat4& A, mat4& B, double t);
 	};
 

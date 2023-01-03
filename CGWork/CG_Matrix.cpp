@@ -305,6 +305,28 @@ namespace CG
 		return t;
 	}
 
+
+	bool mat4::operator==(const mat4& other) const
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				if ((*this)[i][j] != other[i][j])
+				{
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	bool mat4::operator!=(const mat4& other) const
+	{
+		return !(*this == other);
+	}
+
+
 	mat4 mat4::InterpolatedMatrix(mat4& A, mat4& B, double t)
 	{
 		mat4 C;

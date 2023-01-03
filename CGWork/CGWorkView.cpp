@@ -127,6 +127,22 @@ ON_COMMAND(ID_RECORD_BUTTON, &CCGWorkView::OnRecordButton)
 ON_COMMAND(ID_PLAY_BUTTON, &CCGWorkView::OnPlayButton)
 ON_COMMAND(ID_VIEW_RECORDINGBAR, &CCGWorkView::OnViewRecordingbar)
 ON_UPDATE_COMMAND_UI(ID_VIEW_RECORDINGBAR, &CCGWorkView::OnUpdateViewRecordingbar)
+ON_UPDATE_COMMAND_UI(ID_RECORD_BUTTON, &CCGWorkView::OnUpdateRecordButton)
+ON_COMMAND(ID_STOP_RECORDING_BUTTON, &CCGWorkView::OnStopRecordingButton)
+ON_UPDATE_COMMAND_UI(ID_STOP_RECORDING_BUTTON, &CCGWorkView::OnUpdateStopRecordingButton)
+ON_COMMAND(ID_SNAPSHOT_BUTTON, &CCGWorkView::OnSnapshotButton)
+ON_UPDATE_COMMAND_UI(ID_SNAPSHOT_BUTTON, &CCGWorkView::OnUpdateSnapshotButton)
+ON_COMMAND(ID_SAVE_RECORD_BUTTON, &CCGWorkView::OnSaveRecordButton)
+ON_UPDATE_COMMAND_UI(ID_SAVE_RECORD_BUTTON, &CCGWorkView::OnUpdateSaveRecordButton)
+ON_COMMAND(ID_DISCARD_RECORD_BUTTON, &CCGWorkView::OnDiscardRecordButton)
+ON_UPDATE_COMMAND_UI(ID_DISCARD_RECORD_BUTTON, &CCGWorkView::OnUpdateDiscardRecordButton)
+ON_UPDATE_COMMAND_UI(ID_PLAY_BUTTON, &CCGWorkView::OnUpdatePlayButton)
+ON_COMMAND(ID_PAUSE_BUTTON, &CCGWorkView::OnPauseButton)
+ON_UPDATE_COMMAND_UI(ID_PAUSE_BUTTON, &CCGWorkView::OnUpdatePauseButton)
+ON_COMMAND(ID_NEXT_FRAME_BUTTON, &CCGWorkView::OnNextFrameButton)
+ON_UPDATE_COMMAND_UI(ID_NEXT_FRAME_BUTTON, &CCGWorkView::OnUpdateNextFrameButton)
+ON_COMMAND(ID_RESET_PLAYER_BUTTON, &CCGWorkView::OnResetPlayerButton)
+ON_UPDATE_COMMAND_UI(ID_RESET_PLAYER_BUTTON, &CCGWorkView::OnUpdateResetPlayerButton)
 END_MESSAGE_MAP()
 
 
@@ -171,6 +187,12 @@ CCGWorkView::CCGWorkView()
 	// render to file
 	m_bRenderToPngFile = false;
 	m_pRenderToPng = nullptr;
+
+	// animation record
+	last_toched_object = nullptr;
+	m_nRecordingStatus = EMPTY;
+	m_pRecord = nullptr;
+	m_pPlayer = nullptr;
 
 	m_nLightShading = FLAT;
 
@@ -746,6 +768,14 @@ void CCGWorkView::InitializeView()
 	object_index = 0;
 	selectedObject = getObjectByIndex(object_index);
 
+	// animation record
+	m_nRecordingStatus = EMPTY;
+	delete m_pRecord;
+	m_pRecord = nullptr;
+	delete m_pPlayer;
+	m_pPlayer = nullptr;
+	last_toched_object = &parentObject;
+
 	objectSize = max(parentObject.maxX - parentObject.minX, parentObject.maxY - parentObject.minY);
 	objectSize = max(objectSize, parentObject.maxZ - parentObject.minZ);
 	double scale = 400 / objectSize;
@@ -1074,6 +1104,16 @@ void CCGWorkView::OnDestroy()
 		delete m_pRenderToPng;
 		m_pRenderToPng = nullptr;
 	}
+
+	if (m_pRecord) {
+		delete m_pRecord;
+		m_pRecord = nullptr;
+	}
+
+	if (m_pPlayer) {
+		delete m_pPlayer;
+		m_pPlayer = nullptr;
+	}
 }
 
 
@@ -1121,6 +1161,9 @@ void CCGWorkView::doAction(int x_val, int y_val, Object& object)
 	{
 		doScale(x_val, y_val, object);
 	}
+
+	// update last transformed object ptr
+	last_toched_object = &object;
 }
 
 
@@ -1300,6 +1343,31 @@ void CCGWorkView::doScale(int x_val, int y_val, Object& object)
 // Note: that all the following Message Handlers act in a similar way.
 // Each control or command has two functions associated with it.
 
+void CCGWorkView::OnViewRecordingbar()
+{
+	// TODO: Add your command handler code here
+	CToolBar& RecordingBar = ((CMainFrame*)GetParentFrame())->getRecordingBar();
+	if (RecordingBar.IsWindowVisible())
+	{
+		RecordingBar.ShowWindow(SW_HIDE);
+	}
+	else
+	{
+		RecordingBar.ShowWindow(SW_NORMAL);
+	}
+
+	Invalidate();
+	UpdateWindow();
+}
+
+void CCGWorkView::OnUpdateViewRecordingbar(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	CToolBar& RecordingBar = ((CMainFrame*)GetParentFrame())->getRecordingBar();
+	pCmdUI->SetCheck(RecordingBar.IsWindowVisible());
+}
+
+
 void CCGWorkView::OnViewOrthographic()
 {
 	m_nView = ID_VIEW_ORTHOGRAPHIC;
@@ -1358,6 +1426,17 @@ void CCGWorkView::OnViewAlwayscalculateverticesnormals()
 void CCGWorkView::OnUpdateViewAlwayscalculateverticesnormals(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_alwaysCalcNormals);
+}
+
+void CCGWorkView::ToggleSilhouette()
+{
+	m_renderSilhouette = !m_renderSilhouette;
+	Invalidate();		// redraw using the new view.
+}
+
+void CCGWorkView::OnUpdateToggleSilhouette(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_renderSilhouette == true);
 }
 
 
@@ -1798,68 +1877,163 @@ void CCGWorkView::OnFileSaveaspng()
 	Invalidate();
 }
 
-void CCGWorkView::ToggleSilhouette()
-{
-	m_renderSilhouette = !m_renderSilhouette;
-	Invalidate();		// redraw using the new view.
-}
-
-void CCGWorkView::OnUpdateToggleSilhouette(CCmdUI* pCmdUI)
-{
-	pCmdUI->SetCheck(m_renderSilhouette == true);
-}
 
 void CCGWorkView::OnRecordButton()
 {
 	// TODO: Add your command handler code here
-	m_TransQueue.push(parentObject.wTransform);
+	if (m_nRecordingStatus == EMPTY || m_pRecord == nullptr)
+	{
+		delete m_pRecord;
+		m_pRecord = new AnimationRecord();
+	}
+	m_pRecord->initializeRecord(&parentObject);
+	m_nRecordingStatus = INPROGRESS;
+
 	//STATUS_BAR_TEXT("recorded");
 }
 
-double t = 0;
-mat4 prev_mat, next_mat;
-KeyFrame my_frame;
-void CCGWorkView::OnPlayButton()
-{
-	if (t >= 1)
-		return;
-	// TODO: Add your command handler code here
-	if (t == 0)
-	{
-		prev_mat = m_TransQueue.front();
-		m_TransQueue.pop();
-		next_mat = m_TransQueue.front();
-		my_frame = KeyFrame(&parentObject, m_nSpace, prev_mat, next_mat);
-	}
 
-	parentObject.setWTransform(mat4::InterpolatedMatrix(
-		my_frame.prev_transform_matrix, my_frame.next_transform_matrix, t));
-	t += 0.05;
-	Invalidate();
+void CCGWorkView::OnUpdateRecordButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == EMPTY || m_nRecordingStatus == STOPPED);
 }
 
 
-void CCGWorkView::OnViewRecordingbar()
+void CCGWorkView::OnStopRecordingButton()
 {
 	// TODO: Add your command handler code here
-	CToolBar& RecordingBar = ((CMainFrame*)GetParentFrame())->getRecordingBar();
-	if (RecordingBar.IsWindowVisible())
+	m_nRecordingStatus = STOPPED;
+}
+
+
+void CCGWorkView::OnUpdateStopRecordingButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == INPROGRESS);
+}
+
+
+void CCGWorkView::OnSnapshotButton()
+{
+	// TODO: Add your command handler code here
+	
+	// push key-frame
+	//m_pRecord->captureFrame(last_toched_object, m_nSpace);
+	m_pRecord->pushAllChanges();
+}
+
+
+void CCGWorkView::OnUpdateSnapshotButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == INPROGRESS || m_nRecordingStatus == STOPPED);
+}
+
+
+void CCGWorkView::OnSaveRecordButton()
+{
+	// TODO: Add your command handler code here
+}
+
+
+void CCGWorkView::OnUpdateSaveRecordButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == STOPPED);
+}
+
+
+void CCGWorkView::OnDiscardRecordButton()
+{
+	// TODO: Add your command handler code here
+	m_nRecordingStatus = EMPTY;
+	delete m_pRecord;
+	m_pRecord = nullptr;
+}
+
+
+void CCGWorkView::OnUpdateDiscardRecordButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == STOPPED);
+}
+
+
+void CCGWorkView::OnPlayButton()
+{
+	// TODO: Add your command handler code here
+
+	// open player dialog
+
+	if (m_nRecordingStatus == STOPPED || m_pPlayer == nullptr)
 	{
-		RecordingBar.ShowWindow(SW_HIDE);
+		delete m_pPlayer;
+		m_pPlayer = new AnimationPlayer(*m_pRecord, 0.25);
+
+		//m_pPlayer->initializePlayer();
+	}
+	m_nRecordingStatus = PLAYING;
+}
+
+
+void CCGWorkView::OnUpdatePlayButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == STOPPED || m_nRecordingStatus == PAUSED);
+}
+
+
+void CCGWorkView::OnPauseButton()
+{
+	// TODO: Add your command handler code here
+	m_nRecordingStatus = PAUSED;
+}
+
+
+void CCGWorkView::OnUpdatePauseButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == PLAYING);
+}
+
+
+void CCGWorkView::OnNextFrameButton()
+{
+	// TODO: Add your command handler code here
+	if (!m_pPlayer->nextFrame())
+	{
+		// record player ended
+		m_nRecordingStatus = STOPPED;
+		delete m_pPlayer;
+		m_pPlayer = nullptr;
 	}
 	else
 	{
-		RecordingBar.ShowWindow(SW_NORMAL);
+		//RenderOnScreen(m_renderMode);
 	}
-
 	Invalidate();
-	UpdateWindow();
 }
 
 
-void CCGWorkView::OnUpdateViewRecordingbar(CCmdUI* pCmdUI)
+void CCGWorkView::OnUpdateNextFrameButton(CCmdUI* pCmdUI)
 {
 	// TODO: Add your command update UI handler code here
-	CToolBar& RecordingBar = ((CMainFrame*)GetParentFrame())->getRecordingBar();
-	pCmdUI->SetCheck(RecordingBar.IsWindowVisible());
+	pCmdUI->Enable(m_nRecordingStatus == PAUSED);
+}
+
+
+void CCGWorkView::OnResetPlayerButton()
+{
+	// TODO: Add your command handler code here
+	m_nRecordingStatus = STOPPED;
+	delete m_pPlayer;
+	m_pPlayer = nullptr;
+}
+
+
+void CCGWorkView::OnUpdateResetPlayerButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == PLAYING || m_nRecordingStatus == PAUSED);
 }

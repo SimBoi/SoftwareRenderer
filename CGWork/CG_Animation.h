@@ -8,6 +8,9 @@
 
 namespace CG
 {
+	typedef long long FramesNum;
+	typedef enum _RecordingStatus { EMPTY, INPROGRESS, STOPPED, PLAYING, PAUSED } RecordingStatus;
+
 	class KeyFrame;
 	typedef map<Object*, mat4> TransformationsBuffer;
 	typedef queue<KeyFrame> KeyFramesQueue;
@@ -33,6 +36,8 @@ namespace CG
 	{
 	private:
 		Object* recording_object;
+		TransformationsBuffer initial_model_transform_history;
+		TransformationsBuffer initial_world_transform_history;
 		TransformationsBuffer model_transform_history;
 		TransformationsBuffer world_transform_history;
 		KeyFramesQueue key_frames_queue;
@@ -44,7 +49,45 @@ namespace CG
 		void initializeRecord(Object* object_ptr);
 		void clearHistory();
 		void fillHistoryBuffers(Object* parent_object_ptr);
+		void pushAllChanges();
+		void pushObjectChanges(Object* object);
 		void captureFrame(Object* object, TSpace space);
+
+		Object* getRecordingObject() const;
+		TransformationsBuffer getInitialModelTransformHistory() const;
+		TransformationsBuffer getInitialWorldTransformHistory() const;
+		KeyFramesQueue getKeyFramesQueueCopy() const;
+	};
+
+
+	class AnimationPlayer
+	{
+	private:
+		static const double FORWARD_FIRST_END;
+		static const double FORWARD_LAST_END;
+		static const double FORWARD_STEP;
+
+		const double first_end, last_end;
+		const double step;
+		double progress;
+
+		const FramesNum key_frames_num;
+		const FramesNum total_frames_num;
+		FramesNum current_frame_index;
+		KeyFrame current_key_frame;
+
+		KeyFramesQueue key_frames_queue;
+
+		void restoreHistory(Object* parent_object_ptr, 
+			TransformationsBuffer& model_transform_history, TransformationsBuffer& world_transform_history);
+
+	public:
+		AnimationPlayer() = default;
+		AnimationPlayer(AnimationRecord& record, double step, bool is_rewind = false);
+		~AnimationPlayer() = default;
+
+		bool nextKeyFrame();
+		bool nextFrame();
 	};
 }
 
