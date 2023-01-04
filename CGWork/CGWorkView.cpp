@@ -1884,9 +1884,12 @@ void CCGWorkView::OnRecordButton()
 	if (m_nRecordingStatus == EMPTY || m_pRecord == nullptr)
 	{
 		delete m_pRecord;
-		m_pRecord = new AnimationRecord();
+		m_pRecord = new AnimationRecord(&parentObject);
 	}
-	m_pRecord->initializeRecord(&parentObject);
+	else
+	{
+		m_pRecord->fillHistoryBuffers(&parentObject);
+	}
 	m_nRecordingStatus = INPROGRESS;
 
 	//STATUS_BAR_TEXT("recorded");
@@ -1974,6 +1977,8 @@ void CCGWorkView::OnPlayButton()
 		//m_pPlayer->initializePlayer();
 	}
 	m_nRecordingStatus = PLAYING;
+
+	Invalidate();
 }
 
 

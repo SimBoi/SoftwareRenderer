@@ -8,7 +8,7 @@
 
 namespace CG
 {
-	typedef long long FramesNum;
+	typedef long FramesNum;
 	typedef enum _RecordingStatus { EMPTY, INPROGRESS, STOPPED, PLAYING, PAUSED } RecordingStatus;
 
 	class KeyFrame;
@@ -42,11 +42,14 @@ namespace CG
 		TransformationsBuffer world_transform_history;
 		KeyFramesQueue key_frames_queue;
 
+		void initializeRecord(Object* object_ptr);
+
 	public:
 		AnimationRecord() = default;
+		AnimationRecord(Object* recording_object);
+
 		~AnimationRecord() = default;
 
-		void initializeRecord(Object* object_ptr);
 		void clearHistory();
 		void fillHistoryBuffers(Object* parent_object_ptr);
 		void pushAllChanges();
@@ -67,11 +70,13 @@ namespace CG
 		static const double FORWARD_LAST_END;
 		static const double FORWARD_STEP;
 
+		bool is_rewind;
+
 		const double first_end, last_end;
 		const double step;
 		double progress;
 
-		const FramesNum key_frames_num;
+		const size_t key_frames_num;
 		const FramesNum total_frames_num;
 		FramesNum current_frame_index;
 		KeyFrame current_key_frame;
@@ -86,8 +91,14 @@ namespace CG
 		AnimationPlayer(AnimationRecord& record, double step, bool is_rewind = false);
 		~AnimationPlayer() = default;
 
+		void updateProgress();
+
+		bool setTransformMatrix(mat4& new_mat);
 		bool nextKeyFrame();
 		bool nextFrame();
+
+		FramesNum getTotalFramesNum() const;
+		FramesNum getCurrentFrameIndex() const;
 	};
 }
 

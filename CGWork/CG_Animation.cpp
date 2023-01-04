@@ -14,6 +14,13 @@ namespace CG
 	{}
 	
 	/************************************************* AnimationRecord **********************************************/
+	
+	AnimationRecord::AnimationRecord(Object* recording_object):
+		recording_object(recording_object)
+	{
+		initializeRecord(recording_object);
+	}
+
 
 	KeyFramesQueue AnimationRecord::getKeyFramesQueueCopy() const
 	{
@@ -38,8 +45,6 @@ namespace CG
 	void AnimationRecord::initializeRecord(Object* object_ptr)
 	{
 		clearHistory();
-
-		this->recording_object = object_ptr;
 		fillHistoryBuffers(recording_object);
 
 		initial_model_transform_history = model_transform_history;
@@ -168,6 +173,62 @@ namespace CG
 	}
 
 
+	bool AnimationPlayer::setTransformMatrix(mat4& new_mat)
+	{
+		// set the model\ world transform according to space
+		if (current_key_frame.space == OBJECT)
+		{
+			if (new_mat != current_key_frame.object_prt->mTransform)
+			{
+				current_key_frame.object_prt->setMTransform(new_mat);
+				return true;
+			}
+			else
+			{
+				// if no change in transformation matrix, skip frame
+				updateProgress();
+				return nextFrame();
+			}
+		}
+		else if (current_key_frame.space == VIEW)
+		{
+			if (new_mat != current_key_frame.object_prt->wTransform)
+			{
+				current_key_frame.object_prt->setWTransform(new_mat);
+				return true;
+			}
+			else
+			{
+				// if no change in transformation matrix, skip frame
+				updateProgress();
+				return nextFrame();
+			}
+		}
+
+		return false;
+	}
+	
+
+	void AnimationPlayer::updateProgress()
+	{
+		// increment frame index
+		current_frame_index++;
+
+		// if reached last_end
+		if (progress == last_end)
+		{
+			// restart at first_end
+			progress = first_end;
+		}
+		else
+		{
+			progress += step;
+			// if last step exceeds the last end:
+			if (step > 0 && progress >= last_end) progress = last_end;
+			else if (step < 0 && progress <= last_end) progress = last_end;
+		}
+	}
+
 	bool AnimationPlayer::nextKeyFrame()
 	{
 		if (key_frames_queue.empty())
@@ -184,7 +245,7 @@ namespace CG
 	{
 		if (progress == first_end)
 		{
-			// fresh start: next key-frame
+			// fresh start: load next key-frame
 			if (!nextKeyFrame())
 				return false;
 		}
@@ -195,32 +256,22 @@ namespace CG
 			current_key_frame.next_transform_matrix,
 			progress);
 
-		// set the model\ world transform according to space
-		if (current_key_frame.space == OBJECT)
-		{
-			current_key_frame.object_prt->setMTransform(interpolated_mat);
-		}
-		else if (current_key_frame.space == VIEW)
-		{
-			current_key_frame.object_prt->setWTransform(interpolated_mat);
-		}
+		// set the new transformation matrix
+		if (!setTransformMatrix(interpolated_mat))
+			return false;
 
-		current_frame_index++;
-
-		// update progress
-		if (progress == last_end)
-		{
-			// next frame start fresh
-			progress = first_end;
-			return true;
-		}
-
-		progress += step;
-		// if last step exceeds the last end:
-		if (step > 0 && progress >= last_end) progress = last_end;
-		else if (step < 0 && progress <= last_end) progress = last_end;
-
+		updateProgress();
 		return true;
 	}
 
+
+	FramesNum AnimationPlayer::getTotalFramesNum() const
+	{
+		return this->total_frames_num;
+	}
+
+	FramesNum AnimationPlayer::getCurrentFrameIndex() const
+	{
+		return this->current_frame_index;
+	}
 }
