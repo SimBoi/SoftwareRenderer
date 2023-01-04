@@ -78,7 +78,7 @@ namespace CG
 
 		bool operator==(const mat4& other) const;
 		bool operator!=(const mat4& other) const;
-		static mat4 InterpolatedMatrix(mat4& A, mat4& B, double t);
+		static mat4 InterpolatedMatrix(const mat4& A, const mat4& B, double t);
 	};
 
 	class Line

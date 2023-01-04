@@ -1972,7 +1972,7 @@ void CCGWorkView::OnPlayButton()
 	if (m_nRecordingStatus == STOPPED || m_pPlayer == nullptr)
 	{
 		delete m_pPlayer;
-		m_pPlayer = new AnimationPlayer(*m_pRecord, 0.25);
+		m_pPlayer = new AnimationPlayer(*m_pRecord, 0.25, false);
 
 		//m_pPlayer->initializePlayer();
 	}

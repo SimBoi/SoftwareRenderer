@@ -327,7 +327,7 @@ namespace CG
 	}
 
 
-	mat4 mat4::InterpolatedMatrix(mat4& A, mat4& B, double t)
+	mat4 mat4::InterpolatedMatrix(const mat4& A, const mat4& B, double t)
 	{
 		mat4 C;
 		for (int i = 0; i < 4; i++)

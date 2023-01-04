@@ -1,7 +1,7 @@
 #ifndef CG_ANIMATION
 #define CG_ANIMATION
 
-#include <queue>
+#include <vector>
 #include <map>
 #include "CG_Matrix.h"
 #include "CG_Object.h"
@@ -13,7 +13,7 @@ namespace CG
 
 	class KeyFrame;
 	typedef map<Object*, mat4> TransformationsBuffer;
-	typedef queue<KeyFrame> KeyFramesQueue;
+	typedef vector<KeyFrame> KeyFramesQueue;
 
 	class KeyFrame
 	{
@@ -59,7 +59,10 @@ namespace CG
 		Object* getRecordingObject() const;
 		TransformationsBuffer getInitialModelTransformHistory() const;
 		TransformationsBuffer getInitialWorldTransformHistory() const;
+		TransformationsBuffer getLatestModelTransformHistory() const;
+		TransformationsBuffer getLatestWorldTransformHistory() const;
 		KeyFramesQueue getKeyFramesQueueCopy() const;
+		FramesNum getKeyFramesNumber() const;
 	};
 
 
@@ -76,7 +79,6 @@ namespace CG
 		const double step;
 		double progress;
 
-		const size_t key_frames_num;
 		const FramesNum total_frames_num;
 		FramesNum current_frame_index;
 		KeyFrame current_key_frame;
@@ -86,6 +88,8 @@ namespace CG
 		void restoreHistory(Object* parent_object_ptr, 
 			TransformationsBuffer& model_transform_history, TransformationsBuffer& world_transform_history);
 
+		static FramesNum calcTotalFramesNum(AnimationRecord& record, double step);
+
 	public:
 		AnimationPlayer() = default;
 		AnimationPlayer(AnimationRecord& record, double step, bool is_rewind = false);
@@ -93,6 +97,7 @@ namespace CG
 
 		void updateProgress();
 
+		mat4 getTransformMatrix() const;
 		bool setTransformMatrix(mat4& new_mat);
 		bool nextKeyFrame();
 		bool nextFrame();

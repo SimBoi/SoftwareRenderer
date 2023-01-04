@@ -27,6 +27,11 @@ namespace CG
 		return this->key_frames_queue;
 	}
 
+	FramesNum AnimationRecord::getKeyFramesNumber() const
+	{
+		return key_frames_queue.size();
+	}
+
 	Object* AnimationRecord::getRecordingObject() const
 	{
 		return recording_object;
@@ -42,8 +47,21 @@ namespace CG
 		return initial_world_transform_history;
 	}
 
+	TransformationsBuffer AnimationRecord::getLatestModelTransformHistory() const
+	{
+		return model_transform_history;
+	}
+
+	TransformationsBuffer AnimationRecord::getLatestWorldTransformHistory() const
+	{
+		return world_transform_history;
+	}
+
 	void AnimationRecord::initializeRecord(Object* object_ptr)
 	{
+		if (object_ptr == nullptr)
+			return;
+
 		clearHistory();
 		fillHistoryBuffers(recording_object);
 
@@ -94,7 +112,7 @@ namespace CG
 		if (prev_mat != next_mat)
 		{
 			// push the key_frame if the Transform matrix changes
-			key_frames_queue.push(KeyFrame(object, space, prev_mat, next_mat));
+			key_frames_queue.push_back(KeyFrame(object, space, prev_mat, next_mat));
 			fillHistoryBuffers(recording_object);
 		}
 	}
@@ -108,7 +126,7 @@ namespace CG
 		next_mat = object->mTransform;
 		if (prev_mat != next_mat)
 		{
-			key_frames_queue.push(KeyFrame(object, OBJECT, prev_mat, next_mat));
+			key_frames_queue.push_back(KeyFrame(object, OBJECT, prev_mat, next_mat));
 		}
 
 		// track changes in object world transform
@@ -116,7 +134,7 @@ namespace CG
 		next_mat = object->wTransform;
 		if (prev_mat != next_mat)
 		{
-			key_frames_queue.push(KeyFrame(object, VIEW, prev_mat, next_mat));
+			key_frames_queue.push_back(KeyFrame(object, VIEW, prev_mat, next_mat));
 		}
 
 		for (auto& child_object : object->children)
@@ -139,19 +157,36 @@ namespace CG
 	const double AnimationPlayer::FORWARD_LAST_END = 0;
 	const double AnimationPlayer::FORWARD_STEP = -1;
 
-	AnimationPlayer::AnimationPlayer(AnimationRecord& record, double step, bool is_rewind):
+	FramesNum AnimationPlayer::calcTotalFramesNum(AnimationRecord& record, double step)
+	{
+		const FramesNum key_frames_num = record.getKeyFramesNumber();
+		const FramesNum frames_in_key_frame = ceil(1.0 / step) + 1;
+
+		return key_frames_num * frames_in_key_frame;
+	}
+
+	AnimationPlayer::AnimationPlayer(AnimationRecord& record, double pos_step, bool is_rewind):
 		key_frames_queue(record.getKeyFramesQueueCopy()),
-		key_frames_num(key_frames_queue.size()),
-		first_end(is_rewind ? FORWARD_LAST_END : FORWARD_FIRST_END),
-		last_end(is_rewind ? FORWARD_FIRST_END : FORWARD_LAST_END),
-		step(is_rewind ? -FORWARD_STEP * step : FORWARD_STEP * step),
-		total_frames_num(key_frames_num * (ceil((last_end - first_end) / step) + 1)),
+		first_end(FORWARD_FIRST_END),
+		last_end(FORWARD_LAST_END),
+		step(FORWARD_STEP * pos_step),
+		is_rewind(is_rewind),
+		total_frames_num(calcTotalFramesNum(record, pos_step)),
 		progress(first_end),
 		current_frame_index(0)
 	{
-		restoreHistory(record.getRecordingObject(),
-			record.getInitialModelTransformHistory(),
-			record.getInitialWorldTransformHistory());
+		if (is_rewind)
+		{
+			restoreHistory(record.getRecordingObject(),
+				record.getLatestModelTransformHistory(),
+				record.getLatestWorldTransformHistory());
+		}
+		else
+		{
+			restoreHistory(record.getRecordingObject(),
+				record.getInitialModelTransformHistory(),
+				record.getInitialWorldTransformHistory());
+		}
 	}
 
 
@@ -172,6 +207,26 @@ namespace CG
 		parent_object_ptr->setWTransform(world_transform_history[parent_object_ptr]);
 	}
 
+
+	mat4 AnimationPlayer::getTransformMatrix() const
+	{
+		if (is_rewind)
+		{
+			// calc the backward interpolated matrix according to progress
+			return mat4::InterpolatedMatrix(
+				current_key_frame.next_transform_matrix,
+				current_key_frame.prev_transform_matrix,
+				progress);
+		}
+		else
+		{
+			// calc the forward interpolated matrix according to progress
+			return mat4::InterpolatedMatrix(
+				current_key_frame.prev_transform_matrix,
+				current_key_frame.next_transform_matrix,
+				progress);
+		}
+	}
 
 	bool AnimationPlayer::setTransformMatrix(mat4& new_mat)
 	{
@@ -224,8 +279,8 @@ namespace CG
 		{
 			progress += step;
 			// if last step exceeds the last end:
-			if (step > 0 && progress >= last_end) progress = last_end;
-			else if (step < 0 && progress <= last_end) progress = last_end;
+			if (step < 0 && progress <= last_end) progress = last_end;
+			else if (step > 0 && progress >= last_end) progress = last_end;
 		}
 	}
 
@@ -234,9 +289,19 @@ namespace CG
 		if (key_frames_queue.empty())
 			return false;
 
-		current_key_frame = key_frames_queue.front();
-		key_frames_queue.pop();
-
+		if (is_rewind)
+		{
+			current_key_frame = key_frames_queue.back();
+			// pop tail key-frame from queue
+			key_frames_queue.pop_back();
+		}
+		else
+		{
+			current_key_frame = key_frames_queue.front();
+			// pop head key-frame from queue
+			key_frames_queue.erase(key_frames_queue.begin());
+		}
+		
 		return true;
 	}
 
@@ -250,14 +315,8 @@ namespace CG
 				return false;
 		}
 
-		// calc the interpolated matrix according to progress
-		mat4 interpolated_mat = mat4::InterpolatedMatrix(
-			current_key_frame.prev_transform_matrix,
-			current_key_frame.next_transform_matrix,
-			progress);
-
 		// set the new transformation matrix
-		if (!setTransformMatrix(interpolated_mat))
+		if (!setTransformMatrix(getTransformMatrix()))
 			return false;
 
 		updateProgress();
