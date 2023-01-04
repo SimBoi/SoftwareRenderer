@@ -165,12 +165,15 @@ namespace CG
 		return key_frames_num * frames_in_key_frame;
 	}
 
-	AnimationPlayer::AnimationPlayer(AnimationRecord& record, double pos_step, bool is_rewind):
+	AnimationPlayer::AnimationPlayer(AnimationRecord& record, double pos_step, RenderMode render_mode,
+		double speed = 0, bool is_rewind = false):
 		key_frames_queue(record.getKeyFramesQueueCopy()),
 		first_end(FORWARD_FIRST_END),
 		last_end(FORWARD_LAST_END),
 		step(FORWARD_STEP * pos_step),
 		is_rewind(is_rewind),
+		playing_render_mode(render_mode),
+		speed(speed),
 		total_frames_num(calcTotalFramesNum(record, pos_step)),
 		progress(first_end),
 		current_frame_index(0)
@@ -332,5 +335,10 @@ namespace CG
 	FramesNum AnimationPlayer::getCurrentFrameIndex() const
 	{
 		return this->current_frame_index;
+	}
+
+	double AnimationPlayer::getProgressPercentage() const
+	{
+		return (current_frame_index / double(total_frames_num)) * 100.0;
 	}
 }

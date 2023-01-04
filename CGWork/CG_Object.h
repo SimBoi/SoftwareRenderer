@@ -4,8 +4,7 @@
 #include "CG_Matrix.h"
 #include "PngWrapper.h"
 #include <list>
-#include <queue>
-#include <windows.h>
+//#include <windows.h>
 
 using namespace std;
 
@@ -20,8 +19,6 @@ namespace CG
 {
 	typedef enum SpaceType { VIEW, OBJECT } TSpace;
 	typedef enum LayoutType { NONE, STRETCH, REPEAT } BackgroundLayout;
-
-	typedef queue<CG::mat4> TransformationsQueue;
 
 	extern int rotation_sensitivity;
 	extern int translation_sensitivity;

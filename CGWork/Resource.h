@@ -20,6 +20,7 @@
 #define IDD_BACKGROUND_IMAGE_DIALOG     153
 #define IDD_TOPNG_FILE_DIALOG           155
 #define IDR_RECORD_BAR                  161
+#define IDD_ANIMATION_PLAYER_DIALOG     164
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -100,12 +101,17 @@
 #define IDC_DYNAMIC_RANGE               1090
 #define IDC_SPOT_LIGHT_ANGLE            1091
 #define IDC_SHADOW_TYPE                 1092
+#define IDC_STATIC_RENDER_MODE          1093
 #define IDC_STATIC_DIFFUSE2             1094
 #define IDC_SHADOW_FAR                  1095
 #define IDC_STATIC_DIFFUSE3             1096
 #define IDC_SHADOW_NEAR                 1097
+#define IDC_COMBO_RENDER_MODE           1102
 #define IDC_STATIC_DIFFUSE4             1098
 #define IDC_SHADOW_RESOLUTION           1099
+#define IDC_STATIC_SPEED                1100
+#define IDC_SPIN_SPEED                  1101
+#define IDC_EDIT_SPEED                  1105
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -180,9 +186,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        163
-#define _APS_NEXT_COMMAND_VALUE         32877
-#define _APS_NEXT_CONTROL_VALUE         1093
+#define _APS_NEXT_RESOURCE_VALUE        166
+#define _APS_NEXT_COMMAND_VALUE         32879
+#define _APS_NEXT_CONTROL_VALUE         1106
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

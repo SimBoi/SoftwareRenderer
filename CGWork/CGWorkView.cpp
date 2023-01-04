@@ -33,8 +33,9 @@ static char THIS_FILE[] = __FILE__;
 #include "PerspectiveSettingsDialog.h"
 #include "BackgroundImageDialog.h"
 #include "RenderToFileDialog.h"
-#include "CG_Animation.h"
+#include "AnimationPlayerDialog.h"
 
+#include "CG_Animation.h"
 #include <string>
 #include <unordered_map>
 #include <list>
@@ -1972,7 +1973,12 @@ void CCGWorkView::OnPlayButton()
 	if (m_nRecordingStatus == STOPPED || m_pPlayer == nullptr)
 	{
 		delete m_pPlayer;
-		m_pPlayer = new AnimationPlayer(*m_pRecord, 0.25, false);
+		/*AnimationPlayerDialog dialog;
+
+		if (dialog.DoModal() == IDOK)
+		{
+		}*/
+		m_pPlayer = new AnimationPlayer(*m_pRecord, 0.25, WIREFRAME, 0, false);
 
 		//m_pPlayer->initializePlayer();
 	}
@@ -2015,9 +2021,14 @@ void CCGWorkView::OnNextFrameButton()
 	}
 	else
 	{
-		//RenderOnScreen(m_renderMode);
+		RenderOnScreen(m_renderMode);
+		CString strPage;
+		// strPage.Format(_T("frame: %ld of %ld"), m_pPlayer->getCurrentFrameIndex(), m_pPlayer->getTotalFramesNum());
+		strPage.Format(_T("progress: %f"), m_pPlayer->getProgressPercentage());
+
+		
+		STATUS_BAR_TEXT(strPage);
 	}
-	Invalidate();
 }
 
 

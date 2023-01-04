@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <map>
+#include "CG_Draw.h"
 #include "CG_Matrix.h"
 #include "CG_Object.h"
 
@@ -73,8 +74,6 @@ namespace CG
 		static const double FORWARD_LAST_END;
 		static const double FORWARD_STEP;
 
-		bool is_rewind;
-
 		const double first_end, last_end;
 		const double step;
 		double progress;
@@ -91,8 +90,13 @@ namespace CG
 		static FramesNum calcTotalFramesNum(AnimationRecord& record, double step);
 
 	public:
+		bool is_rewind;
+		const double speed;
+		const RenderMode playing_render_mode;
+		
 		AnimationPlayer() = default;
-		AnimationPlayer(AnimationRecord& record, double step, bool is_rewind = false);
+		AnimationPlayer(AnimationRecord& record, double step, RenderMode render_mode, 
+			double speed = 0, bool is_rewind = false);
 		~AnimationPlayer() = default;
 
 		void updateProgress();
@@ -104,6 +108,7 @@ namespace CG
 
 		FramesNum getTotalFramesNum() const;
 		FramesNum getCurrentFrameIndex() const;
+		double getProgressPercentage() const;
 	};
 }
 

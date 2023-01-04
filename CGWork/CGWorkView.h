@@ -157,6 +157,8 @@ public:
 	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode);		// Renders the scene to a file in PNG format
 	void WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height);
 
+	void operatePlayer();
+
 	void CalculateVertexNormals();
 	void FindEdgeAdjacentFaces();
 	void InitializeView();
