@@ -100,6 +100,7 @@ protected:
 	CStringA m_strPngFileName;		// file name of PNG render to file
 	PngWrapper* m_pRenderToPng;		// holds the render to file
 
+	CG::AnimationRecord* m_pTempRecord;			// holds a pointer to temporary record of parentObject
 	CG::Object* last_toched_object;				// holds a pointer to last changed (transformed) object
 	CG::RecordingStatus m_nRecordingStatus;		// the status of m_pRecord, m_pPlayer
 	CG::AnimationRecord* m_pRecord;				// holds the record of key-frames transformations
@@ -157,7 +158,12 @@ public:
 	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode);		// Renders the scene to a file in PNG format
 	void WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height);
 
-	void operatePlayer();
+	void saveCurrentTransformations();		// saves current parentObject and its childs transformations
+	void restoreSavedTransformations();		// restores transformations of  parentObject and its childs
+
+	void RenderCurrentFrame();	// renders on screen current frame and show frame index
+	void operatePlayer();		// start or continue playing m_pPlayer
+	void endPlayer();			// end player and restore saved transformations
 
 	void CalculateVertexNormals();
 	void FindEdgeAdjacentFaces();

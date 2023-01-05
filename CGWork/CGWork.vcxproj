@@ -142,7 +142,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>
       <DisableSpecificWarnings>4273;4996;4800;%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <ShowIncludes>false</ShowIncludes>
+      <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>

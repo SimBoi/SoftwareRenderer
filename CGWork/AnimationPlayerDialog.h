@@ -1,6 +1,8 @@
 #pragma once
 #include "afxdialogex.h"
 
+#include "CG_Draw.h"
+
 
 // AnimationPlayerDialog dialog
 
@@ -18,12 +20,17 @@ public:
 #endif
 
 private:
-	// control the min and max values of speed and step spins
+	// min, max and acceleration for speed
+	static const double SPEED_ACCEL;
 	static const double MIN_SPEED;
 	static const double MAX_SPEED;
+	static const double DEFAULT_SPEED;
 
+	// min, max and acceleration for step
+	static const double STEP_ACCEL;
 	static const double MIN_STEP;
 	static const double MAX_STEP;
+	static const double DEFAULT_STEP;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -34,4 +41,18 @@ private:
 public:
 	virtual BOOL OnInitDialog();
 	afx_msg void OnDeltaposSpinSpeed(NMHDR* pNMHDR, LRESULT* pResult);
+	double m_speed;
+	afx_msg void OnEnChangeEditSpeed();
+private:
+	CSpinButtonCtrl m_SpinStepCtrl;
+public:
+	double m_step;
+	afx_msg void OnDeltaposSpinStep(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnEnChangeEditStep();
+	BOOL m_rewind;
+	CG::RenderMode m_render_mode;
+private:
+	CComboBox m_RenderModeComboCtrl;
+public:
+	afx_msg void OnCbnSelchangeComboRenderMode();
 };

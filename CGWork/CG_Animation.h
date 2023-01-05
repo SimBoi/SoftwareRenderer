@@ -45,6 +45,9 @@ namespace CG
 
 		void initializeRecord(Object* object_ptr);
 
+		static void restoreHistory(Object* parent_object_ptr,
+			TransformationsBuffer& model_transform_history, TransformationsBuffer& world_transform_history);
+
 	public:
 		AnimationRecord() = default;
 		AnimationRecord(Object* recording_object);
@@ -53,6 +56,10 @@ namespace CG
 
 		void clearHistory();
 		void fillHistoryBuffers(Object* parent_object_ptr);
+
+		void restoreInitialHistory();
+		void restoreLatestHistory();
+
 		void pushAllChanges();
 		void pushObjectChanges(Object* object);
 		void captureFrame(Object* object, TSpace space);
@@ -72,7 +79,7 @@ namespace CG
 	private:
 		static const double FORWARD_FIRST_END;
 		static const double FORWARD_LAST_END;
-		static const double FORWARD_STEP;
+		static const double PROGRESS_EPSILON;
 
 		const double first_end, last_end;
 		const double step;
@@ -84,10 +91,8 @@ namespace CG
 
 		KeyFramesQueue key_frames_queue;
 
-		void restoreHistory(Object* parent_object_ptr, 
-			TransformationsBuffer& model_transform_history, TransformationsBuffer& world_transform_history);
-
 		static FramesNum calcTotalFramesNum(AnimationRecord& record, double step);
+		inline bool compareDouble(double a, double b);
 
 	public:
 		bool is_rewind;
@@ -101,9 +106,33 @@ namespace CG
 
 		void updateProgress();
 
+		/**
+		* getTransformMatrix():
+		*	calcs and returns current_frame interpolated matrix
+		*/
 		mat4 getTransformMatrix() const;
+
+		/**
+		* setTransformMatrix(mat4& new_mat):
+		*	sets new_mat as the transformation of current frame object,
+		*	only if it is differ from object current transformation, and returns true.
+		*	otherwise returns false.
+		*/
 		bool setTransformMatrix(mat4& new_mat);
+
+		/**
+		* nextKeyFrame():
+		*	load the new key fram to current_key_frame from key_frames_queue, and returns true.
+		*	if key_frames_queue empty returns false.
+		*/
 		bool nextKeyFrame();
+
+		/**
+		* nextFrame():
+		*	update objects transformations to next frame, and returns true.
+		*	if needed, skip follow frames without changes.
+		*	if no next frame, returns false.
+		*/
 		bool nextFrame();
 
 		FramesNum getTotalFramesNum() const;

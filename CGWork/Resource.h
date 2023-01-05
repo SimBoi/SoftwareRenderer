@@ -106,12 +106,18 @@
 #define IDC_SHADOW_FAR                  1095
 #define IDC_STATIC_DIFFUSE3             1096
 #define IDC_SHADOW_NEAR                 1097
-#define IDC_COMBO_RENDER_MODE           1102
 #define IDC_STATIC_DIFFUSE4             1098
 #define IDC_SHADOW_RESOLUTION           1099
 #define IDC_STATIC_SPEED                1100
 #define IDC_SPIN_SPEED                  1101
+#define IDC_COMBO_RENDER_MODE           1102
+#define IDC_STATIC_STEP                 1103
+#define IDC_SPIN_STEP                   1104
 #define IDC_EDIT_SPEED                  1105
+#define IDC_EDIT1                       1106
+#define IDC_EDIT_STEP                   1106
+#define IDC_CHECK1                      1107
+#define IDC_CHECK_REWIND                1107
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -188,7 +194,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        166
 #define _APS_NEXT_COMMAND_VALUE         32879
-#define _APS_NEXT_CONTROL_VALUE         1106
+#define _APS_NEXT_CONTROL_VALUE         1108
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -190,6 +190,7 @@ CCGWorkView::CCGWorkView()
 	m_pRenderToPng = nullptr;
 
 	// animation record
+	m_pTempRecord = nullptr;
 	last_toched_object = nullptr;
 	m_nRecordingStatus = EMPTY;
 	m_pRecord = nullptr;
@@ -1968,23 +1969,25 @@ void CCGWorkView::OnPlayButton()
 {
 	// TODO: Add your command handler code here
 
-	// open player dialog
-
 	if (m_nRecordingStatus == STOPPED || m_pPlayer == nullptr)
 	{
 		delete m_pPlayer;
-		/*AnimationPlayerDialog dialog;
-
-		if (dialog.DoModal() == IDOK)
+		AnimationPlayerDialog dialog;
+		
+		if (dialog.DoModal() == IDOK && m_pRecord != nullptr)
 		{
-		}*/
-		m_pPlayer = new AnimationPlayer(*m_pRecord, 0.25, WIREFRAME, 0, false);
+			saveCurrentTransformations();
 
-		//m_pPlayer->initializePlayer();
+			// initialize player
+			m_pPlayer = new AnimationPlayer(*m_pRecord, 
+				dialog.m_step, 
+				dialog.m_render_mode, 
+				dialog.m_speed, 
+				dialog.m_rewind);
+		}
 	}
 	m_nRecordingStatus = PLAYING;
-
-	Invalidate();
+	operatePlayer();
 }
 
 
@@ -2015,9 +2018,7 @@ void CCGWorkView::OnNextFrameButton()
 	if (!m_pPlayer->nextFrame())
 	{
 		// record player ended
-		m_nRecordingStatus = STOPPED;
-		delete m_pPlayer;
-		m_pPlayer = nullptr;
+		endPlayer();
 	}
 	else
 	{
@@ -2052,4 +2053,74 @@ void CCGWorkView::OnUpdateResetPlayerButton(CCmdUI* pCmdUI)
 {
 	// TODO: Add your command update UI handler code here
 	pCmdUI->Enable(m_nRecordingStatus == PLAYING || m_nRecordingStatus == PAUSED);
+}
+
+
+void CCGWorkView::saveCurrentTransformations()
+{
+	delete m_pTempRecord;
+	m_pTempRecord = new AnimationRecord(&parentObject);
+}
+
+
+void CCGWorkView::restoreSavedTransformations()
+{
+	if (m_pTempRecord == nullptr)
+		return;
+
+	m_pTempRecord->restoreInitialHistory();
+
+	delete m_pTempRecord;
+	m_pTempRecord = nullptr;
+}
+
+
+void CCGWorkView::endPlayer()
+{
+	m_nRecordingStatus = STOPPED;
+
+	delete m_pPlayer;
+	m_pPlayer = nullptr;
+
+	restoreSavedTransformations();
+	Invalidate();
+}
+
+
+void CCGWorkView::RenderCurrentFrame()
+{
+	if (m_pPlayer == nullptr)
+		return;
+
+	RenderOnScreen(m_pPlayer->playing_render_mode);
+
+	CString frame_index;
+	frame_index.Format(_T("frame %ld of %ld"), m_pPlayer->getCurrentFrameIndex(), m_pPlayer->getTotalFramesNum());
+	STATUS_BAR_TEXT(frame_index);
+}
+
+
+void CCGWorkView::operatePlayer()
+{
+	if (m_pPlayer == nullptr || m_nRecordingStatus != PLAYING)
+		return;
+
+	RenderCurrentFrame();
+
+	if (m_pPlayer->speed == 0)
+	{
+		// pause player, use next-frame button.
+		m_nRecordingStatus = PAUSED;
+		return;
+	}
+	double wait_time = (1.0 / m_pPlayer->speed);
+
+	while (m_nRecordingStatus == PLAYING && m_pPlayer->nextFrame())
+	{
+		RenderCurrentFrame();
+		Sleep(wait_time);
+	}
+
+	// record player ended
+	endPlayer();
 }

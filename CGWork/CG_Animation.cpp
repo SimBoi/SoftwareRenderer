@@ -1,3 +1,7 @@
+#include "stdafx.h"
+#include "CG_Draw.h"
+#include "CG_Matrix.h"
+#include "CG_Object.h"
 #include "CG_Animation.h"
 
 namespace CG
@@ -92,6 +96,37 @@ namespace CG
 		}
 	}
 
+	void AnimationRecord::restoreHistory(Object* parent_object_ptr,
+		TransformationsBuffer& model_transform_history, TransformationsBuffer& world_transform_history)
+	{
+		if (parent_object_ptr == nullptr)
+			return;
+
+		// restore child_object transforms
+		for (auto& child_object : parent_object_ptr->children)
+		{
+			restoreHistory(&child_object, model_transform_history, world_transform_history);
+		}
+
+		// restore parent_object transforms
+		parent_object_ptr->setMTransform(model_transform_history[parent_object_ptr]);
+		parent_object_ptr->setWTransform(world_transform_history[parent_object_ptr]);
+	}
+
+	void AnimationRecord::restoreInitialHistory()
+	{
+		restoreHistory(recording_object, 
+			initial_model_transform_history, 
+			initial_world_transform_history);
+	}
+
+	void AnimationRecord::restoreLatestHistory()
+	{
+		restoreHistory(recording_object,
+			model_transform_history,
+			world_transform_history);
+	}
+
 	void AnimationRecord::captureFrame(Object* object, TSpace space)
 	{
 		if (object == nullptr)
@@ -155,7 +190,7 @@ namespace CG
 
 	const double AnimationPlayer::FORWARD_FIRST_END = 1;
 	const double AnimationPlayer::FORWARD_LAST_END = 0;
-	const double AnimationPlayer::FORWARD_STEP = -1;
+	const double AnimationPlayer::PROGRESS_EPSILON = 1e-8;
 
 	FramesNum AnimationPlayer::calcTotalFramesNum(AnimationRecord& record, double step)
 	{
@@ -165,12 +200,13 @@ namespace CG
 		return key_frames_num * frames_in_key_frame;
 	}
 
+
 	AnimationPlayer::AnimationPlayer(AnimationRecord& record, double pos_step, RenderMode render_mode,
-		double speed = 0, bool is_rewind = false):
+		double speed, bool is_rewind):
 		key_frames_queue(record.getKeyFramesQueueCopy()),
 		first_end(FORWARD_FIRST_END),
 		last_end(FORWARD_LAST_END),
-		step(FORWARD_STEP * pos_step),
+		step(-pos_step),
 		is_rewind(is_rewind),
 		playing_render_mode(render_mode),
 		speed(speed),
@@ -180,34 +216,12 @@ namespace CG
 	{
 		if (is_rewind)
 		{
-			restoreHistory(record.getRecordingObject(),
-				record.getLatestModelTransformHistory(),
-				record.getLatestWorldTransformHistory());
+			record.restoreLatestHistory();
 		}
 		else
 		{
-			restoreHistory(record.getRecordingObject(),
-				record.getInitialModelTransformHistory(),
-				record.getInitialWorldTransformHistory());
+			record.restoreInitialHistory();
 		}
-	}
-
-
-	void AnimationPlayer::restoreHistory(Object* parent_object_ptr,
-		TransformationsBuffer& model_transform_history, TransformationsBuffer& world_transform_history)
-	{
-		if (parent_object_ptr == nullptr)
-			return;
-
-		// restore child_object transforms
-		for (auto& child_object : parent_object_ptr->children)
-		{
-			restoreHistory(&child_object, model_transform_history, world_transform_history);
-		}
-
-		// restore parent_object transforms
-		parent_object_ptr->setMTransform(model_transform_history[parent_object_ptr]);
-		parent_object_ptr->setWTransform(world_transform_history[parent_object_ptr]);
 	}
 
 
@@ -243,9 +257,7 @@ namespace CG
 			}
 			else
 			{
-				// if no change in transformation matrix, skip frame
-				updateProgress();
-				return nextFrame();
+				return false;
 			}
 		}
 		else if (current_key_frame.space == VIEW)
@@ -257,23 +269,26 @@ namespace CG
 			}
 			else
 			{
-				// if no change in transformation matrix, skip frame
-				updateProgress();
-				return nextFrame();
+				return false;
 			}
 		}
 
 		return false;
 	}
 	
+	inline bool AnimationPlayer::compareDouble(double a, double b)
+	{
+		return ((a - b <= PROGRESS_EPSILON) && (a - b >= -PROGRESS_EPSILON));
+	}
 
 	void AnimationPlayer::updateProgress()
 	{
 		// increment frame index
 		current_frame_index++;
 
+
 		// if reached last_end
-		if (progress == last_end)
+		if (compareDouble(progress, last_end))
 		{
 			// restart at first_end
 			progress = first_end;
@@ -311,7 +326,7 @@ namespace CG
 
 	bool AnimationPlayer::nextFrame()
 	{
-		if (progress == first_end)
+		if (compareDouble(progress, first_end))
 		{
 			// fresh start: load next key-frame
 			if (!nextKeyFrame())
@@ -319,11 +334,20 @@ namespace CG
 		}
 
 		// set the new transformation matrix
-		if (!setTransformMatrix(getTransformMatrix()))
-			return false;
+		if (setTransformMatrix(getTransformMatrix()))
+		{
+			// if succeeded, progress
+			updateProgress();
+			return true;
+		}
+		else
+		{
+			// if no change in transformation matrix, skip frame
+			updateProgress();
+			return nextFrame();
+		}
 
-		updateProgress();
-		return true;
+		return false;
 	}
 
 
@@ -339,6 +363,9 @@ namespace CG
 
 	double AnimationPlayer::getProgressPercentage() const
 	{
+		if (total_frames_num == 0)
+			return 0;
+
 		return (current_frame_index / double(total_frames_num)) * 100.0;
 	}
 }
