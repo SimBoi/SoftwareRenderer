@@ -2,13 +2,13 @@
 software renderer for IRIT 3d object files
 
 Features:
-- wireframe/solid rendering
-- Orthogonal/Perspective rendering
+- wireframe/solid rendering (Bresenham lines/polygon scan lines)
+- Orthogonal/Perspective projections
 - silhouette highlighting
-- up to 8 light sources (directional/point) with diffuse and specualr lighting
+- up to 8 light sources (directional/point/spot) with diffuse and specualr lighting
 - ambient lighting
-- Flat/Gouraud/Phong shading modes
-- Translation/Rotation/Scale support in both Global/Model view
+- Flat/Gouraud/Phong shading
+- Translation/Rotation/Scale transformations in Global/Model view
 - Object hierarchy with support for individual object transformations
 - Polygon/Vertex normal calculation and highlighting
 - Render scene to png file
