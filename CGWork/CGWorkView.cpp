@@ -144,6 +144,8 @@ ON_COMMAND(ID_NEXT_FRAME_BUTTON, &CCGWorkView::OnNextFrameButton)
 ON_UPDATE_COMMAND_UI(ID_NEXT_FRAME_BUTTON, &CCGWorkView::OnUpdateNextFrameButton)
 ON_COMMAND(ID_RESET_PLAYER_BUTTON, &CCGWorkView::OnResetPlayerButton)
 ON_UPDATE_COMMAND_UI(ID_RESET_PLAYER_BUTTON, &CCGWorkView::OnUpdateResetPlayerButton)
+ON_WM_LBUTTONUP()
+ON_WM_RBUTTONUP()
 END_MESSAGE_MAP()
 
 
@@ -1894,7 +1896,6 @@ void CCGWorkView::OnRecordButton()
 	}
 	m_nRecordingStatus = INPROGRESS;
 
-	//STATUS_BAR_TEXT("recorded");
 }
 
 
@@ -1923,8 +1924,7 @@ void CCGWorkView::OnSnapshotButton()
 {
 	// TODO: Add your command handler code here
 	
-	// push key-frame
-	//m_pRecord->captureFrame(last_toched_object, m_nSpace);
+	// capture all changes
 	m_pRecord->pushAllChanges();
 }
 
@@ -1952,9 +1952,17 @@ void CCGWorkView::OnUpdateSaveRecordButton(CCmdUI* pCmdUI)
 void CCGWorkView::OnDiscardRecordButton()
 {
 	// TODO: Add your command handler code here
-	m_nRecordingStatus = EMPTY;
-	delete m_pRecord;
-	m_pRecord = nullptr;
+
+	int answer = AfxMessageBox(
+		_T("Discard the Animation Record?"), 
+		MB_YESNO | MB_ICONWARNING);
+
+	if (answer == IDYES)
+	{
+		m_nRecordingStatus = EMPTY;
+		delete m_pRecord;
+		m_pRecord = nullptr;
+	}
 }
 
 
@@ -2022,13 +2030,10 @@ void CCGWorkView::OnNextFrameButton()
 	}
 	else
 	{
-		RenderOnScreen(m_renderMode);
-		CString strPage;
-		// strPage.Format(_T("frame: %ld of %ld"), m_pPlayer->getCurrentFrameIndex(), m_pPlayer->getTotalFramesNum());
-		strPage.Format(_T("progress: %f"), m_pPlayer->getProgressPercentage());
+		RenderCurrentFrame();
 
-		
-		STATUS_BAR_TEXT(strPage);
+		//CString strPage; !!!
+		//strPage.Format(_T("progress: %f"), m_pPlayer->getProgressPercentage());
 	}
 }
 
@@ -2043,9 +2048,7 @@ void CCGWorkView::OnUpdateNextFrameButton(CCmdUI* pCmdUI)
 void CCGWorkView::OnResetPlayerButton()
 {
 	// TODO: Add your command handler code here
-	m_nRecordingStatus = STOPPED;
-	delete m_pPlayer;
-	m_pPlayer = nullptr;
+	endPlayer();
 }
 
 
@@ -2078,12 +2081,16 @@ void CCGWorkView::restoreSavedTransformations()
 void CCGWorkView::endPlayer()
 {
 	m_nRecordingStatus = STOPPED;
+	STATUS_BAR_TEXT(_T("Player Ended"));
 
 	delete m_pPlayer;
 	m_pPlayer = nullptr;
 
 	restoreSavedTransformations();
+	const DWORD wait = 500;
+	Sleep(wait);
 	Invalidate();
+	STATUS_BAR_TEXT(_T(""));
 }
 
 
@@ -2113,7 +2120,9 @@ void CCGWorkView::operatePlayer()
 		m_nRecordingStatus = PAUSED;
 		return;
 	}
-	double wait_time = (1.0 / m_pPlayer->speed);
+
+	const int DEFAULT_MILLISECOND = 400;
+	DWORD wait_time = DWORD((1.0 / m_pPlayer->speed) * DEFAULT_MILLISECOND);
 
 	while (m_nRecordingStatus == PLAYING && m_pPlayer->nextFrame())
 	{
@@ -2123,4 +2132,32 @@ void CCGWorkView::operatePlayer()
 
 	// record player ended
 	endPlayer();
+}
+
+
+void CCGWorkView::RecordCurrentFrame()
+{
+	// if recording in progress, capture current frame
+	if (m_nRecordingStatus == INPROGRESS && m_pRecord != nullptr)
+	{
+		m_pRecord->captureFrame(last_toched_object, m_nSpace);
+		STATUS_BAR_TEXT(_T("frame recorded."));
+	}
+}
+
+void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: Add your message handler code here and/or call default
+
+	CView::OnLButtonUp(nFlags, point);
+	RecordCurrentFrame();
+}
+
+
+void CCGWorkView::OnRButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: Add your message handler code here and/or call default
+
+	CView::OnRButtonUp(nFlags, point);
+	RecordCurrentFrame();
 }

@@ -18,13 +18,13 @@ IMPLEMENT_DYNAMIC(AnimationPlayerDialog, CDialog)
 
 const double AnimationPlayerDialog::SPEED_ACCEL = 0.25;
 const double AnimationPlayerDialog::MIN_SPEED = 0;
-const double AnimationPlayerDialog::MAX_SPEED = 100;
+const double AnimationPlayerDialog::MAX_SPEED = 10;
 const double AnimationPlayerDialog::DEFAULT_SPEED = 1;
 
 const double AnimationPlayerDialog::STEP_ACCEL = 0.05;
 const double AnimationPlayerDialog::MIN_STEP = 0.0001;
 const double AnimationPlayerDialog::MAX_STEP = 1;
-const double AnimationPlayerDialog::DEFAULT_STEP = 0.25;
+const double AnimationPlayerDialog::DEFAULT_STEP = 0.10;
 
 /***************************************************************************/
 

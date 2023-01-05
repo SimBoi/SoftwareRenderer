@@ -147,6 +147,8 @@ protected:
 public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 
 	// CG1::HW2 Functions:
 	void doAction(int x_val, int y_val, CG::Object& object);
@@ -161,6 +163,7 @@ public:
 	void saveCurrentTransformations();		// saves current parentObject and its childs transformations
 	void restoreSavedTransformations();		// restores transformations of  parentObject and its childs
 
+	void RecordCurrentFrame();	// add captured current frame to m_pRecord
 	void RenderCurrentFrame();	// renders on screen current frame and show frame index
 	void operatePlayer();		// start or continue playing m_pPlayer
 	void endPlayer();			// end player and restore saved transformations
@@ -242,6 +245,7 @@ public:
 	afx_msg void OnUpdateNextFrameButton(CCmdUI* pCmdUI);
 	afx_msg void OnResetPlayerButton();
 	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);
+	
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
