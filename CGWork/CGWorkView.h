@@ -102,9 +102,16 @@ protected:
 
 	CG::AnimationRecord* m_pTempRecord;			// holds a pointer to temporary record of parentObject
 	CG::Object* last_toched_object;				// holds a pointer to last changed (transformed) object
-	CG::RecordingStatus m_nRecordingStatus;		// the status of m_pRecord, m_pPlayer
+	/*
+	* By adding the volatile modifier, 
+	you tell the compiler that it cannot assume the variable will remain unmodified 
+	during the execution of the loop, 
+	even though there is no code in the loop that can change the variable.
+	*/
+	volatile CG::RecordingStatus m_nRecordingStatus;		// the status of m_pRecord, m_pPlayer
 	CG::AnimationRecord* m_pRecord;				// holds the record of key-frames transformations
 	CG::AnimationPlayer* m_pPlayer;				// holds player for m_pRecord
+	bool play_in_separate_thread;
 
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;
@@ -163,10 +170,12 @@ public:
 	void saveCurrentTransformations();		// saves current parentObject and its childs transformations
 	void restoreSavedTransformations();		// restores transformations of  parentObject and its childs
 
-	void RecordCurrentFrame();	// add captured current frame to m_pRecord
-	void RenderCurrentFrame();	// renders on screen current frame and show frame index
-	void operatePlayer();		// start or continue playing m_pPlayer
-	void endPlayer();			// end player and restore saved transformations
+	void RecordCurrentFrame();							// add captured current frame to m_pRecord
+	void RenderCurrentFrame(bool update_gui = true);	// renders on screen current frame and show frame index
+	void operatePlayer(bool update_gui = true);			// start or continue playing m_pPlayer
+	static UINT operatePlayer(LPVOID p);				// thread function
+	void endPlayer(bool update_gui = true);				// end player and restore saved transformations
+
 
 	void CalculateVertexNormals();
 	void FindEdgeAdjacentFaces();

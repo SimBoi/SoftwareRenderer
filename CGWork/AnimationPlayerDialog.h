@@ -55,4 +55,7 @@ private:
 	CComboBox m_RenderModeComboCtrl;
 public:
 	afx_msg void OnCbnSelchangeComboRenderMode();
+	BOOL m_bSeparateThread;
+	afx_msg void OnBnClickedCheckRewind();
+	afx_msg void OnBnClickedCheckThread();
 };

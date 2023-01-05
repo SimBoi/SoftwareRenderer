@@ -116,8 +116,8 @@
 #define IDC_EDIT_SPEED                  1105
 #define IDC_EDIT1                       1106
 #define IDC_EDIT_STEP                   1106
-#define IDC_CHECK1                      1107
 #define IDC_CHECK_REWIND                1107
+#define IDC_CHECK_THREAD                1108
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773

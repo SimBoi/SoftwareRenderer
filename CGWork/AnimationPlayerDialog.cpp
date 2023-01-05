@@ -34,6 +34,7 @@ AnimationPlayerDialog::AnimationPlayerDialog(CWnd* pParent /*=nullptr*/)
 	, m_step(DEFAULT_STEP)
 	, m_rewind(FALSE)
 	, m_render_mode(CG::WIREFRAME)
+	, m_bSeparateThread(FALSE)
 {
 	
 }
@@ -53,6 +54,7 @@ void AnimationPlayerDialog::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxDouble(pDX, m_step, MIN_STEP, MAX_STEP);
 	DDX_Check(pDX, IDC_CHECK_REWIND, m_rewind);
 	DDX_Control(pDX, IDC_COMBO_RENDER_MODE, m_RenderModeComboCtrl);
+	DDX_Check(pDX, IDC_CHECK_THREAD, m_bSeparateThread);
 }
 
 
@@ -62,6 +64,8 @@ BEGIN_MESSAGE_MAP(AnimationPlayerDialog, CDialog)
 	ON_NOTIFY(UDN_DELTAPOS, IDC_SPIN_STEP, &AnimationPlayerDialog::OnDeltaposSpinStep)
 	ON_EN_CHANGE(IDC_EDIT_STEP, &AnimationPlayerDialog::OnEnChangeEditStep)
 	ON_CBN_SELCHANGE(IDC_COMBO_RENDER_MODE, &AnimationPlayerDialog::OnCbnSelchangeComboRenderMode)
+	ON_BN_CLICKED(IDC_CHECK_REWIND, &AnimationPlayerDialog::OnBnClickedCheckRewind)
+	ON_BN_CLICKED(IDC_CHECK_THREAD, &AnimationPlayerDialog::OnBnClickedCheckThread)
 END_MESSAGE_MAP()
 
 
@@ -161,4 +165,18 @@ void AnimationPlayerDialog::OnCbnSelchangeComboRenderMode()
 	int selected_index = m_RenderModeComboCtrl.GetCurSel();
 	m_render_mode = (selected_index == 0 ? CG::WIREFRAME : CG::SOLID);
 	UpdateData(FALSE);
+}
+
+
+void AnimationPlayerDialog::OnBnClickedCheckRewind()
+{
+	// TODO: Add your control notification handler code here
+	UpdateData(TRUE);
+}
+
+
+void AnimationPlayerDialog::OnBnClickedCheckThread()
+{
+	// TODO: Add your control notification handler code here
+	UpdateData(TRUE);
 }

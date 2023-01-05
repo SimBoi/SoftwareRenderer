@@ -197,6 +197,7 @@ CCGWorkView::CCGWorkView()
 	m_nRecordingStatus = EMPTY;
 	m_pRecord = nullptr;
 	m_pPlayer = nullptr;
+	play_in_separate_thread = false;
 
 	m_nLightShading = FLAT;
 
@@ -993,6 +994,9 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 
 void CCGWorkView::OnDraw(CDC* pDC)
 {
+	if (m_nRecordingStatus == PLAYING)
+		return;
+
 	CCGWorkDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
@@ -1751,6 +1755,9 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: Add your message handler code here and/or call default
 
+	if (m_nRecordingStatus == PLAYING)
+		return;
+
 	CView::OnMouseMove(nFlags, point);
 	int current_x_position = point.x;
 	int current_y_position = point.y;
@@ -1892,7 +1899,10 @@ void CCGWorkView::OnRecordButton()
 	}
 	else
 	{
-		m_pRecord->fillHistoryBuffers(&parentObject);
+		//m_pRecord->fillHistoryBuffers(&parentObject); ???
+
+		// capture all changes
+		m_pRecord->pushAllChanges();
 	}
 	m_nRecordingStatus = INPROGRESS;
 
@@ -1992,10 +2002,23 @@ void CCGWorkView::OnPlayButton()
 				dialog.m_render_mode, 
 				dialog.m_speed, 
 				dialog.m_rewind);
+
+			play_in_separate_thread = dialog.m_bSeparateThread;
 		}
 	}
 	m_nRecordingStatus = PLAYING;
-	operatePlayer();
+
+	if (play_in_separate_thread)
+	{
+		// operatePlayer in new thread
+		AfxBeginThread(operatePlayer, this);
+	}
+	else
+	{
+		// operatePlayer on same thread
+		operatePlayer();
+	}
+	
 }
 
 
@@ -2078,10 +2101,11 @@ void CCGWorkView::restoreSavedTransformations()
 }
 
 
-void CCGWorkView::endPlayer()
+void CCGWorkView::endPlayer(bool update_gui)
 {
 	m_nRecordingStatus = STOPPED;
-	STATUS_BAR_TEXT(_T("Player Ended"));
+	if (update_gui)
+		STATUS_BAR_TEXT(_T("Player Ended"));
 
 	delete m_pPlayer;
 	m_pPlayer = nullptr;
@@ -2090,11 +2114,12 @@ void CCGWorkView::endPlayer()
 	const DWORD wait = 500;
 	Sleep(wait);
 	Invalidate();
-	STATUS_BAR_TEXT(_T(""));
+	if (update_gui)
+		STATUS_BAR_TEXT(_T(""));
 }
 
 
-void CCGWorkView::RenderCurrentFrame()
+void CCGWorkView::RenderCurrentFrame(bool update_gui)
 {
 	if (m_pPlayer == nullptr)
 		return;
@@ -2103,16 +2128,26 @@ void CCGWorkView::RenderCurrentFrame()
 
 	CString frame_index;
 	frame_index.Format(_T("frame %ld of %ld"), m_pPlayer->getCurrentFrameIndex(), m_pPlayer->getTotalFramesNum());
-	STATUS_BAR_TEXT(frame_index);
+	if (update_gui)
+		STATUS_BAR_TEXT(frame_index);
 }
 
 
-void CCGWorkView::operatePlayer()
+UINT CCGWorkView::operatePlayer(LPVOID p)
+
+{
+	CCGWorkView* me = (CCGWorkView*)p;
+	me->operatePlayer(false);
+	return 0;
+}
+
+
+void CCGWorkView::operatePlayer(bool update_gui)
 {
 	if (m_pPlayer == nullptr || m_nRecordingStatus != PLAYING)
 		return;
 
-	RenderCurrentFrame();
+	RenderCurrentFrame(update_gui);
 
 	if (m_pPlayer->speed == 0)
 	{
@@ -2126,12 +2161,13 @@ void CCGWorkView::operatePlayer()
 
 	while (m_nRecordingStatus == PLAYING && m_pPlayer->nextFrame())
 	{
-		RenderCurrentFrame();
+		RenderCurrentFrame(update_gui);
 		Sleep(wait_time);
 	}
 
 	// record player ended
-	endPlayer();
+	if (m_nRecordingStatus == PLAYING)
+		endPlayer(update_gui);
 }
 
 
