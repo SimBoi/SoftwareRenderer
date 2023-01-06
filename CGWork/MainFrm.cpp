@@ -59,6 +59,14 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // fail to create
 	}
 
+	if (!m_wndRecordingBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_TOP
+		| CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
+		!m_wndRecordingBar.LoadToolBar(IDR_RECORD_BAR))
+	{
+		TRACE0("Failed to create recording bar\n");
+		return -1;      // fail to create
+	}
+
 	if (!m_wndStatusBar.Create(this) ||
 		!m_wndStatusBar.SetIndicators(indicators,
 		  sizeof(indicators)/sizeof(UINT)))
@@ -72,6 +80,10 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndToolBar.EnableDocking(CBRS_ALIGN_ANY);
 	EnableDocking(CBRS_ALIGN_ANY);
 	DockControlBar(&m_wndToolBar);
+
+	m_wndRecordingBar.EnableDocking(CBRS_ALIGN_ANY);
+	EnableDocking(CBRS_ALIGN_ANY);
+	DockControlBar(&m_wndRecordingBar);
 
 	return 0;
 }
@@ -114,4 +126,7 @@ CStatusBar& CMainFrame::getStatusBar() {
 }
 
 
-
+CToolBar& CMainFrame::getRecordingBar()
+{
+	return m_wndRecordingBar;
+}

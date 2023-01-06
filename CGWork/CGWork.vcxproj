@@ -142,6 +142,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>
       <DisableSpecificWarnings>4273;4996;4800;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -160,6 +161,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AnimationPlayerDialog.cpp" />
+    <ClCompile Include="AnimationSaveDialog.cpp" />
     <ClCompile Include="BackgroundImageDialog.cpp" />
     <ClCompile Include="CGWork.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
@@ -191,6 +194,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="CG_Animation.cpp" />
     <ClCompile Include="CG_Draw.cpp" />
     <ClCompile Include="CG_Matrix.cpp" />
     <ClCompile Include="CG_Object.cpp" />
@@ -232,10 +236,13 @@
     <ResourceCompile Include="CGWork.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AnimationPlayerDialog.h" />
+    <ClInclude Include="AnimationSaveDialog.h" />
     <ClInclude Include="BackgroundImageDialog.h" />
     <ClInclude Include="CGWork.h" />
     <ClInclude Include="CGWorkDoc.h" />
     <ClInclude Include="CGWorkView.h" />
+    <ClInclude Include="CG_Animation.h" />
     <ClInclude Include="CG_Buffer.h" />
     <ClInclude Include="CG_Draw.h" />
     <ClInclude Include="CG_Matrix.h" />
@@ -287,6 +294,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\face_normals.bmp" />
+    <Image Include="res\toolbar1.bmp" />
     <Image Include="res\vertex_normals.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

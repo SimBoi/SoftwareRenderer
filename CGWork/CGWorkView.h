@@ -18,6 +18,7 @@
 #include "CG_Matrix.h"
 #include "CG_Object.h"
 #include "CG_Draw.h"
+#include "CG_Animation.h"
 
 
 class CCGWorkView : public CView
@@ -99,6 +100,19 @@ protected:
 	CStringA m_strPngFileName;		// file name of PNG render to file
 	PngWrapper* m_pRenderToPng;		// holds the render to file
 
+	CG::AnimationRecord* m_pTempRecord;			// holds a pointer to temporary record of parentObject
+	CG::Object* last_toched_object;				// holds a pointer to last changed (transformed) object
+	/*
+	* By adding the volatile modifier, 
+	you tell the compiler that it cannot assume the variable will remain unmodified 
+	during the execution of the loop, 
+	even though there is no code in the loop that can change the variable.
+	*/
+	volatile CG::RecordingStatus m_nRecordingStatus;		// the status of m_pRecord, m_pPlayer
+	CG::AnimationRecord* m_pRecord;				// holds the record of key-frames transformations
+	CG::AnimationPlayer* m_pPlayer;				// holds player for m_pRecord
+	bool play_in_separate_thread;
+
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;
 
@@ -140,6 +154,8 @@ protected:
 public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 
 	// CG1::HW2 Functions:
 	void doAction(int x_val, int y_val, CG::Object& object);
@@ -150,6 +166,29 @@ public:
 	CDC* RenderOnScreen(CG::RenderMode renderMode);		// Renders the scene on the screen
 	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode);		// Renders the scene to a file in PNG format
 	void WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height);
+
+	inline bool isBlockInteraction();
+	void saveCurrentTransformations();		// saves current parentObject and its childs transformations
+	void restoreSavedTransformations();		// restores transformations of  parentObject and its childs
+
+	void RecordCurrentFrame();							// add captured current frame to m_pRecord
+	void RenderCurrentFrame(bool update_gui = true);	// renders on screen current frame and show frame index
+	void operatePlayer(bool update_gui = true);			// start or continue playing m_pPlayer
+	static UINT operatePlayer(LPVOID p);				// thread function
+	void endPlayer(bool update_gui = true);				// end player and restore saved transformations
+
+
+	void SaveCurrentFrame(CStringA pre_name,				// save to png file current frame
+		CG::FramesNum frame_index,							// display saving progress
+		int width, int height,
+		CG::RenderMode renderMode,
+		double progress_percent);
+
+	void savePlayer(CG::AnimationPlayer& record_player,		// save a record_player to save_path
+		CStringA save_path,								// as images of width, height dimensions
+		CStringA animation_name, 
+		int width, int height);
+
 
 	void CalculateVertexNormals();
 	void FindEdgeAdjacentFaces();
@@ -208,6 +247,27 @@ public:
 	afx_msg void OnUpdateViewAlwayscalculateverticesnormals(CCmdUI* pCmdUI);
 	afx_msg void ToggleSilhouette();
 	afx_msg void OnUpdateToggleSilhouette(CCmdUI* pCmdUI);
+	afx_msg void OnRecordButton();
+	afx_msg void OnPlayButton();
+	afx_msg void OnViewRecordingbar();
+	afx_msg void OnUpdateViewRecordingbar(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateRecordButton(CCmdUI* pCmdUI);
+	afx_msg void OnStopRecordingButton();
+	afx_msg void OnUpdateStopRecordingButton(CCmdUI* pCmdUI);
+	afx_msg void OnSnapshotButton();
+	afx_msg void OnUpdateSnapshotButton(CCmdUI* pCmdUI);
+	afx_msg void OnSaveRecordButton();
+	afx_msg void OnUpdateSaveRecordButton(CCmdUI* pCmdUI);
+	afx_msg void OnDiscardRecordButton();
+	afx_msg void OnUpdateDiscardRecordButton(CCmdUI* pCmdUI);
+	afx_msg void OnUpdatePlayButton(CCmdUI* pCmdUI);
+	afx_msg void OnPauseButton();
+	afx_msg void OnUpdatePauseButton(CCmdUI* pCmdUI);
+	afx_msg void OnNextFrameButton();
+	afx_msg void OnUpdateNextFrameButton(CCmdUI* pCmdUI);
+	afx_msg void OnResetPlayerButton();
+	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);
+	
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

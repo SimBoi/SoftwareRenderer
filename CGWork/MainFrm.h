@@ -32,6 +32,7 @@ public:
 public:
 	virtual ~CMainFrame();
 	CStatusBar& getStatusBar();
+	CToolBar& getRecordingBar();
 
 #ifdef _DEBUG
 	virtual void AssertValid() const;
@@ -41,6 +42,7 @@ public:
 protected:  // control bar embedded members
 	CStatusBar  m_wndStatusBar;
 	CToolBar    m_wndToolBar;
+	CToolBar    m_wndRecordingBar;
 
 // Generated message map functions
 protected:

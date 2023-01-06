@@ -19,6 +19,9 @@
 #define IDD_PERSPECTIVE_SETTINGS        152
 #define IDD_BACKGROUND_IMAGE_DIALOG     153
 #define IDD_TOPNG_FILE_DIALOG           155
+#define IDR_RECORD_BAR                  161
+#define IDD_ANIMATION_PLAYER_DIALOG     164
+#define IDD_SAVE_ANIMATION_DIALOG       166
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -99,12 +102,31 @@
 #define IDC_DYNAMIC_RANGE               1090
 #define IDC_SPOT_LIGHT_ANGLE            1091
 #define IDC_SHADOW_TYPE                 1092
+#define IDC_STATIC_RENDER_MODE          1093
 #define IDC_STATIC_DIFFUSE2             1094
 #define IDC_SHADOW_FAR                  1095
 #define IDC_STATIC_DIFFUSE3             1096
 #define IDC_SHADOW_NEAR                 1097
 #define IDC_STATIC_DIFFUSE4             1098
 #define IDC_SHADOW_RESOLUTION           1099
+#define IDC_STATIC_SPEED                1100
+#define IDC_SPIN_SPEED                  1101
+#define IDC_COMBO_RENDER_MODE           1102
+#define IDC_STATIC_STEP                 1103
+#define IDC_SPIN_STEP                   1104
+#define IDC_EDIT_SPEED                  1105
+#define IDC_EDIT1                       1106
+#define IDC_EDIT_STEP                   1106
+#define IDC_EDIT_NAME                   1106
+#define IDC_CHECK_REWIND                1107
+#define IDC_EDIT_PATH                   1107
+#define IDC_CHECK_THREAD                1108
+#define IDC_STATIC_NAME                 1108
+#define IDC_BUTTON_SELECT_FOLDER        1109
+#define IDC_STATIC_PATH                 1110
+#define IDC_EDIT_SAVE_STEP              1111
+#define IDC_CHECK_SAVE_REWIND           1112
+#define IDC_SPIN_SAVE_STEP              1113
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -154,14 +176,35 @@
 #define ID_VIEW_ALWAYSCALCULATETHEVERTICES 32838
 #define ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS 32839
 #define ID_VIEW_SILHOUETTEHIGHLIGHTING  32840
+#define ID_RECORD_BUTTON                32846
+#define ID_PLAY_BUTTON                  32847
+#define ID_BUTTON32850                  32850
+#define ID_BUTTON32851                  32851
+#define ID_VIEW_                        32852
+#define ID_VIEW_RECORDINGBAR            32853
+#define ID_BUTTON32855                  32855
+#define ID_BUTTON32859                  32859
+#define ID_BUTTON32862                  32862
+#define ID_BUTTON32864                  32864
+#define ID_BUTTON32866                  32866
+#define ID_BUTTON32868                  32868
+#define ID_BUTTON32869                  32869
+#define ID_STOP_RECORDING_BUTTON        32870
+#define ID_SNAPSHOT_BUTTON              32871
+#define ID_SAVE_RECORD_BUTTON           32872
+#define ID_DISCARD_RECORD_BUTTON        32873
+#define ID_PAUSE_BUTTON                 32874
+#define ID_NEXT_FRAME_BUTTON            32875
+#define ID_RESET_PLAYER_BUTTON          32876
+#define ID_BUTTON32879                  32879
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        159
-#define _APS_NEXT_COMMAND_VALUE         32841
-#define _APS_NEXT_CONTROL_VALUE         1093
+#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_COMMAND_VALUE         32880
+#define _APS_NEXT_CONTROL_VALUE         1114
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -33,7 +33,10 @@ static char THIS_FILE[] = __FILE__;
 #include "PerspectiveSettingsDialog.h"
 #include "BackgroundImageDialog.h"
 #include "RenderToFileDialog.h"
+#include "AnimationPlayerDialog.h"
+#include "AnimationSaveDialog.h"
 
+#include "CG_Animation.h"
 #include <string>
 #include <unordered_map>
 #include <list>
@@ -122,6 +125,28 @@ ON_COMMAND(ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS, &CCGWorkView::OnViewAlwayscal
 ON_UPDATE_COMMAND_UI(ID_VIEW_ALWAYSCALCULATEVERTICESNORMALS, &CCGWorkView::OnUpdateViewAlwayscalculateverticesnormals)
 ON_COMMAND(ID_VIEW_SILHOUETTEHIGHLIGHTING, &CCGWorkView::ToggleSilhouette)
 ON_UPDATE_COMMAND_UI(ID_VIEW_SILHOUETTEHIGHLIGHTING, &CCGWorkView::OnUpdateToggleSilhouette)
+ON_COMMAND(ID_RECORD_BUTTON, &CCGWorkView::OnRecordButton)
+ON_COMMAND(ID_PLAY_BUTTON, &CCGWorkView::OnPlayButton)
+ON_COMMAND(ID_VIEW_RECORDINGBAR, &CCGWorkView::OnViewRecordingbar)
+ON_UPDATE_COMMAND_UI(ID_VIEW_RECORDINGBAR, &CCGWorkView::OnUpdateViewRecordingbar)
+ON_UPDATE_COMMAND_UI(ID_RECORD_BUTTON, &CCGWorkView::OnUpdateRecordButton)
+ON_COMMAND(ID_STOP_RECORDING_BUTTON, &CCGWorkView::OnStopRecordingButton)
+ON_UPDATE_COMMAND_UI(ID_STOP_RECORDING_BUTTON, &CCGWorkView::OnUpdateStopRecordingButton)
+ON_COMMAND(ID_SNAPSHOT_BUTTON, &CCGWorkView::OnSnapshotButton)
+ON_UPDATE_COMMAND_UI(ID_SNAPSHOT_BUTTON, &CCGWorkView::OnUpdateSnapshotButton)
+ON_COMMAND(ID_SAVE_RECORD_BUTTON, &CCGWorkView::OnSaveRecordButton)
+ON_UPDATE_COMMAND_UI(ID_SAVE_RECORD_BUTTON, &CCGWorkView::OnUpdateSaveRecordButton)
+ON_COMMAND(ID_DISCARD_RECORD_BUTTON, &CCGWorkView::OnDiscardRecordButton)
+ON_UPDATE_COMMAND_UI(ID_DISCARD_RECORD_BUTTON, &CCGWorkView::OnUpdateDiscardRecordButton)
+ON_UPDATE_COMMAND_UI(ID_PLAY_BUTTON, &CCGWorkView::OnUpdatePlayButton)
+ON_COMMAND(ID_PAUSE_BUTTON, &CCGWorkView::OnPauseButton)
+ON_UPDATE_COMMAND_UI(ID_PAUSE_BUTTON, &CCGWorkView::OnUpdatePauseButton)
+ON_COMMAND(ID_NEXT_FRAME_BUTTON, &CCGWorkView::OnNextFrameButton)
+ON_UPDATE_COMMAND_UI(ID_NEXT_FRAME_BUTTON, &CCGWorkView::OnUpdateNextFrameButton)
+ON_COMMAND(ID_RESET_PLAYER_BUTTON, &CCGWorkView::OnResetPlayerButton)
+ON_UPDATE_COMMAND_UI(ID_RESET_PLAYER_BUTTON, &CCGWorkView::OnUpdateResetPlayerButton)
+ON_WM_LBUTTONUP()
+ON_WM_RBUTTONUP()
 END_MESSAGE_MAP()
 
 
@@ -166,6 +191,14 @@ CCGWorkView::CCGWorkView()
 	// render to file
 	m_bRenderToPngFile = false;
 	m_pRenderToPng = nullptr;
+
+	// animation record
+	m_pTempRecord = nullptr;
+	last_toched_object = nullptr;
+	m_nRecordingStatus = EMPTY;
+	m_pRecord = nullptr;
+	m_pPlayer = nullptr;
+	play_in_separate_thread = false;
 
 	m_nLightShading = FLAT;
 
@@ -741,6 +774,14 @@ void CCGWorkView::InitializeView()
 	object_index = 0;
 	selectedObject = getObjectByIndex(object_index);
 
+	// animation record
+	m_nRecordingStatus = EMPTY;
+	delete m_pRecord;
+	m_pRecord = nullptr;
+	delete m_pPlayer;
+	m_pPlayer = nullptr;
+	last_toched_object = &parentObject;
+
 	objectSize = max(parentObject.maxX - parentObject.minX, parentObject.maxY - parentObject.minY);
 	objectSize = max(objectSize, parentObject.maxZ - parentObject.minZ);
 	double scale = 400 / objectSize;
@@ -952,8 +993,18 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 	//}
 }
 
+
+inline bool CCGWorkView::isBlockInteraction()
+{
+	return (m_nRecordingStatus == PLAYING || m_nRecordingStatus == PAUSED);
+}
+
+
 void CCGWorkView::OnDraw(CDC* pDC)
 {
+	if (isBlockInteraction())
+		return;
+
 	CCGWorkDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
@@ -1069,6 +1120,16 @@ void CCGWorkView::OnDestroy()
 		delete m_pRenderToPng;
 		m_pRenderToPng = nullptr;
 	}
+
+	if (m_pRecord) {
+		delete m_pRecord;
+		m_pRecord = nullptr;
+	}
+
+	if (m_pPlayer) {
+		delete m_pPlayer;
+		m_pPlayer = nullptr;
+	}
 }
 
 
@@ -1116,6 +1177,9 @@ void CCGWorkView::doAction(int x_val, int y_val, Object& object)
 	{
 		doScale(x_val, y_val, object);
 	}
+
+	// update last transformed object ptr
+	last_toched_object = &object;
 }
 
 
@@ -1295,6 +1359,31 @@ void CCGWorkView::doScale(int x_val, int y_val, Object& object)
 // Note: that all the following Message Handlers act in a similar way.
 // Each control or command has two functions associated with it.
 
+void CCGWorkView::OnViewRecordingbar()
+{
+	// TODO: Add your command handler code here
+	CToolBar& RecordingBar = ((CMainFrame*)GetParentFrame())->getRecordingBar();
+	if (RecordingBar.IsWindowVisible())
+	{
+		RecordingBar.ShowWindow(SW_HIDE);
+	}
+	else
+	{
+		RecordingBar.ShowWindow(SW_NORMAL);
+	}
+
+	Invalidate();
+	UpdateWindow();
+}
+
+void CCGWorkView::OnUpdateViewRecordingbar(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	CToolBar& RecordingBar = ((CMainFrame*)GetParentFrame())->getRecordingBar();
+	pCmdUI->SetCheck(RecordingBar.IsWindowVisible());
+}
+
+
 void CCGWorkView::OnViewOrthographic()
 {
 	m_nView = ID_VIEW_ORTHOGRAPHIC;
@@ -1353,6 +1442,17 @@ void CCGWorkView::OnViewAlwayscalculateverticesnormals()
 void CCGWorkView::OnUpdateViewAlwayscalculateverticesnormals(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_alwaysCalcNormals);
+}
+
+void CCGWorkView::ToggleSilhouette()
+{
+	m_renderSilhouette = !m_renderSilhouette;
+	Invalidate();		// redraw using the new view.
+}
+
+void CCGWorkView::OnUpdateToggleSilhouette(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(m_renderSilhouette == true);
 }
 
 
@@ -1663,6 +1763,9 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: Add your message handler code here and/or call default
 
+	if (isBlockInteraction())
+		return;
+
 	CView::OnMouseMove(nFlags, point);
 	int current_x_position = point.x;
 	int current_y_position = point.y;
@@ -1793,13 +1896,388 @@ void CCGWorkView::OnFileSaveaspng()
 	Invalidate();
 }
 
-void CCGWorkView::ToggleSilhouette()
+
+void CCGWorkView::OnRecordButton()
 {
-	m_renderSilhouette = !m_renderSilhouette;
-	Invalidate();		// redraw using the new view.
+	// TODO: Add your command handler code here
+	if (m_nRecordingStatus == EMPTY || m_pRecord == nullptr)
+	{
+		delete m_pRecord;
+		m_pRecord = new AnimationRecord(&parentObject);
+	}
+	else
+	{
+		//m_pRecord->fillHistoryBuffers(&parentObject); ???
+		// skip unrecorded frames ???
+
+		// capture all changes
+		m_pRecord->pushAllChanges();
+	}
+	m_nRecordingStatus = INPROGRESS;
+
 }
 
-void CCGWorkView::OnUpdateToggleSilhouette(CCmdUI* pCmdUI)
+
+void CCGWorkView::OnUpdateRecordButton(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_renderSilhouette == true);
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == EMPTY || m_nRecordingStatus == STOPPED);
+}
+
+
+void CCGWorkView::OnStopRecordingButton()
+{
+	// TODO: Add your command handler code here
+	m_nRecordingStatus = STOPPED;
+}
+
+
+void CCGWorkView::OnUpdateStopRecordingButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == INPROGRESS);
+}
+
+
+void CCGWorkView::OnSnapshotButton()
+{
+	// TODO: Add your command handler code here
+	
+	// capture all changes
+	m_pRecord->pushAllChanges();
+}
+
+
+void CCGWorkView::OnUpdateSnapshotButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == INPROGRESS || m_nRecordingStatus == STOPPED);
+}
+
+
+void CCGWorkView::OnSaveRecordButton()
+{
+	// TODO: Add your command handler code here
+	AnimationSaveDialog dialog;
+	dialog.m_ImageWidth = m_WindowWidth;
+	dialog.m_ImageHeight = m_WindowHeight;
+	dialog.m_WindowWidth = m_WindowWidth;
+	dialog.m_WindowHeight = m_WindowHeight;
+
+	if (dialog.DoModal() == IDOK && m_pRecord != nullptr)
+	{
+
+		saveCurrentTransformations();
+
+		// initialize player
+		AnimationPlayer temp_player(*m_pRecord,
+			dialog.m_step,
+			SOLID,
+			0,
+			dialog.m_rewind);
+
+		// save player
+		savePlayer(temp_player, CStringA(dialog.m_AnimationPath), CStringA(dialog.m_AnimationName),
+			dialog.m_ImageWidth, dialog.m_ImageHeight);
+
+		restoreSavedTransformations();
+	}
+
+}
+
+
+void CCGWorkView::OnUpdateSaveRecordButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == STOPPED);
+}
+
+
+void CCGWorkView::OnDiscardRecordButton()
+{
+	// TODO: Add your command handler code here
+
+	int answer = AfxMessageBox(
+		_T("Discard the Animation Record?"), 
+		MB_YESNO | MB_ICONWARNING);
+
+	if (answer == IDYES)
+	{
+		m_nRecordingStatus = EMPTY;
+		delete m_pRecord;
+		m_pRecord = nullptr;
+	}
+}
+
+
+void CCGWorkView::OnUpdateDiscardRecordButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == STOPPED);
+}
+
+
+void CCGWorkView::OnPlayButton()
+{
+	// TODO: Add your command handler code here
+
+	if (m_nRecordingStatus == STOPPED || m_pPlayer == nullptr)
+	{
+		delete m_pPlayer;
+		AnimationPlayerDialog dialog;
+		
+		if (dialog.DoModal() == IDOK && m_pRecord != nullptr)
+		{
+			saveCurrentTransformations();
+
+			// initialize player
+			m_pPlayer = new AnimationPlayer(*m_pRecord, 
+				dialog.m_step, 
+				dialog.m_render_mode, 
+				dialog.m_speed, 
+				dialog.m_rewind);
+
+			play_in_separate_thread = dialog.m_bSeparateThread;
+		}
+	}
+	m_nRecordingStatus = PLAYING;
+
+	if (play_in_separate_thread)
+	{
+		// operatePlayer in new thread
+		AfxBeginThread(operatePlayer, this);
+	}
+	else
+	{
+		// operatePlayer on same thread
+		operatePlayer();
+	}
+	
+}
+
+
+void CCGWorkView::OnUpdatePlayButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == STOPPED || m_nRecordingStatus == PAUSED);
+}
+
+
+void CCGWorkView::OnPauseButton()
+{
+	// TODO: Add your command handler code here
+	m_nRecordingStatus = PAUSED;
+}
+
+
+void CCGWorkView::OnUpdatePauseButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == PLAYING);
+}
+
+
+void CCGWorkView::OnNextFrameButton()
+{
+	// TODO: Add your command handler code here
+	if (!m_pPlayer->nextFrame())
+	{
+		// record player ended
+		endPlayer();
+	}
+	else
+	{
+		RenderCurrentFrame();
+	}
+}
+
+
+void CCGWorkView::OnUpdateNextFrameButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == PAUSED);
+}
+
+
+void CCGWorkView::OnResetPlayerButton()
+{
+	// TODO: Add your command handler code here
+	endPlayer();
+}
+
+
+void CCGWorkView::OnUpdateResetPlayerButton(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_nRecordingStatus == PLAYING || m_nRecordingStatus == PAUSED);
+}
+
+
+void CCGWorkView::saveCurrentTransformations()
+{
+	delete m_pTempRecord;
+	m_pTempRecord = new AnimationRecord(&parentObject);
+}
+
+
+void CCGWorkView::restoreSavedTransformations()
+{
+	if (m_pTempRecord == nullptr)
+		return;
+
+	m_pTempRecord->restoreInitialHistory();
+
+	delete m_pTempRecord;
+	m_pTempRecord = nullptr;
+
+	Invalidate();
+}
+
+
+void CCGWorkView::endPlayer(bool update_gui)
+{
+	m_nRecordingStatus = STOPPED;
+	if (update_gui)
+		STATUS_BAR_TEXT(_T("Player Ended"));
+
+	delete m_pPlayer;
+	m_pPlayer = nullptr;
+
+	const DWORD wait = 700;
+	Sleep(wait);
+	restoreSavedTransformations();
+	if (update_gui)
+		STATUS_BAR_TEXT(_T(""));
+}
+
+
+void CCGWorkView::RenderCurrentFrame(bool update_gui)
+{
+	if (m_pPlayer == nullptr)
+		return;
+
+	RenderOnScreen(m_pPlayer->playing_render_mode);
+
+	if (update_gui)
+	{
+		CString frame_index;
+		frame_index.Format(_T("frame %ld of %ld"), m_pPlayer->getCurrentFrameIndex(), m_pPlayer->getTotalFramesNum());
+		STATUS_BAR_TEXT(frame_index);
+	}
+}
+
+
+UINT CCGWorkView::operatePlayer(LPVOID p)
+
+{
+	CCGWorkView* me = (CCGWorkView*)p;
+	me->operatePlayer(false);
+	return 0;
+}
+
+
+void CCGWorkView::operatePlayer(bool update_gui)
+{
+	if (m_pPlayer == nullptr || m_nRecordingStatus != PLAYING)
+		return;
+
+	RenderCurrentFrame(update_gui);
+
+	if (m_pPlayer->speed == 0)
+	{
+		// pause player, use next-frame button.
+		m_nRecordingStatus = PAUSED;
+		return;
+	}
+
+	const int DEFAULT_MILLISECOND = 400;
+	DWORD wait_time = DWORD((1.0 / m_pPlayer->speed) * DEFAULT_MILLISECOND);
+
+	while (m_nRecordingStatus == PLAYING && m_pPlayer->nextFrame())
+	{
+		RenderCurrentFrame(update_gui);
+		Sleep(wait_time);
+	}
+
+	// record player ended
+	if (m_nRecordingStatus == PLAYING)
+		endPlayer(update_gui);
+}
+
+
+void CCGWorkView::RecordCurrentFrame()
+{
+	// if recording in progress, capture current frame
+	if (m_nRecordingStatus == INPROGRESS && m_pRecord != nullptr)
+	{
+		m_pRecord->captureFrame(last_toched_object, m_nSpace);
+		STATUS_BAR_TEXT(_T("frame recorded."));
+	}
+}
+
+void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: Add your message handler code here and/or call default
+
+	CView::OnLButtonUp(nFlags, point);
+	RecordCurrentFrame();
+}
+
+
+void CCGWorkView::OnRButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: Add your message handler code here and/or call default
+
+	CView::OnRButtonUp(nFlags, point);
+	RecordCurrentFrame();
+}
+
+
+void CCGWorkView::SaveCurrentFrame(CStringA pre_name, FramesNum frame_index,
+	int width, int height, RenderMode renderMode, double progress_percent)
+{
+	// init saveto png file
+	CStringA saveto_str = pre_name + _T("_%ld.png");
+	saveto_str.Format(saveto_str, frame_index);
+	PngWrapper* saveto_file = new PngWrapper(saveto_str, width, height);
+
+	// render the scence to saveto png file
+	RenderToPngFile(saveto_file, renderMode);
+
+	delete saveto_file;
+	saveto_file = nullptr;
+
+	CString saving_progress;
+	saving_progress.Format(_T("Saving: %.2f%%"), progress_percent);
+	STATUS_BAR_TEXT(saving_progress);
+}
+
+
+void CCGWorkView::savePlayer(AnimationPlayer& record_player, CStringA save_path,
+	CStringA animation_name, int width, int height)
+{
+	if (CreateDirectoryA(save_path, NULL) == FALSE)
+	{
+		STATUS_BAR_TEXT(_T("saving failed."));
+		AfxMessageBox(_T("saving failed"), MB_ICONERROR);
+		return;
+	}
+
+
+	STATUS_BAR_TEXT(_T("start saving..."));
+
+	FramesNum frame_index = 0;
+	CStringA pre_name = save_path + animation_name;
+	SaveCurrentFrame(pre_name, frame_index, width, height,
+		record_player.playing_render_mode, record_player.getProgressPercentage());
+
+	while (record_player.nextFrame())
+	{
+		SaveCurrentFrame(pre_name, frame_index, width, height,
+			record_player.playing_render_mode, record_player.getProgressPercentage());
+
+		frame_index++;
+	}
+	
+	STATUS_BAR_TEXT(_T("Done!"));
 }

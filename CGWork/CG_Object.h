@@ -4,7 +4,9 @@
 #include "CG_Matrix.h"
 #include "PngWrapper.h"
 #include <list>
-#include <windows.h>
+//#include <windows.h>
+
+using namespace std;
 
 #define FAR_PLANE 0
 #define NEAR_PLANE 1
@@ -85,6 +87,9 @@ namespace CG
 		std::list<Object> children;
 		double normalScale;
 
+
+		void setWTransform(mat4& transform_matrix);
+		void setMTransform(mat4& transform_matrix);
 		vec4 mPosition() const;
 		vec4 wPosition() const;
 		void Translate(vec4& amount);

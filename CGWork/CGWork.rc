@@ -42,6 +42,8 @@ IDR_FACE_NORMALS        BITMAP                  "res\\face_normals.bmp"
 
 IDR_VERTEX_NORMALS      BITMAP                  "res\\vertex_normals.bmp"
 
+IDR_RECORD_BAR          BITMAP                  "res\\toolbar1.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -52,6 +54,8 @@ IDR_MAINFRAME TOOLBAR 16, 16
 BEGIN
     BUTTON      ID_FILE_LOAD
     BUTTON      ID_FILE_SAVEASPNG
+    BUTTON      ID_OPTIONS_SELECTOBJECT
+    SEPARATOR
     BUTTON      ID_VIEW_ORTHOGRAPHIC
     BUTTON      ID_VIEW_PERSPECTIVE
     SEPARATOR
@@ -76,6 +80,21 @@ BEGIN
     BUTTON      ID_PERSPECCTIVE_SETTINGS
 END
 
+IDR_RECORD_BAR TOOLBAR 16, 16
+BEGIN
+    BUTTON      ID_RECORD_BUTTON
+    BUTTON      ID_STOP_RECORDING_BUTTON
+    BUTTON      ID_SNAPSHOT_BUTTON
+    SEPARATOR
+    BUTTON      ID_SAVE_RECORD_BUTTON
+    BUTTON      ID_DISCARD_RECORD_BUTTON
+    SEPARATOR
+    BUTTON      ID_PLAY_BUTTON
+    BUTTON      ID_PAUSE_BUTTON
+    BUTTON      ID_NEXT_FRAME_BUTTON
+    BUTTON      ID_RESET_PLAYER_BUTTON
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -93,6 +112,7 @@ BEGIN
     POPUP "&View"
     BEGIN
         MENUITEM "&Toolbar",                    ID_VIEW_TOOLBAR
+        MENUITEM "Recording Bar",               ID_VIEW_RECORDINGBAR
         MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
         MENUITEM SEPARATOR
         MENUITEM "&Orthographic",               ID_VIEW_ORTHOGRAPHIC
@@ -397,6 +417,48 @@ BEGIN
     PUSHBUTTON      "Cancel Rendering to Png File",IDC_BUTTON_CANCEL_RENDERTO_FILE,8,86,111,14
 END
 
+IDD_ANIMATION_PLAYER_DIALOG DIALOGEX 0, 0, 265, 114
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Play Animation Record"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Render Mode:",IDC_STATIC_RENDER_MODE,15,14,47,8
+    COMBOBOX        IDC_COMBO_RENDER_MODE,64,14,104,31,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Animation Speed:",IDC_STATIC_SPEED,15,35,59,8
+    EDITTEXT        IDC_EDIT_SPEED,77,32,40,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN_SPEED,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,116,32,12,14
+    DEFPUSHBUTTON   "Play",IDOK,153,93,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,208,93,50,14
+    LTEXT           "Animation Step:",IDC_STATIC_STEP,15,59,54,8
+    EDITTEXT        IDC_EDIT_STEP,77,56,40,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN_STEP,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,116,56,12,14
+    CONTROL         "Play in Rewind",IDC_CHECK_REWIND,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,78,63,10
+    CONTROL         "Play in Separate Thread",IDC_CHECK_THREAD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,96,95,10
+END
+
+IDD_SAVE_ANIMATION_DIALOG DIALOGEX 0, 0, 325, 110
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Save Animation"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Save",IDOK,217,89,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,268,89,50,14
+    LTEXT           "Animation Name:",IDC_STATIC_NAME,11,18,58,8
+    EDITTEXT        IDC_EDIT_NAME,69,15,142,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Select Saving Folder",IDC_BUTTON_SELECT_FOLDER,221,16,78,14
+    LTEXT           "save to:",IDC_STATIC_PATH,11,93,27,8
+    EDITTEXT        IDC_EDIT_PATH,39,89,171,14,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "Animation Step:",IDC_STATIC_STEP,174,39,54,8
+    EDITTEXT        IDC_EDIT_SAVE_STEP,232,36,40,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN_SAVE_STEP,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,271,36,12,14
+    CONTROL         "Save in Rewind",IDC_CHECK_SAVE_REWIND,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,174,53,66,10
+    LTEXT           "Width:",IDC_STATIC_WIDTH,11,38,23,8
+    LTEXT           "Height:",IDC_STATIC_HEIGHT,11,54,23,8
+    EDITTEXT        IDC_EDIT_WIDTH,37,35,54,14,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_EDIT_HEIGHT,37,51,54,14,ES_AUTOHSCROLL | ES_NUMBER
+    PUSHBUTTON      "Default\nWindow Size",IDC_BUTTON_DEFAULT_SIZE,93,40,49,20,BS_MULTILINE
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -523,6 +585,22 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 100
     END
+
+    IDD_ANIMATION_PLAYER_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 258
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 107
+    END
+
+    IDD_SAVE_ANIMATION_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 318
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 103
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -619,6 +697,16 @@ BEGIN
 END
 
 IDD_LIGHTS_DLG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_ANIMATION_PLAYER_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_SAVE_ANIMATION_DIALOG AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
@@ -765,14 +853,33 @@ END
 
 STRINGTABLE
 BEGIN
-    ID_FACE_NORMALS         "show/hide face normals"
-    ID_VERTEX_NORMALS       "show/hide vertex normals"
-    ID_PERSPECCTIVE_SETTINGS "Perspective settings"
+    ID_FACE_NORMALS         "show/hide face normals\nface normals"
+    ID_VERTEX_NORMALS       "show/hide vertex normals\nvertex normals"
+    ID_PERSPECCTIVE_SETTINGS "Perspective settings\nPerspective settings"
+    ID_OPTIONS_SELECTOBJECT "Select Object to Transform\nSelect Object"
 END
 
 STRINGTABLE
 BEGIN
+    ID_FILE_SAVEASPNG       "Save Scene as PNG\nSave Scene"
     ID_VIEW_SILHOUETTEHIGHLIGHTING "Render Silhouette"
+    ID_RECORD_BUTTON        "Start Recording\nRecord"
+    ID_PLAY_BUTTON          "Play Record\nPlay"
+END
+
+STRINGTABLE
+BEGIN
+    ID_BUTTON32855          "Stop Recording\nStop Recording"
+    ID_BUTTON32859          "Snapshot - Capture Current Frame\nSnapshot"
+    ID_BUTTON32862          "Save Record to Folder\nSave Record"
+END
+
+STRINGTABLE
+BEGIN
+    ID_BUTTON32864          "Discard Record\nDiscard Record"
+    ID_BUTTON32866          "Pause Player\nPause"
+    ID_BUTTON32868          "take step to next frame\nNext Frame"
+    ID_BUTTON32869          "Reset Player\nReset Player"
 END
 
 #endif    // English (United States) resources

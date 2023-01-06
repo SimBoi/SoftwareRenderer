@@ -214,6 +214,20 @@ namespace CG
 		if (parent != NULL) parent->ReCalcBoundingBox(*this);
 	}
 
+	void Object::setWTransform(mat4& transform_matrix)
+	{
+		wTransform = mat4(transform_matrix);
+		wInverse = mat4::InverseTransform(wTransform);
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
+	}
+
+	void Object::setMTransform(mat4& transform_matrix)
+	{
+		mTransform = mat4(transform_matrix);
+		mInverse = mat4::InverseTransform(mTransform);
+		if (parent != NULL) parent->ReCalcBoundingBox(*this);
+	}
+
 	void Object::CalcBoundingBox()
 	{
 		bool firstVertex = true;
