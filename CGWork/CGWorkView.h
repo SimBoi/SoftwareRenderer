@@ -167,6 +167,7 @@ public:
 	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode);		// Renders the scene to a file in PNG format
 	void WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height);
 
+	inline bool isBlockInteraction();
 	void saveCurrentTransformations();		// saves current parentObject and its childs transformations
 	void restoreSavedTransformations();		// restores transformations of  parentObject and its childs
 
@@ -175,6 +176,18 @@ public:
 	void operatePlayer(bool update_gui = true);			// start or continue playing m_pPlayer
 	static UINT operatePlayer(LPVOID p);				// thread function
 	void endPlayer(bool update_gui = true);				// end player and restore saved transformations
+
+
+	void SaveCurrentFrame(CStringA pre_name,				// save to png file current frame
+		CG::FramesNum frame_index,							// display saving progress
+		int width, int height,
+		CG::RenderMode renderMode,
+		double progress_percent);
+
+	void savePlayer(CG::AnimationPlayer& record_player,		// save a record_player to save_path
+		CStringA save_path,								// as images of width, height dimensions
+		CStringA animation_name, 
+		int width, int height);
 
 
 	void CalculateVertexNormals();

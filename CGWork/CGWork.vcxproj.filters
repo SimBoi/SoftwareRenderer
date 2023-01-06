@@ -78,6 +78,15 @@
     <ClCompile Include="Light.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AnimationPlayerDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CG_Animation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AnimationSaveDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CGWork.rc">
@@ -223,6 +232,15 @@
     <ClInclude Include="CG_Buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AnimationPlayerDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CG_Animation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationSaveDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\CGWork.ico">
@@ -241,6 +259,9 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="res\face_normals.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\toolbar1.bmp">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

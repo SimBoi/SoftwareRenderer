@@ -21,6 +21,7 @@
 #define IDD_TOPNG_FILE_DIALOG           155
 #define IDR_RECORD_BAR                  161
 #define IDD_ANIMATION_PLAYER_DIALOG     164
+#define IDD_SAVE_ANIMATION_DIALOG       166
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -116,8 +117,16 @@
 #define IDC_EDIT_SPEED                  1105
 #define IDC_EDIT1                       1106
 #define IDC_EDIT_STEP                   1106
+#define IDC_EDIT_NAME                   1106
 #define IDC_CHECK_REWIND                1107
+#define IDC_EDIT_PATH                   1107
 #define IDC_CHECK_THREAD                1108
+#define IDC_STATIC_NAME                 1108
+#define IDC_BUTTON_SELECT_FOLDER        1109
+#define IDC_STATIC_PATH                 1110
+#define IDC_EDIT_SAVE_STEP              1111
+#define IDC_CHECK_SAVE_REWIND           1112
+#define IDC_SPIN_SAVE_STEP              1113
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -187,14 +196,15 @@
 #define ID_PAUSE_BUTTON                 32874
 #define ID_NEXT_FRAME_BUTTON            32875
 #define ID_RESET_PLAYER_BUTTON          32876
+#define ID_BUTTON32879                  32879
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        166
-#define _APS_NEXT_COMMAND_VALUE         32879
-#define _APS_NEXT_CONTROL_VALUE         1108
+#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_COMMAND_VALUE         32880
+#define _APS_NEXT_CONTROL_VALUE         1114
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -34,6 +34,7 @@ static char THIS_FILE[] = __FILE__;
 #include "BackgroundImageDialog.h"
 #include "RenderToFileDialog.h"
 #include "AnimationPlayerDialog.h"
+#include "AnimationSaveDialog.h"
 
 #include "CG_Animation.h"
 #include <string>
@@ -992,9 +993,16 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 	//}
 }
 
+
+inline bool CCGWorkView::isBlockInteraction()
+{
+	return (m_nRecordingStatus == PLAYING || m_nRecordingStatus == PAUSED);
+}
+
+
 void CCGWorkView::OnDraw(CDC* pDC)
 {
-	if (m_nRecordingStatus == PLAYING)
+	if (isBlockInteraction())
 		return;
 
 	CCGWorkDoc* pDoc = GetDocument();
@@ -1755,7 +1763,7 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: Add your message handler code here and/or call default
 
-	if (m_nRecordingStatus == PLAYING)
+	if (isBlockInteraction())
 		return;
 
 	CView::OnMouseMove(nFlags, point);
@@ -1900,6 +1908,7 @@ void CCGWorkView::OnRecordButton()
 	else
 	{
 		//m_pRecord->fillHistoryBuffers(&parentObject); ???
+		// skip unrecorded frames ???
 
 		// capture all changes
 		m_pRecord->pushAllChanges();
@@ -1949,6 +1958,31 @@ void CCGWorkView::OnUpdateSnapshotButton(CCmdUI* pCmdUI)
 void CCGWorkView::OnSaveRecordButton()
 {
 	// TODO: Add your command handler code here
+	AnimationSaveDialog dialog;
+	dialog.m_ImageWidth = m_WindowWidth;
+	dialog.m_ImageHeight = m_WindowHeight;
+	dialog.m_WindowWidth = m_WindowWidth;
+	dialog.m_WindowHeight = m_WindowHeight;
+
+	if (dialog.DoModal() == IDOK && m_pRecord != nullptr)
+	{
+
+		saveCurrentTransformations();
+
+		// initialize player
+		AnimationPlayer temp_player(*m_pRecord,
+			dialog.m_step,
+			SOLID,
+			0,
+			dialog.m_rewind);
+
+		// save player
+		savePlayer(temp_player, CStringA(dialog.m_AnimationPath), CStringA(dialog.m_AnimationName),
+			dialog.m_ImageWidth, dialog.m_ImageHeight);
+
+		restoreSavedTransformations();
+	}
+
 }
 
 
@@ -2054,9 +2088,6 @@ void CCGWorkView::OnNextFrameButton()
 	else
 	{
 		RenderCurrentFrame();
-
-		//CString strPage; !!!
-		//strPage.Format(_T("progress: %f"), m_pPlayer->getProgressPercentage());
 	}
 }
 
@@ -2098,6 +2129,8 @@ void CCGWorkView::restoreSavedTransformations()
 
 	delete m_pTempRecord;
 	m_pTempRecord = nullptr;
+
+	Invalidate();
 }
 
 
@@ -2110,10 +2143,9 @@ void CCGWorkView::endPlayer(bool update_gui)
 	delete m_pPlayer;
 	m_pPlayer = nullptr;
 
-	restoreSavedTransformations();
-	const DWORD wait = 500;
+	const DWORD wait = 700;
 	Sleep(wait);
-	Invalidate();
+	restoreSavedTransformations();
 	if (update_gui)
 		STATUS_BAR_TEXT(_T(""));
 }
@@ -2126,10 +2158,12 @@ void CCGWorkView::RenderCurrentFrame(bool update_gui)
 
 	RenderOnScreen(m_pPlayer->playing_render_mode);
 
-	CString frame_index;
-	frame_index.Format(_T("frame %ld of %ld"), m_pPlayer->getCurrentFrameIndex(), m_pPlayer->getTotalFramesNum());
 	if (update_gui)
+	{
+		CString frame_index;
+		frame_index.Format(_T("frame %ld of %ld"), m_pPlayer->getCurrentFrameIndex(), m_pPlayer->getTotalFramesNum());
 		STATUS_BAR_TEXT(frame_index);
+	}
 }
 
 
@@ -2196,4 +2230,54 @@ void CCGWorkView::OnRButtonUp(UINT nFlags, CPoint point)
 
 	CView::OnRButtonUp(nFlags, point);
 	RecordCurrentFrame();
+}
+
+
+void CCGWorkView::SaveCurrentFrame(CStringA pre_name, FramesNum frame_index,
+	int width, int height, RenderMode renderMode, double progress_percent)
+{
+	// init saveto png file
+	CStringA saveto_str = pre_name + _T("_%ld.png");
+	saveto_str.Format(saveto_str, frame_index);
+	PngWrapper* saveto_file = new PngWrapper(saveto_str, width, height);
+
+	// render the scence to saveto png file
+	RenderToPngFile(saveto_file, renderMode);
+
+	delete saveto_file;
+	saveto_file = nullptr;
+
+	CString saving_progress;
+	saving_progress.Format(_T("Saving: %.2f%%"), progress_percent);
+	STATUS_BAR_TEXT(saving_progress);
+}
+
+
+void CCGWorkView::savePlayer(AnimationPlayer& record_player, CStringA save_path,
+	CStringA animation_name, int width, int height)
+{
+	if (CreateDirectoryA(save_path, NULL) == FALSE)
+	{
+		STATUS_BAR_TEXT(_T("saving failed."));
+		AfxMessageBox(_T("saving failed"), MB_ICONERROR);
+		return;
+	}
+
+
+	STATUS_BAR_TEXT(_T("start saving..."));
+
+	FramesNum frame_index = 0;
+	CStringA pre_name = save_path + animation_name;
+	SaveCurrentFrame(pre_name, frame_index, width, height,
+		record_player.playing_render_mode, record_player.getProgressPercentage());
+
+	while (record_player.nextFrame())
+	{
+		SaveCurrentFrame(pre_name, frame_index, width, height,
+			record_player.playing_render_mode, record_player.getProgressPercentage());
+
+		frame_index++;
+	}
+	
+	STATUS_BAR_TEXT(_T("Done!"));
 }

@@ -162,6 +162,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AnimationPlayerDialog.cpp" />
+    <ClCompile Include="AnimationSaveDialog.cpp" />
     <ClCompile Include="BackgroundImageDialog.cpp" />
     <ClCompile Include="CGWork.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
@@ -236,6 +237,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AnimationPlayerDialog.h" />
+    <ClInclude Include="AnimationSaveDialog.h" />
     <ClInclude Include="BackgroundImageDialog.h" />
     <ClInclude Include="CGWork.h" />
     <ClInclude Include="CGWorkDoc.h" />
