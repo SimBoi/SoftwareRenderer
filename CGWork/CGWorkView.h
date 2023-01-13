@@ -116,6 +116,12 @@ protected:
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;
 
+	bool m_bShowMotionBlur;
+	int m_BlurImgeWidth;			// hold the Blur Imge width
+	int m_BlurImgeHeight;			// hold the Blur Imge height
+	double m_blur_integral;			// hold the Blur Integral factor
+	COLORREF* m_pBluredPixels;		// holds a pointer to Motion Blur array of pixels colors
+
 // Generated message map functions
 protected:
 	//{{AFX_MSG(CCGWorkView)
@@ -189,6 +195,11 @@ public:
 		CStringA animation_name, 
 		int width, int height);
 
+	void prepareBluredPixelsArr();
+	COLORREF* getCurrentFramePixelArr();
+	void updateBluredPixelsArr(COLORREF* new_frame, const double t);
+	void addBlurFrame();						// combine the new frame with the blured pixels array
+	void showMotionBlurResult();				// renders the motion blur image on screen
 
 	void CalculateVertexNormals();
 	void FindEdgeAdjacentFaces();
@@ -268,6 +279,7 @@ public:
 	afx_msg void OnResetPlayerButton();
 	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);
 	
+	afx_msg void OnShowhideMotionblur();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

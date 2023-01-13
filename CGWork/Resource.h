@@ -196,14 +196,15 @@
 #define ID_PAUSE_BUTTON                 32874
 #define ID_NEXT_FRAME_BUTTON            32875
 #define ID_RESET_PLAYER_BUTTON          32876
-#define ID_BUTTON32879                  32879
+#define ID_BUTTON32880                  32880
+#define ID_SHOWHIDE_MOTIONBLUR          32880
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        168
-#define _APS_NEXT_COMMAND_VALUE         32880
+#define _APS_NEXT_COMMAND_VALUE         32881
 #define _APS_NEXT_CONTROL_VALUE         1114
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
