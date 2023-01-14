@@ -197,11 +197,15 @@ public:
 		int width, int height);
 
 
-	void prepareBluredPixelsArr();										// initialize and resize m_pBluredPixels array if needed
-	COLORREF* getCurrentFramePixelArr();								// get array of COLORREF pixels of the current frame on the screen
-	void updateBluredPixelsArr(COLORREF* new_frame, const double t);	// update the blured pixels array with the new farme
-	void addBlurCurrentFrame();											// adds the current frame to the blured pixels array
-	void RenderMotionBlurResultToDC(const CDC* pDCToRender);										// renders the motion blur image result on screen
+	inline BITMAPINFO getBitMapInfo(int width, int height);
+	void prepareBluredPixelsArr();												// initialize and resize m_pBluredPixels array if needed
+
+	COLORREF* getCurrentFramePixelArr(											// get array of COLORREF pixels of the current frame on the screen
+		HDC& current_hdc, HBITMAP& current_bitmap, int width, int height);		// if failed, return nullptr
+	
+	void updateBluredPixelsArr(COLORREF* new_frame, const double t);			// update the blured pixels array with the new farme
+	void addBlurCurrentFrame();													// adds the current frame to the blured pixels array
+	void RenderMotionBlurResultToDC(const CDC* pDCToRender);					// renders the motion blur image result on screen
 
 
 	void CalculateVertexNormals();

@@ -885,6 +885,12 @@ BEGIN
     ID_BUTTON32869          "Reset Player\nReset Player"
 END
 
+STRINGTABLE
+BEGIN
+    ID_MOTIONBLUR           "start or continue motion blur\nMotion Blur"
+    ID_CLEAR_MOTIONBLUR     "clear motion blur effect\nClear"
+END
+
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
