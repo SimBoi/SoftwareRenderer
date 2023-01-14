@@ -22,6 +22,7 @@
 #define IDR_RECORD_BAR                  161
 #define IDD_ANIMATION_PLAYER_DIALOG     164
 #define IDD_SAVE_ANIMATION_DIALOG       166
+#define IDD_MOTIONBLUR_DIALOG           168
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -127,6 +128,9 @@
 #define IDC_EDIT_SAVE_STEP              1111
 #define IDC_CHECK_SAVE_REWIND           1112
 #define IDC_SPIN_SAVE_STEP              1113
+#define IDC_BLUR_VALUE_STATIC           1114
+#define IDC_EDIT_BLUR_VALUE             1115
+#define IDC_SPIN_BLUR_VALUE             1116
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -197,16 +201,15 @@
 #define ID_NEXT_FRAME_BUTTON            32875
 #define ID_RESET_PLAYER_BUTTON          32876
 #define ID_MOTIONBLUR                   32880
-#define ID_BUTTON32884                  32884
 #define ID_CLEAR_MOTIONBLUR             32884
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         32885
-#define _APS_NEXT_CONTROL_VALUE         1114
+#define _APS_NEXT_CONTROL_VALUE         1117
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

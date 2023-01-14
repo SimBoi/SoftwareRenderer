@@ -35,6 +35,7 @@ static char THIS_FILE[] = __FILE__;
 #include "RenderToFileDialog.h"
 #include "AnimationPlayerDialog.h"
 #include "AnimationSaveDialog.h"
+#include "MotionBlurDialog.h"
 
 #include "CG_Draw.h"
 #include "CG_Animation.h"
@@ -793,6 +794,15 @@ void CCGWorkView::InitializeView()
 	delete m_pPlayer;
 	m_pPlayer = nullptr;
 	last_toched_object = &parentObject;
+
+	// motion blur
+	m_bDoBlur = false;
+	m_bShowMotionBlur = false;
+	m_BlurImgeWidth = 0;
+	m_BlurImgeHeight = 0;
+	m_blur_integral = 0.25;
+	delete m_pBluredPixels;
+	m_pBluredPixels = nullptr;
 
 	objectSize = max(parentObject.maxX - parentObject.minX, parentObject.maxY - parentObject.minY);
 	objectSize = max(objectSize, parentObject.maxZ - parentObject.minZ);
@@ -2188,6 +2198,9 @@ void CCGWorkView::RenderCurrentFrame(bool update_gui)
 	m_bShowMotionBlur = false;
 	RenderOnScreen(m_pPlayer->playing_render_mode);
 	m_bShowMotionBlur = temp;
+	//???
+	addBlurCurrentFrame();
+	RenderMotionBlurResultToDC(m_pDC);
 
 	if (update_gui)
 	{
@@ -2485,9 +2498,15 @@ void CCGWorkView::OnMotionblur()
 	// TODO: Add your command handler code here
 	if (!m_bDoBlur && m_pBluredPixels == nullptr)
 	{
-		// dialog ???
-		prepareBluredPixelsArr();
-		m_bDoBlur = (m_pBluredPixels != nullptr);
+		MotionBlurDialog dialog;
+		dialog.m_blur_value = m_blur_integral;
+
+		if (dialog.DoModal() == IDOK)
+		{
+			m_blur_integral = dialog.m_blur_value;
+			prepareBluredPixelsArr();
+			m_bDoBlur = (m_pBluredPixels != nullptr);
+		}
 	}
 	else
 	{

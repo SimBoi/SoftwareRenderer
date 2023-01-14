@@ -213,6 +213,7 @@
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
     </ClCompile>
     <ClCompile Include="MaterialDlg.cpp" />
+    <ClCompile Include="MotionBlurDialog.cpp" />
     <ClCompile Include="MouseSensitivityDialog.cpp" />
     <ClCompile Include="PerspectiveSettingsDialog.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
@@ -253,6 +254,7 @@
     <ClInclude Include="LightDialog.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="MaterialDlg.h" />
+    <ClInclude Include="MotionBlurDialog.h" />
     <ClInclude Include="MouseSensitivityDialog.h" />
     <ClInclude Include="PerspectiveSettingsDialog.h" />
     <ClInclude Include="PngWrapper.h" />

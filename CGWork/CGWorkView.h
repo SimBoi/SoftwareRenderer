@@ -118,7 +118,7 @@ protected:
 
 	bool m_bDoBlur;
 	bool m_bShowMotionBlur;
-	double m_blur_integral;			// hold the Blur Integral factor
+	double m_blur_integral;			// hold the integrated blur value
 	int m_BlurImgeWidth;			// hold the Blur Imge width
 	int m_BlurImgeHeight;			// hold the Blur Imge height
 	COLORREF* m_pBluredPixels;		// holds a pointer to Motion Blur array of pixels colors
