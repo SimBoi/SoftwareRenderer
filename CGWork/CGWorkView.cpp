@@ -148,7 +148,9 @@ ON_COMMAND(ID_RESET_PLAYER_BUTTON, &CCGWorkView::OnResetPlayerButton)
 ON_UPDATE_COMMAND_UI(ID_RESET_PLAYER_BUTTON, &CCGWorkView::OnUpdateResetPlayerButton)
 ON_WM_LBUTTONUP()
 ON_WM_RBUTTONUP()
-ON_COMMAND(ID_SHOWHIDE_MOTIONBLUR, &CCGWorkView::OnShowhideMotionblur)
+ON_COMMAND(ID_MOTIONBLUR, &CCGWorkView::OnMotionblur)
+ON_COMMAND(ID_CLEAR_MOTIONBLUR, &CCGWorkView::OnClearMotionblur)
+ON_UPDATE_COMMAND_UI(ID_CLEAR_MOTIONBLUR, &CCGWorkView::OnUpdateClearMotionblur)
 END_MESSAGE_MAP()
 
 
@@ -203,6 +205,7 @@ CCGWorkView::CCGWorkView()
 	play_in_separate_thread = false;
 
 	// motion blur
+	m_bDoBlur = false;
 	m_bShowMotionBlur = false;
 	m_BlurImgeWidth = 0;
 	m_BlurImgeHeight = 0;
@@ -849,6 +852,14 @@ void CCGWorkView::InitializeView()
 
 void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio, RenderMode renderMode)
 {
+	// draw Motion Blur Result
+	if (m_bShowMotionBlur)
+	{
+		RenderMotionBlurResultToDC(pDCToUse);
+		return;
+	}
+
+
 	// draw background
 	CG::DrawBackground(SceneRect, pDCToUse);
 
@@ -1005,8 +1016,7 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 
 inline bool CCGWorkView::isBlockInteraction()
 {
-	return (m_bShowMotionBlur ||
-		m_nRecordingStatus == PLAYING || m_nRecordingStatus == PAUSED);
+	return (m_nRecordingStatus == PLAYING || m_nRecordingStatus == PAUSED);
 }
 
 
@@ -1195,6 +1205,8 @@ void CCGWorkView::doAction(int x_val, int y_val, Object& object)
 
 	// update last transformed object ptr
 	last_toched_object = &object;
+
+	Invalidate();
 }
 
 
@@ -1792,7 +1804,7 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 	{
 		// ONLY The left mouse button is down.
 		// parent transformations
-
+		m_bShowMotionBlur = false;
 		doAction(x_value, y_value, parentObject);
 	}
 	else if ((nFlags == (MK_LBUTTON | MK_CONTROL)) || (nFlags == MK_RBUTTON))
@@ -1802,14 +1814,13 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 		// child transformation
 		if (selectedObject != nullptr)
 		{
+			m_bShowMotionBlur = false;
 			doAction(x_value, y_value, *selectedObject);
 		}
 	}
 
 	old_x_position = current_x_position;
 	old_y_position = current_y_position;
-	Invalidate();
-	//UpdateWindow();
 }
 
 // OPTIONS HANDLERS ///////////////////////////////////////////
@@ -1907,7 +1918,10 @@ void CCGWorkView::OnFileSaveaspng()
 
 		delete saveto_file;
 		saveto_file = nullptr;
+
+		STATUS_BAR_TEXT(_T("successfully saved!"));
 	}
+	
 	Invalidate();
 }
 
@@ -2228,8 +2242,17 @@ void CCGWorkView::RecordCurrentFrame()
 		STATUS_BAR_TEXT(_T("frame recorded."));
 	}
 
-	addBlurFrame();
+	// if recording Blur Motion
+	if (m_bDoBlur && m_pBluredPixels != nullptr)
+	{
+		addBlurCurrentFrame();
+
+		// render the Motion Blur result
+		m_bShowMotionBlur = true;
+		Invalidate();
+	}
 }
+
 
 void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
 {
@@ -2304,12 +2327,17 @@ void CCGWorkView::savePlayer(AnimationPlayer& record_player, CStringA save_path,
 
 
 
-void CCGWorkView::addBlurFrame()
+void CCGWorkView::addBlurCurrentFrame()
 {
 	// if null, resize needed ???
 	prepareBluredPixelsArr();
+	if (m_pBluredPixels == nullptr)
+		return;
 
 	COLORREF* current_farme_pixels = getCurrentFramePixelArr();
+	if (current_farme_pixels == nullptr)
+		return;
+
 	updateBluredPixelsArr(current_farme_pixels, m_blur_integral);
 
 	delete current_farme_pixels;
@@ -2317,16 +2345,19 @@ void CCGWorkView::addBlurFrame()
 }
 
 
-void CCGWorkView::showMotionBlurResult()
+void CCGWorkView::RenderMotionBlurResultToDC(const CDC* pDCToRender)
 {
+	if (m_pBluredPixels == nullptr)
+		return;
+
 	CRect rect;
 	GetClientRect(&rect);
 
-	HDC Blurhdc = CreateCompatibleDC(m_pDC->m_hDC);
-	HBITMAP BlurBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, rect.right, rect.bottom);
+	HDC Blurhdc = CreateCompatibleDC(pDCToRender->m_hDC);
+	HBITMAP BlurBitMap = CreateCompatibleBitmap(pDCToRender->m_hDC, rect.right, rect.bottom);
 	SelectObject(Blurhdc, BlurBitMap);
 
-	BITMAPINFO bminfo;
+	BITMAPINFO bminfo = { 0 };
 	bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
 	bminfo.bmiHeader.biWidth = m_BlurImgeWidth;
 	bminfo.bmiHeader.biHeight = m_BlurImgeHeight;
@@ -2340,24 +2371,10 @@ void CCGWorkView::showMotionBlurResult()
 	bminfo.bmiHeader.biClrImportant = 0;
 
 	SetDIBits(Blurhdc, BlurBitMap, 0, m_BlurImgeHeight, m_pBluredPixels, &bminfo, 0);
-	int ret = BitBlt(m_pDC->m_hDC, rect.left, rect.top, rect.right, rect.bottom, Blurhdc, rect.left, rect.top, SRCCOPY);
+	BitBlt(pDCToRender->m_hDC, rect.left, rect.top, rect.right, rect.bottom, Blurhdc, rect.left, rect.top, SRCCOPY);
 
 	DeleteDC(Blurhdc);
 	DeleteObject(BlurBitMap);
-}
-
-
-void CCGWorkView::OnShowhideMotionblur()
-{
-	// TODO: Add your command handler code here
-	m_bShowMotionBlur = !m_bShowMotionBlur;
-	if (m_bShowMotionBlur)
-	{
-		STATUS_BAR_TEXT(_T("SHOW Motion1"));
-		showMotionBlurResult();
-		STATUS_BAR_TEXT(_T("SHOW Motion2"));
-	}
-	Invalidate();	
 }
 
 
@@ -2366,7 +2383,6 @@ COLORREF* CCGWorkView::getCurrentFramePixelArr()
 	BITMAPINFO bminfo = { 0 };
 	bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
 	bminfo.bmiHeader.biWidth = m_WindowWidth;
-	// negative sign: top-down pixel array as it's easier to use
 	bminfo.bmiHeader.biHeight = m_WindowHeight;
 	bminfo.bmiHeader.biPlanes = 1;
 	bminfo.bmiHeader.biBitCount = 32;
@@ -2378,6 +2394,9 @@ COLORREF* CCGWorkView::getCurrentFramePixelArr()
 	bminfo.bmiHeader.biClrImportant = 0;
 
 	COLORREF* pixels = new COLORREF[m_WindowHeight * m_WindowWidth]();
+	if (pixels == nullptr)
+		return nullptr;
+
 	GetDIBits(m_pDbDC->m_hDC, m_pDbBitMap, 0, m_WindowHeight, pixels, &bminfo, DIB_RGB_COLORS);
 
 	return pixels;
@@ -2406,9 +2425,9 @@ void CCGWorkView::prepareBluredPixelsArr()
 
 void CCGWorkView::updateBluredPixelsArr(COLORREF* new_frame, const double t)
 {
-	for (unsigned int y = 0; y < m_BlurImgeHeight; y++)
+	for (int y = 0; y < m_BlurImgeHeight; y++)
 	{
-		for (unsigned int x = 0; x < m_BlurImgeWidth; x++)
+		for (int x = 0; x < m_BlurImgeWidth; x++)
 		{
 			COLORREF new_color = MotionBlurColor(
 				m_pBluredPixels[y * m_BlurImgeWidth + x],
@@ -2418,4 +2437,48 @@ void CCGWorkView::updateBluredPixelsArr(COLORREF* new_frame, const double t)
 			m_pBluredPixels[y * m_BlurImgeWidth + x] = new_color;
 		}
 	}
+}
+
+
+void CCGWorkView::OnMotionblur()
+{
+	// TODO: Add your command handler code here
+	if (!m_bDoBlur && m_pBluredPixels == nullptr)
+	{
+		// dialog ???
+		prepareBluredPixelsArr();
+		m_bDoBlur = (m_pBluredPixels != nullptr);
+	}
+	else
+	{
+		m_bDoBlur = !m_bDoBlur;
+
+		if (m_bDoBlur)
+		{
+			// continue blurring frames
+			addBlurCurrentFrame();
+		}
+	}
+	
+	m_bShowMotionBlur = m_bDoBlur;
+	Invalidate();
+}
+
+
+void CCGWorkView::OnClearMotionblur()
+{
+	// TODO: Add your command handler code here
+	delete m_pBluredPixels;
+	m_pBluredPixels = nullptr;
+	m_bDoBlur = false;
+	m_bShowMotionBlur = false;
+
+	Invalidate();
+}
+
+
+void CCGWorkView::OnUpdateClearMotionblur(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(m_pBluredPixels != nullptr);
 }

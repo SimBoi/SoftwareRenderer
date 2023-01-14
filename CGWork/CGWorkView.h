@@ -116,10 +116,11 @@ protected:
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;
 
+	bool m_bDoBlur;
 	bool m_bShowMotionBlur;
+	double m_blur_integral;			// hold the Blur Integral factor
 	int m_BlurImgeWidth;			// hold the Blur Imge width
 	int m_BlurImgeHeight;			// hold the Blur Imge height
-	double m_blur_integral;			// hold the Blur Integral factor
 	COLORREF* m_pBluredPixels;		// holds a pointer to Motion Blur array of pixels colors
 
 // Generated message map functions
@@ -191,15 +192,17 @@ public:
 		double progress_percent);
 
 	void savePlayer(CG::AnimationPlayer& record_player,		// save a record_player to save_path
-		CStringA save_path,								// as images of width, height dimensions
+		CStringA save_path,									// as images of width, height dimensions
 		CStringA animation_name, 
 		int width, int height);
 
-	void prepareBluredPixelsArr();
-	COLORREF* getCurrentFramePixelArr();
-	void updateBluredPixelsArr(COLORREF* new_frame, const double t);
-	void addBlurFrame();						// combine the new frame with the blured pixels array
-	void showMotionBlurResult();				// renders the motion blur image on screen
+
+	void prepareBluredPixelsArr();										// initialize and resize m_pBluredPixels array if needed
+	COLORREF* getCurrentFramePixelArr();								// get array of COLORREF pixels of the current frame on the screen
+	void updateBluredPixelsArr(COLORREF* new_frame, const double t);	// update the blured pixels array with the new farme
+	void addBlurCurrentFrame();											// adds the current frame to the blured pixels array
+	void RenderMotionBlurResultToDC(const CDC* pDCToRender);										// renders the motion blur image result on screen
+
 
 	void CalculateVertexNormals();
 	void FindEdgeAdjacentFaces();
@@ -277,9 +280,10 @@ public:
 	afx_msg void OnNextFrameButton();
 	afx_msg void OnUpdateNextFrameButton(CCmdUI* pCmdUI);
 	afx_msg void OnResetPlayerButton();
-	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);
-	
-	afx_msg void OnShowhideMotionblur();
+	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);	
+	afx_msg void OnMotionblur();
+	afx_msg void OnClearMotionblur();
+	afx_msg void OnUpdateClearMotionblur(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
