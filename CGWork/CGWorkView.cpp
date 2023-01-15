@@ -862,14 +862,6 @@ void CCGWorkView::InitializeView()
 
 void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio, RenderMode renderMode)
 {
-	// draw Motion Blur Result
-	if (m_bShowMotionBlur)
-	{
-		RenderMotionBlurResultToDC(pDCToUse);
-		return;
-	}
-
-
 	// draw background
 	CG::DrawBackground(SceneRect, pDCToUse);
 
@@ -1035,6 +1027,13 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	if (isBlockInteraction())
 		return;
 
+	// draw Motion Blur Result
+	if (m_bShowMotionBlur)
+	{
+		RenderMotionBlurResultToDC(m_pDC, m_WindowWidth, m_WindowHeight);
+		return;
+	}
+
 	CCGWorkDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
@@ -1064,7 +1063,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
 }
 
-CDC* CCGWorkView::RenderOnScreen(RenderMode renderMode)
+CDC* CCGWorkView::RenderOnScreen(RenderMode renderMode, bool display)
 {
 	CRect r;
 	GetClientRect(&r);
@@ -1072,7 +1071,7 @@ CDC* CCGWorkView::RenderOnScreen(RenderMode renderMode)
 
 	DrawScene(r, pDCToUse, m_WindowWidth, m_WindowHeight, m_AspectRatio, renderMode);
 
-	if (pDCToUse != m_pDC)
+	if (pDCToUse != m_pDC && display)
 	{
 		m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
 	}
@@ -2194,13 +2193,15 @@ void CCGWorkView::RenderCurrentFrame(bool update_gui)
 	if (m_pPlayer == nullptr)
 		return;
 
-	bool temp = m_bShowMotionBlur;
-	m_bShowMotionBlur = false;
-	RenderOnScreen(m_pPlayer->playing_render_mode);
-	m_bShowMotionBlur = temp;
-	//???
-	addBlurCurrentFrame();
-	RenderMotionBlurResultToDC(m_pDC);
+	RenderOnScreen(m_pPlayer->playing_render_mode, !m_bShowMotionBlur);
+	if (m_bDoBlur)
+	{
+		addBlurCurrentFrame();
+	}
+	if (m_bShowMotionBlur)
+	{
+		RenderMotionBlurResultToDC(m_pDC, m_WindowWidth, m_WindowHeight);
+	}
 
 	if (update_gui)
 	{
@@ -2301,10 +2302,7 @@ void CCGWorkView::SaveCurrentFrame(CStringA pre_name, FramesNum frame_index,
 	PngWrapper* saveto_file = new PngWrapper(saveto_str, width, height);
 
 	// render the scence to saveto png file
-	bool temp = m_bShowMotionBlur;
-	m_bShowMotionBlur = false;
 	RenderToPngFile(saveto_file, renderMode);
-	m_bShowMotionBlur = temp;
 
 	delete saveto_file;
 	saveto_file = nullptr;
@@ -2382,12 +2380,17 @@ inline BITMAPINFO CCGWorkView::getBitMapInfo(int width, int height)
 }
 
 
-void CCGWorkView::RenderMotionBlurResultToDC(const CDC* pDCToRender)
+void CCGWorkView::RenderMotionBlurResultToDC(const CDC* pDCToRender, int width, int height)
 {
 	if (m_pBluredPixels == nullptr)
 		return;
 
-	prepareBluredPixelsArr();
+	COLORREF* render_arr = m_pBluredPixels;
+	if (m_BlurImgeWidth != width || m_BlurImgeHeight != height)
+	{
+		// temp streched array of blured pixels
+		render_arr = getResizedBluredArray(width, height);
+	}
 
 	CRect rect;
 	GetClientRect(&rect);
@@ -2396,11 +2399,16 @@ void CCGWorkView::RenderMotionBlurResultToDC(const CDC* pDCToRender)
 	HBITMAP BlurBitMap = CreateCompatibleBitmap(pDCToRender->m_hDC, rect.right, rect.bottom);
 	SelectObject(Blurhdc, BlurBitMap);
 
-	BITMAPINFO bminfo = getBitMapInfo(m_BlurImgeWidth, m_BlurImgeHeight);
+	BITMAPINFO bminfo = getBitMapInfo(width, height);
 
-	SetDIBits(Blurhdc, BlurBitMap, 0, m_BlurImgeHeight, m_pBluredPixels, &bminfo, 0);
+	SetDIBits(Blurhdc, BlurBitMap, 0, height, render_arr, &bminfo, 0);
 	BitBlt(pDCToRender->m_hDC, rect.left, rect.top, rect.right, rect.bottom, Blurhdc, rect.left, rect.top, SRCCOPY);
 
+	if (render_arr != m_pBluredPixels)
+	{
+		delete render_arr;
+		render_arr = nullptr;
+	}
 	DeleteDC(Blurhdc);
 	DeleteObject(BlurBitMap);
 }
@@ -2429,6 +2437,42 @@ COLORREF* CCGWorkView::getCurrentFramePixelArr(
 }
 
 
+COLORREF* CCGWorkView::getResizedBluredArray(int width, int height)
+{
+	// resize m_pBluredPixels using stretch
+
+	CRect rect;
+	GetClientRect(&rect);
+
+	HDC Blurhdc = CreateCompatibleDC(m_pDC->m_hDC);
+	HBITMAP BlurBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, rect.right, rect.bottom);
+	SelectObject(Blurhdc, BlurBitMap);
+
+	BITMAPINFO bminfo = getBitMapInfo(m_BlurImgeWidth, m_BlurImgeHeight);
+
+	int ret = StretchDIBits(Blurhdc, 0, 0, width, height,
+		0, 0, m_BlurImgeWidth, m_BlurImgeHeight, m_pBluredPixels,
+		&bminfo, DIB_RGB_COLORS, SRCCOPY);
+
+	if (ret == 0)
+	{
+		// if stretch failed
+		DeleteDC(Blurhdc);
+		DeleteObject(BlurBitMap);
+		return nullptr;
+	}
+
+	// get current frame of streched blured pixels
+	COLORREF* pixels = getCurrentFramePixelArr(
+		Blurhdc, BlurBitMap, width, height);
+
+	DeleteDC(Blurhdc);
+	DeleteObject(BlurBitMap);
+
+	return pixels;
+}
+
+
 void CCGWorkView::prepareBluredPixelsArr()
 {
 	// no change in dimension
@@ -2445,33 +2489,14 @@ void CCGWorkView::prepareBluredPixelsArr()
 	}
 	else
 	{
-		// resize m_pBluredPixels using stretch
-
-		CRect rect;
-		GetClientRect(&rect);
-
-		HDC Blurhdc = CreateCompatibleDC(m_pDC->m_hDC);
-		HBITMAP BlurBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, rect.right, rect.bottom);
-		SelectObject(Blurhdc, BlurBitMap);
-
-		BITMAPINFO bminfo = getBitMapInfo(m_BlurImgeWidth, m_BlurImgeHeight);
-
-		int ret = StretchDIBits(Blurhdc, 0, 0, m_WindowWidth, m_WindowHeight, 
-					0, 0, m_BlurImgeWidth, m_BlurImgeHeight, m_pBluredPixels, 
-					&bminfo, DIB_RGB_COLORS, SRCCOPY);
-		
-		if (ret != 0)
+		COLORREF* resized_arr = getResizedBluredArray(m_WindowWidth, m_WindowHeight);
+		if (resized_arr != nullptr)
 		{
 			m_BlurImgeWidth = m_WindowWidth;
 			m_BlurImgeHeight = m_WindowHeight;
 			delete m_pBluredPixels;
-			m_pBluredPixels = nullptr;
-			m_pBluredPixels = getCurrentFramePixelArr(
-				Blurhdc, BlurBitMap, m_BlurImgeWidth, m_BlurImgeHeight);
+			m_pBluredPixels = resized_arr;
 		}
-
-		DeleteDC(Blurhdc);
-		DeleteObject(BlurBitMap);
 	}	
 }
 

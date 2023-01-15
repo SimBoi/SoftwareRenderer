@@ -170,7 +170,7 @@ public:
 	void doTranslate(int x_val, int y_val, CG::Object& object);
 	void doScale(int x_val, int y_val, CG::Object& object);
 
-	CDC* RenderOnScreen(CG::RenderMode renderMode);		// Renders the scene on the screen
+	CDC* RenderOnScreen(CG::RenderMode renderMode, bool display = true);		// Renders the scene on the screen
 	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode);		// Renders the scene to a file in PNG format
 	void WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height);
 
@@ -200,12 +200,14 @@ public:
 	inline BITMAPINFO getBitMapInfo(int width, int height);
 	void prepareBluredPixelsArr();												// initialize and resize m_pBluredPixels array if needed
 
-	COLORREF* getCurrentFramePixelArr(											// get array of COLORREF pixels of the current frame on the screen
-		HDC& current_hdc, HBITMAP& current_bitmap, int width, int height);		// if failed, return nullptr
+	COLORREF* getCurrentFramePixelArr(											// returns array of COLORREF pixels of the current frame on the screen,
+		HDC& current_hdc, HBITMAP& current_bitmap, int width, int height);		// if failed returns nullptr
+
+	COLORREF* getResizedBluredArray(int width, int height);								// returns resized blured pixels arrray, if failed returns nullptr
 	
-	void updateBluredPixelsArr(COLORREF* new_frame, const double t);			// update the blured pixels array with the new farme
-	void addBlurCurrentFrame();													// adds the current frame to the blured pixels array
-	void RenderMotionBlurResultToDC(const CDC* pDCToRender);					// renders the motion blur image result on screen
+	void updateBluredPixelsArr(COLORREF* new_frame, const double t);					// update the blured pixels array with the new farme
+	void addBlurCurrentFrame();															// adds the current frame to the blured pixels array
+	void RenderMotionBlurResultToDC(const CDC* pDCToRender, int width, int height);		// renders the motion blur image result on screen
 
 
 	void CalculateVertexNormals();
