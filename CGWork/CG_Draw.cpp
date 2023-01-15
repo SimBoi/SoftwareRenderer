@@ -29,7 +29,8 @@ namespace CG
 
 	int ColorRefToPngVal(COLORREF color)
 	{
-		return SET_RGB(GetRValue(color), GetGValue(color), GetBValue(color));
+		// intentionally, swap R and B values
+		return SET_RGB(GetBValue(color), GetGValue(color), GetRValue(color));
 	}
 
 	COLORREF PngValToColorRef(int png_value)

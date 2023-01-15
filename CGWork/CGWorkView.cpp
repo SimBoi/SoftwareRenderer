@@ -862,6 +862,13 @@ void CCGWorkView::InitializeView()
 
 void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio, RenderMode renderMode)
 {
+	// draw Motion Blur Result
+	if (m_bShowMotionBlur)
+	{
+		RenderMotionBlurResultToDC(pDCToUse, SceneWidth, SceneHeight);
+		return;
+	}
+
 	// draw background
 	CG::DrawBackground(SceneRect, pDCToUse);
 
@@ -1027,13 +1034,6 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	if (isBlockInteraction())
 		return;
 
-	// draw Motion Blur Result
-	if (m_bShowMotionBlur)
-	{
-		RenderMotionBlurResultToDC(m_pDC, m_WindowWidth, m_WindowHeight);
-		return;
-	}
-
 	CCGWorkDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
@@ -1045,8 +1045,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	{
 		// in case of rendering on screen and to file of the same size
 		// no need to recalculate the scene
-		CDC* pDCImage = RenderOnScreen(m_renderMode);
-		WriteDCToPngFile(pDCImage, m_pRenderToPng, m_WindowWidth, m_WindowHeight);
+		RenderOnScreen(m_renderMode);
+		WriteDCToPngFile(m_pDbDC->m_hDC, m_pDbBitMap, m_pRenderToPng, m_WindowWidth, m_WindowHeight);
 	}
 	else
 	{
@@ -1063,7 +1063,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
 }
 
-CDC* CCGWorkView::RenderOnScreen(RenderMode renderMode, bool display)
+CDC* CCGWorkView::RenderOnScreen(RenderMode renderMode)
 {
 	CRect r;
 	GetClientRect(&r);
@@ -1071,7 +1071,7 @@ CDC* CCGWorkView::RenderOnScreen(RenderMode renderMode, bool display)
 
 	DrawScene(r, pDCToUse, m_WindowWidth, m_WindowHeight, m_AspectRatio, renderMode);
 
-	if (pDCToUse != m_pDC && display)
+	if (pDCToUse != m_pDC)
 	{
 		m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
 	}
@@ -1102,14 +1102,18 @@ void CCGWorkView::RenderToPngFile(PngWrapper* png_file, RenderMode renderMode)
 
 	DrawScene(img_r, pDCToUse, img_width, img_height, ImgAspectRatio, renderMode);
 
-	WriteDCToPngFile(pDCToUse, png_file, img_r.Width(), img_r.Height());
+	WriteDCToPngFile(pDCToUse->m_hDC, pImgBitMap, 
+		png_file, img_r.Width(), img_r.Height());
 
+	DeleteDC(pDCToUse->m_hDC);
 	DeleteObject(pImgBitMap);
 	delete pDCToUse;
 	pDCToUse = nullptr;
 }
 
-void CCGWorkView::WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height)
+
+void CCGWorkView::WriteDCToPngFile(HDC& hdc, HBITMAP& bitmap, 
+	PngWrapper* png_file, int width, int height)
 {
 	if (png_file == nullptr)
 		return;
@@ -1117,15 +1121,20 @@ void CCGWorkView::WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, in
 	if (!png_file->InitWritePng())
 		return;
 
+	COLORREF* pixels = getCurrentFramePixelArr(hdc, bitmap, width, height, true);
+	if (pixels == nullptr)
+		return;
+
 	for (unsigned int y = 0; y < height; y++)
 	{
 		for (unsigned int x = 0; x < width; x++)
 		{
-			int png_val = ColorRefToPngVal(pDCImage->GetPixel(x, y));
+			int png_val = ColorRefToPngVal(pixels[y * width + x]);
 			png_file->SetValue(x, y, png_val);
 		}
 	}
 
+	delete pixels;
 	png_file->WritePng();
 }
 
@@ -2104,6 +2113,9 @@ void CCGWorkView::OnPauseButton()
 {
 	// TODO: Add your command handler code here
 	m_nRecordingStatus = PAUSED;
+	CString frame_index;
+	frame_index.Format(_T("frame %ld of %ld"), m_pPlayer->getCurrentFrameIndex(), m_pPlayer->getTotalFramesNum());
+	STATUS_BAR_TEXT(frame_index);
 }
 
 
@@ -2154,6 +2166,8 @@ void CCGWorkView::saveCurrentTransformations()
 {
 	delete m_pTempRecord;
 	m_pTempRecord = new AnimationRecord(&parentObject);
+	m_bTempShowMotionBlur = m_bShowMotionBlur;
+	m_bShowMotionBlur = false;
 }
 
 
@@ -2166,6 +2180,8 @@ void CCGWorkView::restoreSavedTransformations()
 
 	delete m_pTempRecord;
 	m_pTempRecord = nullptr;
+
+	m_bShowMotionBlur = m_bTempShowMotionBlur;
 
 	Invalidate();
 }
@@ -2193,15 +2209,7 @@ void CCGWorkView::RenderCurrentFrame(bool update_gui)
 	if (m_pPlayer == nullptr)
 		return;
 
-	RenderOnScreen(m_pPlayer->playing_render_mode, !m_bShowMotionBlur);
-	if (m_bDoBlur)
-	{
-		addBlurCurrentFrame();
-	}
-	if (m_bShowMotionBlur)
-	{
-		RenderMotionBlurResultToDC(m_pDC, m_WindowWidth, m_WindowHeight);
-	}
+	RenderOnScreen(m_pPlayer->playing_render_mode);
 
 	if (update_gui)
 	{
@@ -2415,9 +2423,18 @@ void CCGWorkView::RenderMotionBlurResultToDC(const CDC* pDCToRender, int width, 
 
 
 COLORREF* CCGWorkView::getCurrentFramePixelArr(
-	HDC& current_hdc, HBITMAP& current_bitmap, int width, int height)
+	HDC& current_hdc, HBITMAP& current_bitmap, int width, int height, bool top_down)
 {
-	BITMAPINFO bminfo = getBitMapInfo(width, height);
+	BITMAPINFO bminfo = { 0 };
+	if (top_down)
+	{
+		// negative sign: top-down pixel array as it's easier to use
+		bminfo = getBitMapInfo(width, -height);
+	}
+	else
+	{
+		bminfo = getBitMapInfo(width, height);
+	}
 
 	COLORREF* pixels = new COLORREF[width * height]();
 	if (pixels == nullptr)
@@ -2503,16 +2520,18 @@ void CCGWorkView::prepareBluredPixelsArr()
 
 void CCGWorkView::updateBluredPixelsArr(COLORREF* new_frame, const double t)
 {
+	int index;
 	for (int y = 0; y < m_BlurImgeHeight; y++)
 	{
 		for (int x = 0; x < m_BlurImgeWidth; x++)
 		{
+			index = y * m_BlurImgeWidth + x;
 			COLORREF new_color = MotionBlurColor(
-				m_pBluredPixels[y * m_BlurImgeWidth + x],
-				new_frame[y * m_BlurImgeWidth + x],
+				m_pBluredPixels[index],
+				new_frame[index],
 				t);
 
-			m_pBluredPixels[y * m_BlurImgeWidth + x] = new_color;
+			m_pBluredPixels[index] = new_color;
 		}
 	}
 }
@@ -2528,9 +2547,17 @@ void CCGWorkView::OnMotionblur()
 
 		if (dialog.DoModal() == IDOK)
 		{
-			m_blur_integral = dialog.m_blur_value;
-			prepareBluredPixelsArr();
-			m_bDoBlur = (m_pBluredPixels != nullptr);
+			if (dialog.m_blur_value == 0)
+			{
+				// indicates no blur
+				m_bDoBlur = false;
+			}
+			else
+			{
+				m_blur_integral = dialog.m_blur_value;
+				prepareBluredPixelsArr();
+				m_bDoBlur = (m_pBluredPixels != nullptr);
+			}
 		}
 	}
 	else

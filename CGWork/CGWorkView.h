@@ -112,6 +112,7 @@ protected:
 	CG::AnimationRecord* m_pRecord;				// holds the record of key-frames transformations
 	CG::AnimationPlayer* m_pPlayer;				// holds player for m_pRecord
 	bool play_in_separate_thread;
+	bool m_bTempShowMotionBlur;
 
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;
@@ -170,9 +171,10 @@ public:
 	void doTranslate(int x_val, int y_val, CG::Object& object);
 	void doScale(int x_val, int y_val, CG::Object& object);
 
-	CDC* RenderOnScreen(CG::RenderMode renderMode, bool display = true);		// Renders the scene on the screen
+	CDC* RenderOnScreen(CG::RenderMode renderMode);								// Renders the scene on the screen
 	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode);		// Renders the scene to a file in PNG format
-	void WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height);
+	void WriteDCToPngFile(HDC& hdc, HBITMAP& bitmap, 
+		PngWrapper* png_file, int width, int height);
 
 	inline bool isBlockInteraction();
 	void saveCurrentTransformations();		// saves current parentObject and its childs transformations
@@ -201,7 +203,8 @@ public:
 	void prepareBluredPixelsArr();												// initialize and resize m_pBluredPixels array if needed
 
 	COLORREF* getCurrentFramePixelArr(											// returns array of COLORREF pixels of the current frame on the screen,
-		HDC& current_hdc, HBITMAP& current_bitmap, int width, int height);		// if failed returns nullptr
+		HDC& current_hdc, HBITMAP& current_bitmap,								// if failed returns nullptr
+		int width, int height, bool top_down = false);		
 
 	COLORREF* getResizedBluredArray(int width, int height);								// returns resized blured pixels arrray, if failed returns nullptr
 	
