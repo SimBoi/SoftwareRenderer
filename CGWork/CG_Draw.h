@@ -26,6 +26,8 @@ namespace CG
 		{ };
 	};
 
+	COLORREF MotionBlurColor(COLORREF old_color, COLORREF new_color, double t);
+
 	COLORREF PngValToColorRef(int png_value);
 	int ColorRefToPngVal(COLORREF color);
 

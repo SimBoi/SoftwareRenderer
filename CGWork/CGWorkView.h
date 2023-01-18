@@ -112,9 +112,17 @@ protected:
 	CG::AnimationRecord* m_pRecord;				// holds the record of key-frames transformations
 	CG::AnimationPlayer* m_pPlayer;				// holds player for m_pRecord
 	bool play_in_separate_thread;
+	bool m_bTempShowMotionBlur;
 
 	HBITMAP m_pDbBitMap;
 	CDC* m_pDbDC;
+
+	bool m_bDoBlur;
+	bool m_bShowMotionBlur;
+	double m_blur_integral;			// hold the integrated blur value
+	int m_BlurImgeWidth;			// hold the Blur Imge width
+	int m_BlurImgeHeight;			// hold the Blur Imge height
+	COLORREF* m_pBluredPixels;		// holds a pointer to Motion Blur array of pixels colors
 
 // Generated message map functions
 protected:
@@ -163,9 +171,10 @@ public:
 	void doTranslate(int x_val, int y_val, CG::Object& object);
 	void doScale(int x_val, int y_val, CG::Object& object);
 
-	CDC* RenderOnScreen(CG::RenderMode renderMode);		// Renders the scene on the screen
+	CDC* RenderOnScreen(CG::RenderMode renderMode);								// Renders the scene on the screen
 	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode);		// Renders the scene to a file in PNG format
-	void WriteDCToPngFile(const CDC* pDCImage, PngWrapper* png_file, int width, int height);
+	void WriteDCToPngFile(HDC& hdc, HBITMAP& bitmap, 
+		PngWrapper* png_file, int width, int height);
 
 	inline bool isBlockInteraction();
 	void saveCurrentTransformations();		// saves current parentObject and its childs transformations
@@ -185,9 +194,23 @@ public:
 		double progress_percent);
 
 	void savePlayer(CG::AnimationPlayer& record_player,		// save a record_player to save_path
-		CStringA save_path,								// as images of width, height dimensions
+		CStringA save_path,									// as images of width, height dimensions
 		CStringA animation_name, 
 		int width, int height);
+
+
+	inline BITMAPINFO getBitMapInfo(int width, int height);
+	void prepareBluredPixelsArr();												// initialize and resize m_pBluredPixels array if needed
+
+	COLORREF* getCurrentFramePixelArr(											// returns array of COLORREF pixels of the current frame on the screen,
+		HDC& current_hdc, HBITMAP& current_bitmap,								// if failed returns nullptr
+		int width, int height, bool top_down = false);		
+
+	COLORREF* getResizedBluredArray(int width, int height);								// returns resized blured pixels arrray, if failed returns nullptr
+	
+	void updateBluredPixelsArr(COLORREF* new_frame, const double t);					// update the blured pixels array with the new farme
+	void addBlurCurrentFrame();															// adds the current frame to the blured pixels array
+	void RenderMotionBlurResultToDC(const CDC* pDCToRender, int width, int height);		// renders the motion blur image result on screen
 
 
 	void CalculateVertexNormals();
@@ -266,8 +289,10 @@ public:
 	afx_msg void OnNextFrameButton();
 	afx_msg void OnUpdateNextFrameButton(CCmdUI* pCmdUI);
 	afx_msg void OnResetPlayerButton();
-	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);
-	
+	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);	
+	afx_msg void OnMotionblur();
+	afx_msg void OnClearMotionblur();
+	afx_msg void OnUpdateClearMotionblur(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

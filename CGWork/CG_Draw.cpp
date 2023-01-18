@@ -17,9 +17,20 @@ namespace CG
 		vec4 interpolated; // holds interpolated normals for phong shading, interpolared lighting for gouraud shading
 	};
 
+
+	COLORREF MotionBlurColor(COLORREF old_color, COLORREF new_color, double t)
+	{
+		return RGB(
+			int(t * GetRValue(old_color) + (1 - t) * GetRValue(new_color)),
+			int(t * GetGValue(old_color) + (1 - t) * GetGValue(new_color)),
+			int(t * GetBValue(old_color) + (1 - t) * GetBValue(new_color)));
+	}
+
+
 	int ColorRefToPngVal(COLORREF color)
 	{
-		return SET_RGB(GetRValue(color), GetGValue(color), GetBValue(color));
+		// intentionally, swap R and B values
+		return SET_RGB(GetBValue(color), GetGValue(color), GetRValue(color));
 	}
 
 	COLORREF PngValToColorRef(int png_value)
@@ -55,7 +66,7 @@ namespace CG
 			double new_b = ((1 - old_a) * background_b) + (old_a * old_b);
 			new_b = (new_b < 1.0) ? new_b * 255 : 255;
 
-			return RGB((int)new_r, (int)new_g, (int)new_b);
+			return RGB(int(new_r), int(new_g), int(new_b));
 		}
 
 		return RGB(0, 0, 0);
