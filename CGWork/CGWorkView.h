@@ -117,6 +117,11 @@ private:
 	LightParams m_ambientLight;		//ambient light
 	int m_cosineFactor;
 
+	// fog settings
+	bool fogEffect; // on/off
+	int fogDistance;
+	COLORREF fogColor;
+
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -159,9 +164,9 @@ protected:
 	CG::AnimationRecord* m_pTempRecord;			// holds a pointer to temporary record of parentObject
 	CG::Object* last_toched_object;				// holds a pointer to last changed (transformed) object
 	/*
-	* By adding the volatile modifier, 
-	you tell the compiler that it cannot assume the variable will remain unmodified 
-	during the execution of the loop, 
+	* By adding the volatile modifier,
+	you tell the compiler that it cannot assume the variable will remain unmodified
+	during the execution of the loop,
 	even though there is no code in the loop that can change the variable.
 	*/
 	volatile CG::RecordingStatus m_nRecordingStatus;		// the status of m_pRecord, m_pPlayer
@@ -251,7 +256,7 @@ public:
 
 	void savePlayer(CG::AnimationPlayer& record_player,		// save a record_player to save_path
 		CStringA save_path,									// as images of width, height dimensions
-		CStringA animation_name, 
+		CStringA animation_name,
 		int width, int height);
 
 
