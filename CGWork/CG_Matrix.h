@@ -38,6 +38,7 @@ namespace CG
 		static bool AreParallel(const vec4& u, const vec4& v);
 		static vec4 HomogeneousToEuclidean(vec4& coords);
 		static vec4 ColorToVec(const COLORREF& color);
+		static double Distance(const vec4& p1, const vec4& p2);
 	};
 
 	vec4 coordsKey(vec4& coords, double range);

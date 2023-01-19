@@ -52,7 +52,10 @@ namespace CG
 		const LightParams& ambientLight,
 		LightParams lightSources[8],
 		int cosineFactor,
-		int shading);
+		int shading,
+		bool fogEffect,
+		int fogDistance,
+		const COLORREF& fogColorref);
 }
 
 #endif

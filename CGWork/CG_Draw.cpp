@@ -434,10 +434,14 @@ namespace CG
 		const LightParams& ambientLight,
 		LightParams lightSources[8],
 		int cosineFactor,
-		int shading)
+		int shading,
+		bool fogEffect,
+		int fogDistance,
+		const COLORREF& fogColorref)
 	{
 		vec4 ambient = vec4(ambientLight.colorR, ambientLight.colorG, ambientLight.colorB);
 		vec4 objectColor = vec4::ColorToVec(objectColorref);
+		vec4 fogColor = vec4::ColorToVec(fogColorref);
 		vec4 finalColor;
 		vec4 cameraPos = cameraToGlobalFrame * vec4(0, 0, 0, 1);
 
@@ -572,9 +576,10 @@ namespace CG
 				int x = intersections[yIndex][0].projected.x + t;
 				double z = intersections[yIndex][0].projected.z * (1 - a) + intersections[yIndex][1].projected.z * a;
 
+				vec4 pixelPos = intersections[yIndex][0].global * (1 - a) + intersections[yIndex][1].global * a;
+
 				if (shading == PHONG)
 				{
-					vec4 pixelPos = intersections[yIndex][0].global * (1 - a) + intersections[yIndex][1].global * a;
 					vec4 N = intersections[yIndex][0].interpolated * (1 - a) + intersections[yIndex][1].interpolated * a;
 					vec4 finalLight = CalcLighting(
 						cameraPos,
@@ -593,7 +598,20 @@ namespace CG
 					vec4 finalLight = intersections[yIndex][0].interpolated * (1 - a) + intersections[yIndex][1].interpolated * a;
 					finalColor = finalLight * objectColor;
 				}
-				zBuffer.SetPixel(pDC, x, y, z, RGB(finalColor.x, finalColor.y, finalColor.z));
+
+				// fog
+				if (fogEffect)
+				{
+					double distance = vec4::Distance(pixelPos, cameraPos);
+					if (distance > fogDistance) distance = fogDistance;
+					double t = distance / fogDistance;
+					vec4 scatteredColor = fogColor * t + finalColor * (1 - t);
+					zBuffer.SetPixel(pDC, x, y, z, RGB(scatteredColor.x, scatteredColor.y, scatteredColor.z));
+				}
+				else
+				{
+					zBuffer.SetPixel(pDC, x, y, z, RGB(finalColor.x, finalColor.y, finalColor.z));
+				}
 			}
 		}
 

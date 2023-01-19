@@ -61,6 +61,11 @@ private:
 	LightParams m_ambientLight;		//ambient light
 	int m_cosineFactor;
 
+	// fog settings
+	bool fogEffect; // on/off
+	int fogDistance;
+	COLORREF fogColor;
+
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -103,9 +108,9 @@ protected:
 	CG::AnimationRecord* m_pTempRecord;			// holds a pointer to temporary record of parentObject
 	CG::Object* last_toched_object;				// holds a pointer to last changed (transformed) object
 	/*
-	* By adding the volatile modifier, 
-	you tell the compiler that it cannot assume the variable will remain unmodified 
-	during the execution of the loop, 
+	* By adding the volatile modifier,
+	you tell the compiler that it cannot assume the variable will remain unmodified
+	during the execution of the loop,
 	even though there is no code in the loop that can change the variable.
 	*/
 	volatile CG::RecordingStatus m_nRecordingStatus;		// the status of m_pRecord, m_pPlayer
@@ -173,7 +178,7 @@ public:
 
 	CDC* RenderOnScreen(CG::RenderMode renderMode);								// Renders the scene on the screen
 	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode);		// Renders the scene to a file in PNG format
-	void WriteDCToPngFile(HDC& hdc, HBITMAP& bitmap, 
+	void WriteDCToPngFile(HDC& hdc, HBITMAP& bitmap,
 		PngWrapper* png_file, int width, int height);
 
 	inline bool isBlockInteraction();
@@ -195,7 +200,7 @@ public:
 
 	void savePlayer(CG::AnimationPlayer& record_player,		// save a record_player to save_path
 		CStringA save_path,									// as images of width, height dimensions
-		CStringA animation_name, 
+		CStringA animation_name,
 		int width, int height);
 
 
@@ -204,10 +209,10 @@ public:
 
 	COLORREF* getCurrentFramePixelArr(											// returns array of COLORREF pixels of the current frame on the screen,
 		HDC& current_hdc, HBITMAP& current_bitmap,								// if failed returns nullptr
-		int width, int height, bool top_down = false);		
+		int width, int height, bool top_down = false);
 
 	COLORREF* getResizedBluredArray(int width, int height);								// returns resized blured pixels arrray, if failed returns nullptr
-	
+
 	void updateBluredPixelsArr(COLORREF* new_frame, const double t);					// update the blured pixels array with the new farme
 	void addBlurCurrentFrame();															// adds the current frame to the blured pixels array
 	void RenderMotionBlurResultToDC(const CDC* pDCToRender, int width, int height);		// renders the motion blur image result on screen
@@ -289,7 +294,7 @@ public:
 	afx_msg void OnNextFrameButton();
 	afx_msg void OnUpdateNextFrameButton(CCmdUI* pCmdUI);
 	afx_msg void OnResetPlayerButton();
-	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);	
+	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);
 	afx_msg void OnMotionblur();
 	afx_msg void OnClearMotionblur();
 	afx_msg void OnUpdateClearMotionblur(CCmdUI* pCmdUI);

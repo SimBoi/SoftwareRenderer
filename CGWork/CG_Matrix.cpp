@@ -145,6 +145,12 @@ namespace CG
 		return vec4(GetRValue(color), GetGValue(color), GetBValue(color), 0);
 	}
 
+	double vec4::Distance(const vec4& p1, const vec4& p2)
+	{
+		vec4 v = p2 - p1;
+		return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+	}
+
 	vec4 coordsKey(vec4& coords, double range)
 	{
 		static const double roundingPrecision = 0.001;

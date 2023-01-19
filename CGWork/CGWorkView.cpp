@@ -222,6 +222,10 @@ CCGWorkView::CCGWorkView()
 	m_ambientLight.ambientIntensity = 0.2;
 	m_cosineFactor = 32;
 
+	fogEffect = true;
+	fogDistance = 1000;
+	fogColor = RGB(100, 100, 100);
+
 	//init the first light to be enabled
 	m_lights[LIGHT_ID_1].enabled = true;
 	m_lights[LIGHT_ID_1].dirZ = -1;
@@ -620,7 +624,10 @@ void CCGWorkView::DrawFace(
 			m_ambientLight,
 			m_lights,
 			m_cosineFactor,
-			m_nLightShading
+			m_nLightShading,
+			fogEffect,
+			fogDistance,
+			fogColor
 		);
 	}
 	else
@@ -870,7 +877,8 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 	}
 
 	// draw background
-	CG::DrawBackground(SceneRect, pDCToUse);
+	if (fogEffect) pDCToUse->FillSolidRect(SceneRect, fogColor);
+	else CG::DrawBackground(SceneRect, pDCToUse);
 
 	// initialize the view
 	if (!initialized)
@@ -1102,7 +1110,7 @@ void CCGWorkView::RenderToPngFile(PngWrapper* png_file, RenderMode renderMode)
 
 	DrawScene(img_r, pDCToUse, img_width, img_height, ImgAspectRatio, renderMode);
 
-	WriteDCToPngFile(pDCToUse->m_hDC, pImgBitMap, 
+	WriteDCToPngFile(pDCToUse->m_hDC, pImgBitMap,
 		png_file, img_r.Width(), img_r.Height());
 
 	DeleteDC(pDCToUse->m_hDC);
@@ -1112,7 +1120,7 @@ void CCGWorkView::RenderToPngFile(PngWrapper* png_file, RenderMode renderMode)
 }
 
 
-void CCGWorkView::WriteDCToPngFile(HDC& hdc, HBITMAP& bitmap, 
+void CCGWorkView::WriteDCToPngFile(HDC& hdc, HBITMAP& bitmap,
 	PngWrapper* png_file, int width, int height)
 {
 	if (png_file == nullptr)
@@ -1939,7 +1947,7 @@ void CCGWorkView::OnFileSaveaspng()
 
 		STATUS_BAR_TEXT(_T("successfully saved!"));
 	}
-	
+
 	Invalidate();
 }
 
@@ -1988,7 +1996,7 @@ void CCGWorkView::OnUpdateStopRecordingButton(CCmdUI* pCmdUI)
 void CCGWorkView::OnSnapshotButton()
 {
 	// TODO: Add your command handler code here
-	
+
 	// capture all changes
 	m_pRecord->pushAllChanges();
 }
@@ -2044,7 +2052,7 @@ void CCGWorkView::OnDiscardRecordButton()
 	// TODO: Add your command handler code here
 
 	int answer = AfxMessageBox(
-		_T("Discard the Animation Record?"), 
+		_T("Discard the Animation Record?"),
 		MB_YESNO | MB_ICONWARNING);
 
 	if (answer == IDYES)
@@ -2071,16 +2079,16 @@ void CCGWorkView::OnPlayButton()
 	{
 		delete m_pPlayer;
 		AnimationPlayerDialog dialog;
-		
+
 		if (dialog.DoModal() == IDOK && m_pRecord != nullptr)
 		{
 			saveCurrentTransformations();
 
 			// initialize player
-			m_pPlayer = new AnimationPlayer(*m_pRecord, 
-				dialog.m_step, 
-				dialog.m_render_mode, 
-				dialog.m_speed, 
+			m_pPlayer = new AnimationPlayer(*m_pRecord,
+				dialog.m_step,
+				dialog.m_render_mode,
+				dialog.m_speed,
 				dialog.m_rewind);
 
 			play_in_separate_thread = dialog.m_bSeparateThread;
@@ -2098,7 +2106,7 @@ void CCGWorkView::OnPlayButton()
 		// operatePlayer on same thread
 		operatePlayer();
 	}
-	
+
 }
 
 
@@ -2345,7 +2353,7 @@ void CCGWorkView::savePlayer(AnimationPlayer& record_player, CStringA save_path,
 
 		frame_index++;
 	}
-	
+
 	STATUS_BAR_TEXT(_T("Done!"));
 }
 
@@ -2440,7 +2448,7 @@ COLORREF* CCGWorkView::getCurrentFramePixelArr(
 	if (pixels == nullptr)
 		return nullptr;
 
-	int ret = GetDIBits(current_hdc, current_bitmap, 
+	int ret = GetDIBits(current_hdc, current_bitmap,
 		0, height, pixels, &bminfo, DIB_RGB_COLORS);
 
 	if (ret == 0)
@@ -2514,7 +2522,7 @@ void CCGWorkView::prepareBluredPixelsArr()
 			delete m_pBluredPixels;
 			m_pBluredPixels = resized_arr;
 		}
-	}	
+	}
 }
 
 
@@ -2570,7 +2578,7 @@ void CCGWorkView::OnMotionblur()
 			addBlurCurrentFrame();
 		}
 	}
-	
+
 	m_bShowMotionBlur = m_bDoBlur;
 	Invalidate();
 }
