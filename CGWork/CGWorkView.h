@@ -276,6 +276,9 @@ public:
 
 	void antialias(CRect& rect, CDC* pDCToRender, CG::RenderMode renderMode, int width, int height, const double* filter_arr, int n);
 
+	bool m_bShowLights;
+	void showLights(CDC* pDCToUse, const CG::mat4& globalToCamera, const CG::mat4& projection);
+
 	void CalculateVertexNormals();
 	void FindEdgeAdjacentFaces();
 	void InitializeView();
@@ -377,6 +380,8 @@ public:
 	afx_msg void OnGaussian5x5();
 	afx_msg void OnUpdateGaussian5x5(CCmdUI* pCmdUI);
 	afx_msg void OnAntialiasing();
+	afx_msg void OnRenderShowlights();
+	afx_msg void OnUpdateRenderShowlights(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp
