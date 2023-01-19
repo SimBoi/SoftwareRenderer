@@ -217,13 +217,15 @@
 #define ID_TRIANGLE_5X5                 32896
 #define ID_GAUSSIAN_3X3                 32897
 #define ID_GAUSSIAN_5X5                 32898
+#define ID_BUTTON32899                  32899
+#define ID_EDITOR_MODE                  32899
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        170
-#define _APS_NEXT_COMMAND_VALUE         32899
+#define _APS_NEXT_COMMAND_VALUE         32900
 #define _APS_NEXT_CONTROL_VALUE         1118
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

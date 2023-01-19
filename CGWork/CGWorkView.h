@@ -122,6 +122,8 @@ private:
 	int fogDistance;
 	COLORREF fogColor;
 
+	bool editorMode; // for debugging only
+
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -234,7 +236,7 @@ public:
 
 	CDC* RenderOnScreen(CG::RenderMode renderMode);								// Renders the scene on the screen
 	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode, bool anti_aliasing = false);		// Renders the scene to a file in PNG format
-	void WriteDCToPngFile(HDC& hdc, HBITMAP& bitmap, 
+	void WriteDCToPngFile(HDC& hdc, HBITMAP& bitmap,
 		PngWrapper* png_file, int width, int height);
 
 	inline bool isBlockInteraction();
@@ -265,10 +267,10 @@ public:
 
 	COLORREF* getCurrentFramePixelArr(											// returns array of COLORREF pixels of the current frame on the screen,
 		HDC& current_hdc, HBITMAP& current_bitmap,								// if failed returns nullptr
-		int width, int height, bool top_down = false);		
+		int width, int height, bool top_down = false);
 
 	COLORREF* getResizedBluredArray(int width, int height);								// returns resized blured pixels arrray, if failed returns nullptr
-	
+
 	void updateBluredPixelsArr(COLORREF* new_frame, const double t);					// update the blured pixels array with the new farme
 	void addBlurCurrentFrame();															// adds the current frame to the blured pixels array
 	void RenderMotionBlurResultToDC(CRect& rect, const CDC* pDCToRender, int width, int height);		// renders the motion blur image result on screen
@@ -352,7 +354,7 @@ public:
 	afx_msg void OnNextFrameButton();
 	afx_msg void OnUpdateNextFrameButton(CCmdUI* pCmdUI);
 	afx_msg void OnResetPlayerButton();
-	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);	
+	afx_msg void OnUpdateResetPlayerButton(CCmdUI* pCmdUI);
 	afx_msg void OnMotionblur();
 	afx_msg void OnClearMotionblur();
 	afx_msg void OnUpdateClearMotionblur(CCmdUI* pCmdUI);
@@ -377,6 +379,9 @@ public:
 	afx_msg void OnGaussian5x5();
 	afx_msg void OnUpdateGaussian5x5(CCmdUI* pCmdUI);
 	afx_msg void OnAntialiasing();
+	afx_msg void OnCheckRewind();
+	afx_msg void OnUpdateEditorMode(CCmdUI* pCmdUI);
+	afx_msg void OnEditorMode();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

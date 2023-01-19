@@ -174,6 +174,9 @@ ON_UPDATE_COMMAND_UI(ID_GAUSSIAN_3X3, &CCGWorkView::OnUpdateGaussian3x3)
 ON_COMMAND(ID_GAUSSIAN_5X5, &CCGWorkView::OnGaussian5x5)
 ON_UPDATE_COMMAND_UI(ID_GAUSSIAN_5X5, &CCGWorkView::OnUpdateGaussian5x5)
 ON_COMMAND(ID_ANTIALIASING, &CCGWorkView::OnAntialiasing)
+ON_COMMAND(IDC_CHECK_REWIND, &CCGWorkView::OnCheckRewind)
+ON_UPDATE_COMMAND_UI(ID_EDITOR_MODE, &CCGWorkView::OnUpdateEditorMode)
+ON_COMMAND(ID_EDITOR_MODE, &CCGWorkView::OnEditorMode)
 END_MESSAGE_MAP()
 
 
@@ -252,6 +255,8 @@ CCGWorkView::CCGWorkView()
 	fogEffect = false;
 	fogDistance = 1000;
 	fogColor = RGB(100, 100, 100);
+
+	editorMode = false;
 
 	//init the first light to be enabled
 	m_lights[LIGHT_ID_1].enabled = true;
@@ -897,15 +902,18 @@ void CCGWorkView::InitializeView()
 void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int SceneHeight, double SceneAspectRatio, RenderMode renderMode)
 {
 	// draw Motion Blur Result
-	if (m_bShowMotionBlur)
+	if (m_bShowMotionBlur && !editorMode)
 	{
 		RenderMotionBlurResultToDC(SceneRect, pDCToUse, SceneWidth, SceneHeight);
 		return;
 	}
 
-	// draw background
-	if (fogEffect) pDCToUse->FillSolidRect(SceneRect, fogColor);
-	else CG::DrawBackground(SceneRect, pDCToUse);
+	if (!editorMode)
+	{
+		// draw background
+		if (fogEffect) pDCToUse->FillSolidRect(SceneRect, fogColor);
+		else CG::DrawBackground(SceneRect, pDCToUse);
+	}
 
 	// initialize the view
 	if (!initialized)
@@ -919,7 +927,7 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 	zBuffer.init();
 
 	// commpute shadow map
-	if (renderMode == SOLID)
+	if (renderMode == SOLID && !editorMode)
 	{
 		for (int i = 0; i < MAX_LIGHT; i++)
 		{
@@ -991,6 +999,14 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 	int i = 0;
 	for (auto& child : parentObject.children)
 	{
+		if (editorMode &&
+			child.color != RGB(255, 80, 100) &&
+			child.color != RGB(213, 173, 91) &&
+			child.color != RGB(214, 134, 84))
+		{
+			continue;
+		}
+
 		mat4 globalToChildFrame = child.mInverse * child.wInverse * globalToParentFrame;
 		mat4 globalToChildFrameTranspose = mat4::Transpose(globalToChildFrame);
 		mat4 childToParentFrame = child.wTransform * child.mTransform;
@@ -1001,51 +1017,75 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 		mat4 projectionToChildFrame = mat4::InverseTransform(screenProjection * childToCameraFrame);
 		COLORREF child_color = (bIsModelColor ? ModelColor : child.color);
 
-		// draw child object faces
-		for (auto const& face : child.faces)
+		if (!editorMode)
 		{
-			if (m_backFaceCulling)
+			// draw child object faces
+			for (auto const& face : child.faces)
 			{
-				// back face culling
-				if (m_nView == ID_VIEW_PERSPECTIVE)
+				if (m_backFaceCulling)
 				{
-					vec4 cameraModelPos = cameraToChildFrame * vec4(0, 0, 0, 1);
-					vec4 viewDirection = face.center - cameraModelPos;
-					if (vec4::dot(viewDirection, face.normal * m_normalFlip) >= 0) continue;
+					// back face culling
+					if (m_nView == ID_VIEW_PERSPECTIVE)
+					{
+						vec4 cameraModelPos = cameraToChildFrame * vec4(0, 0, 0, 1);
+						vec4 viewDirection = face.center - cameraModelPos;
+						if (vec4::dot(viewDirection, face.normal * m_normalFlip) >= 0) continue;
+					}
+					else
+					{
+						vec4 faceNormalCameraFrame = cameraToChildFrameTranspose * face.normal * m_normalFlip;
+						if (vec4::dot(faceNormalCameraFrame, vec4(0, 0, -1, 0)) >= 0) continue;
+					}
 				}
-				else
-				{
-					vec4 faceNormalCameraFrame = cameraToChildFrameTranspose * face.normal * m_normalFlip;
-					if (vec4::dot(faceNormalCameraFrame, vec4(0, 0, -1, 0)) >= 0) continue;
-				}
-			}
 
-			DrawFace(
-				pDCToUse,
-				renderMode,
-				face,
-				m_drawFaceNormals,
-				m_drawVertexNormals,
-				camera,
-				childToCameraFrame,
-				projectionToChildFrame,
-				camera.cTransform,
-				cameraToChildFrame,
-				cameraToChildFrameTranspose,
-				childToGlobalFrame,
-				globalToChildFrameTranspose,
-				screenProjection,
-				child_color,
-				FaceNormalColor,
-				VertexNormalColor
-			);
+				DrawFace(
+					pDCToUse,
+					renderMode,
+					face,
+					m_drawFaceNormals,
+					m_drawVertexNormals,
+					camera,
+					childToCameraFrame,
+					projectionToChildFrame,
+					camera.cTransform,
+					cameraToChildFrame,
+					cameraToChildFrameTranspose,
+					childToGlobalFrame,
+					globalToChildFrameTranspose,
+					screenProjection,
+					child_color,
+					FaceNormalColor,
+					VertexNormalColor
+				);
+			}
 		}
 
-		//// draw child object bounding box
-		//for (auto const& face : child.boundingBox)
-		//{
-		//	DrawFace(pDCToUse, face, false, false, camera, childToCameraFrame, screenProjection, child_color, FaceNormalColor, VertexNormalColor);
-		//}
+		if (editorMode)
+		{
+			// draw child object bounding box
+			for (auto const& face : child.boundingBox)
+			{
+				DrawFace(
+					pDCToUse,
+					WIREFRAME,
+					face,
+					false,
+					false,
+					camera,
+					childToCameraFrame,
+					projectionToChildFrame,
+					camera.cTransform,
+					cameraToChildFrame,
+					cameraToChildFrameTranspose,
+					childToGlobalFrame,
+					globalToChildFrameTranspose,
+					screenProjection,
+					child_color,
+					FaceNormalColor,
+					VertexNormalColor
+				);
+			}
+		}
 
 		i++;
 	}
@@ -2489,7 +2529,7 @@ COLORREF* CCGWorkView::getCurrentFramePixelArr(
 	if (pixels == nullptr)
 		return nullptr;
 
-	int ret = GetDIBits(current_hdc, current_bitmap, 
+	int ret = GetDIBits(current_hdc, current_bitmap,
 		0, height, pixels, &bminfo, DIB_RGB_COLORS);
 
 	if (ret == 0)
@@ -2563,7 +2603,7 @@ void CCGWorkView::prepareBluredPixelsArr()
 			delete m_pBluredPixels;
 			m_pBluredPixels = resized_arr;
 		}
-	}	
+	}
 }
 
 
@@ -2619,7 +2659,7 @@ void CCGWorkView::OnMotionblur()
 			addBlurCurrentFrame();
 		}
 	}
-	
+
 	m_bShowMotionBlur = m_bDoBlur;
 	Invalidate();
 }
@@ -2656,7 +2696,7 @@ static COLORREF calc3FilterColor(const double* filter,
 	COLORREF colorref21, COLORREF colorref22, COLORREF colorref23,
 	COLORREF colorref31, COLORREF colorref32, COLORREF colorref33)
 {
-	double r_value = 
+	double r_value =
 		  filter[0] * GetRValue(colorref11)
 		+ filter[1] * GetRValue(colorref12)
 		+ filter[2] * GetRValue(colorref13)
@@ -3068,3 +3108,22 @@ void CCGWorkView::OnUpdateGaussian5x5(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_nAAFilter == GAUSSIAN && m_nFilterSize == 5);
 }
 
+
+
+void CCGWorkView::OnCheckRewind()
+{
+}
+
+
+void CCGWorkView::OnUpdateEditorMode(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(editorMode);
+}
+
+
+void CCGWorkView::OnEditorMode()
+{
+	// TODO: Add your command handler code here
+	editorMode = !editorMode;
+}
