@@ -96,6 +96,8 @@ BEGIN
     SEPARATOR
     BUTTON      ID_MOTIONBLUR
     BUTTON      ID_CLEAR_MOTIONBLUR
+    SEPARATOR
+    BUTTON      ID_ANTIALIASING
 END
 
 
@@ -162,6 +164,29 @@ BEGIN
     END
     POPUP "Render"
     BEGIN
+        POPUP "AntiAliasing"
+        BEGIN
+            POPUP "Sinc"
+            BEGIN
+                MENUITEM "3x3",                         ID_SINC_3X3
+                MENUITEM "5x5",                         ID_SINC_5X5
+            END
+            POPUP "Box"
+            BEGIN
+                MENUITEM "3x3",                         ID_BOX_3X3
+                MENUITEM "5x5",                         ID_BOX_5X5
+            END
+            POPUP "Triangle"
+            BEGIN
+                MENUITEM "3x3",                         ID_TRIANGLE_3X3
+                MENUITEM "5x5",                         ID_TRIANGLE_5X5
+            END
+            POPUP "Gaussian"
+            BEGIN
+                MENUITEM "3x3",                         ID_GAUSSIAN_3X3
+                MENUITEM "5x5",                         ID_GAUSSIAN_5X5
+            END
+        END
         POPUP "Render Mode"
         BEGIN
             MENUITEM "Wireframe",                   ID_RENDERMODE_WIREFRAME
@@ -418,6 +443,7 @@ BEGIN
     EDITTEXT        IDC_EDIT_HEIGHT,214,47,62,14,ES_AUTOHSCROLL | ES_NUMBER
     PUSHBUTTON      "Default Window Size",IDC_BUTTON_DEFAULT_SIZE,110,66,105,14
     PUSHBUTTON      "Cancel Rendering to Png File",IDC_BUTTON_CANCEL_RENDERTO_FILE,8,86,111,14
+    CONTROL         "anti-aliasing",IDC_ALIASING_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,74,55,10
 END
 
 IDD_ANIMATION_PLAYER_DIALOG DIALOGEX 0, 0, 265, 114
@@ -914,6 +940,7 @@ STRINGTABLE
 BEGIN
     ID_MOTIONBLUR           "start or continue motion blur\nMotion Blur"
     ID_CLEAR_MOTIONBLUR     "clear motion blur effect\nClear"
+    ID_ANTIALIASING         "Anti-Aliasing scene\nAntialiasing"
 END
 
 #endif    // English (United States) resources

@@ -152,6 +152,28 @@ ON_WM_RBUTTONUP()
 ON_COMMAND(ID_MOTIONBLUR, &CCGWorkView::OnMotionblur)
 ON_COMMAND(ID_CLEAR_MOTIONBLUR, &CCGWorkView::OnClearMotionblur)
 ON_UPDATE_COMMAND_UI(ID_CLEAR_MOTIONBLUR, &CCGWorkView::OnUpdateClearMotionblur)
+//ON_COMMAND(ID_ANTIALIASING, &CCGWorkView::OnAntialiasing)
+ON_COMMAND(ID_SINC_3X3, &CCGWorkView::OnSinc3x3)
+ON_UPDATE_COMMAND_UI(ID_SINC_3X3, &CCGWorkView::OnUpdateSinc3x3)
+ON_COMMAND(ID_SINC_5X5, &CCGWorkView::OnSinc5x5)
+ON_UPDATE_COMMAND_UI(ID_SINC_5X5, &CCGWorkView::OnUpdateSinc5x5)
+ON_COMMAND(ID_BOX_3X3, &CCGWorkView::OnBox3x3)
+ON_UPDATE_COMMAND_UI(ID_BOX_3X3, &CCGWorkView::OnUpdateBox3x3)
+ON_COMMAND(ID_BOX_5X5, &CCGWorkView::OnBox5x5)
+ON_UPDATE_COMMAND_UI(ID_BOX_5X5, &CCGWorkView::OnUpdateBox5x5)
+ON_COMMAND(ID_TRIANGLE_3X3, &CCGWorkView::OnTriangle3x3)
+ON_UPDATE_COMMAND_UI(ID_TRIANGLE_5X5, &CCGWorkView::OnUpdateTriangle5x5)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_BOX, &CCGWorkView::OnUpdateAntialiasingBox)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_GAUSSIAN, &CCGWorkView::OnUpdateAntialiasingGaussian)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_SINC, &CCGWorkView::OnUpdateAntialiasingSinc)
+ON_UPDATE_COMMAND_UI(ID_ANTIALIASING_TRIANGLE, &CCGWorkView::OnUpdateAntialiasingTriangle)
+ON_UPDATE_COMMAND_UI(ID_TRIANGLE_3X3, &CCGWorkView::OnUpdateTriangle3x3)
+ON_COMMAND(ID_TRIANGLE_5X5, &CCGWorkView::OnTriangle5x5)
+ON_COMMAND(ID_GAUSSIAN_3X3, &CCGWorkView::OnGaussian3x3)
+ON_UPDATE_COMMAND_UI(ID_GAUSSIAN_3X3, &CCGWorkView::OnUpdateGaussian3x3)
+ON_COMMAND(ID_GAUSSIAN_5X5, &CCGWorkView::OnGaussian5x5)
+ON_UPDATE_COMMAND_UI(ID_GAUSSIAN_5X5, &CCGWorkView::OnUpdateGaussian5x5)
+ON_COMMAND(ID_ANTIALIASING, &CCGWorkView::OnAntialiasing)
 END_MESSAGE_MAP()
 
 
@@ -212,6 +234,11 @@ CCGWorkView::CCGWorkView()
 	m_BlurImgeHeight = 0;
 	m_blur_integral = 0.25;
 	m_pBluredPixels = nullptr;
+
+	// anti aliasing
+	m_nAAFilter = SINC;
+	m_pFilterArr = sinc3;
+	m_nFilterSize = 3;
 
 	m_nLightShading = FLAT;
 
@@ -865,7 +892,7 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 	// draw Motion Blur Result
 	if (m_bShowMotionBlur)
 	{
-		RenderMotionBlurResultToDC(pDCToUse, SceneWidth, SceneHeight);
+		RenderMotionBlurResultToDC(SceneRect, pDCToUse, SceneWidth, SceneHeight);
 		return;
 	}
 
@@ -1060,7 +1087,6 @@ void CCGWorkView::OnDraw(CDC* pDC)
 			RenderToPngFile(m_pRenderToPng, m_renderMode);
 		}
 	}
-
 }
 
 CDC* CCGWorkView::RenderOnScreen(RenderMode renderMode)
@@ -1079,7 +1105,7 @@ CDC* CCGWorkView::RenderOnScreen(RenderMode renderMode)
 	return pDCToUse;
 }
 
-void CCGWorkView::RenderToPngFile(PngWrapper* png_file, RenderMode renderMode)
+void CCGWorkView::RenderToPngFile(PngWrapper* png_file, RenderMode renderMode, bool anti_aliasing)
 {
 	if (png_file == nullptr)
 		return;
@@ -1096,11 +1122,19 @@ void CCGWorkView::RenderToPngFile(PngWrapper* png_file, RenderMode renderMode)
 	HBITMAP pImgBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, img_r.right, img_r.bottom);
 	pDCToUse->SelectObject(pImgBitMap);
 
-	// compute the aspect ratio
-	// this will keep all dimension scales equal
-	double ImgAspectRatio = (GLdouble)(img_width) / (GLdouble)(img_height);
+	if (anti_aliasing)
+	{
+		antialias(img_r, pDCToUse, renderMode, img_width, img_height, m_pFilterArr, m_nFilterSize);
+	}
+	else
+	{
+		// compute the aspect ratio
+		// this will keep all dimension scales equal
+		double ImgAspectRatio = (GLdouble)(img_width) / (GLdouble)(img_height);
 
-	DrawScene(img_r, pDCToUse, img_width, img_height, ImgAspectRatio, renderMode);
+		// draw scene without anti-aliasing
+		DrawScene(img_r, pDCToUse, img_width, img_height, ImgAspectRatio, renderMode);
+	}
 
 	WriteDCToPngFile(pDCToUse->m_hDC, pImgBitMap, 
 		png_file, img_r.Width(), img_r.Height());
@@ -1927,12 +1961,13 @@ void CCGWorkView::OnFileSaveaspng()
 	INT_PTR answer = dialog.DoModal();
 	if (answer == IDOK)
 	{
+		bool anti_aliasing = (dialog.m_bAntiAliasing == TRUE);
 		// init saveto png file
 		CStringA saveto_str = dialog.m_FilePathString;
 		PngWrapper* saveto_file = new PngWrapper(saveto_str, dialog.m_ImageWidth, dialog.m_ImageHeight);
 
 		// render the scence to saveto png file
-		RenderToPngFile(saveto_file, SOLID);
+		RenderToPngFile(saveto_file, SOLID, anti_aliasing);
 
 		delete saveto_file;
 		saveto_file = nullptr;
@@ -2388,7 +2423,25 @@ inline BITMAPINFO CCGWorkView::getBitMapInfo(int width, int height)
 }
 
 
-void CCGWorkView::RenderMotionBlurResultToDC(const CDC* pDCToRender, int width, int height)
+void CCGWorkView::PixelsArrToDC(CRect& rect, const CDC* pDCToRender, COLORREF* pixels, int width, int height)
+{
+	if (pixels == nullptr)
+		return;
+
+	HDC hdc = CreateCompatibleDC(pDCToRender->m_hDC);
+	HBITMAP BitMap = CreateCompatibleBitmap(pDCToRender->m_hDC, rect.right, rect.bottom);
+	SelectObject(hdc, BitMap);
+
+	BITMAPINFO bminfo = getBitMapInfo(width, height);
+
+	SetDIBits(hdc, BitMap, 0, height, pixels, &bminfo, 0);
+	BitBlt(pDCToRender->m_hDC, rect.left, rect.top, rect.right, rect.bottom, hdc, rect.left, rect.top, SRCCOPY);
+
+	DeleteDC(hdc);
+	DeleteObject(BitMap);
+}
+
+void CCGWorkView::RenderMotionBlurResultToDC(CRect& rect, const CDC* pDCToRender, int width, int height)
 {
 	if (m_pBluredPixels == nullptr)
 		return;
@@ -2400,25 +2453,13 @@ void CCGWorkView::RenderMotionBlurResultToDC(const CDC* pDCToRender, int width, 
 		render_arr = getResizedBluredArray(width, height);
 	}
 
-	CRect rect;
-	GetClientRect(&rect);
-
-	HDC Blurhdc = CreateCompatibleDC(pDCToRender->m_hDC);
-	HBITMAP BlurBitMap = CreateCompatibleBitmap(pDCToRender->m_hDC, rect.right, rect.bottom);
-	SelectObject(Blurhdc, BlurBitMap);
-
-	BITMAPINFO bminfo = getBitMapInfo(width, height);
-
-	SetDIBits(Blurhdc, BlurBitMap, 0, height, render_arr, &bminfo, 0);
-	BitBlt(pDCToRender->m_hDC, rect.left, rect.top, rect.right, rect.bottom, Blurhdc, rect.left, rect.top, SRCCOPY);
+	PixelsArrToDC(rect, pDCToRender, render_arr, width, height);
 
 	if (render_arr != m_pBluredPixels)
 	{
 		delete render_arr;
 		render_arr = nullptr;
 	}
-	DeleteDC(Blurhdc);
-	DeleteObject(BlurBitMap);
 }
 
 
@@ -2600,3 +2641,422 @@ void CCGWorkView::OnUpdateClearMotionblur(CCmdUI* pCmdUI)
 	// TODO: Add your command update UI handler code here
 	pCmdUI->Enable(m_pBluredPixels != nullptr);
 }
+
+
+static COLORREF calc3FilterColor(const double* filter,
+	COLORREF colorref11, COLORREF colorref12, COLORREF colorref13,
+	COLORREF colorref21, COLORREF colorref22, COLORREF colorref23,
+	COLORREF colorref31, COLORREF colorref32, COLORREF colorref33)
+{
+	double r_value = 
+		  filter[0] * GetRValue(colorref11)
+		+ filter[1] * GetRValue(colorref12)
+		+ filter[2] * GetRValue(colorref13)
+		+ filter[3] * GetRValue(colorref21)
+		+ filter[4] * GetRValue(colorref22)
+		+ filter[5] * GetRValue(colorref23)
+		+ filter[6] * GetRValue(colorref31)
+		+ filter[7] * GetRValue(colorref32)
+		+ filter[8] * GetRValue(colorref33);
+
+	r_value = (r_value < 0) ? 0 : r_value;
+
+	double g_value =
+		  filter[0] * GetGValue(colorref11)
+		+ filter[1] * GetGValue(colorref12)
+		+ filter[2] * GetGValue(colorref13)
+		+ filter[3] * GetGValue(colorref21)
+		+ filter[4] * GetGValue(colorref22)
+		+ filter[5] * GetGValue(colorref23)
+		+ filter[6] * GetGValue(colorref31)
+		+ filter[7] * GetGValue(colorref32)
+		+ filter[8] * GetGValue(colorref33);
+
+	g_value = (g_value < 0) ? 0 : g_value;
+
+	double b_value =
+		  filter[0] * GetBValue(colorref11)
+		+ filter[1] * GetBValue(colorref12)
+		+ filter[2] * GetBValue(colorref13)
+		+ filter[3] * GetBValue(colorref21)
+		+ filter[4] * GetBValue(colorref22)
+		+ filter[5] * GetBValue(colorref23)
+		+ filter[6] * GetBValue(colorref31)
+		+ filter[7] * GetBValue(colorref32)
+		+ filter[8] * GetBValue(colorref33);
+
+	b_value = (b_value < 0) ? 0 : b_value;
+
+	return RGB(int(r_value), int(g_value), int(b_value));
+}
+
+
+static COLORREF calc5FilterColor(const double* filter,
+	COLORREF colorref11, COLORREF colorref12, COLORREF colorref13, COLORREF colorref14, COLORREF colorref15,
+	COLORREF colorref21, COLORREF colorref22, COLORREF colorref23, COLORREF colorref24, COLORREF colorref25,
+	COLORREF colorref31, COLORREF colorref32, COLORREF colorref33, COLORREF colorref34, COLORREF colorref35,
+	COLORREF colorref41, COLORREF colorref42, COLORREF colorref43, COLORREF colorref44, COLORREF colorref45,
+	COLORREF colorref51, COLORREF colorref52, COLORREF colorref53, COLORREF colorref54, COLORREF colorref55)
+{
+	double r_value =
+		filter[0] * GetRValue(colorref11)
+		+ filter[1] * GetRValue(colorref12)
+		+ filter[2] * GetRValue(colorref13)
+		+ filter[3] * GetRValue(colorref14)
+		+ filter[4] * GetRValue(colorref15)
+		+ filter[5] * GetRValue(colorref21)
+		+ filter[6] * GetRValue(colorref22)
+		+ filter[7] * GetRValue(colorref23)
+		+ filter[8] * GetRValue(colorref24)
+		+ filter[9] * GetRValue(colorref25)
+		+ filter[10] * GetRValue(colorref31)
+		+ filter[11] * GetRValue(colorref32)
+		+ filter[12] * GetRValue(colorref33)
+		+ filter[13] * GetRValue(colorref34)
+		+ filter[14] * GetRValue(colorref35)
+		+ filter[15] * GetRValue(colorref41)
+		+ filter[16] * GetRValue(colorref42)
+		+ filter[17] * GetRValue(colorref43)
+		+ filter[18] * GetRValue(colorref44)
+		+ filter[19] * GetRValue(colorref45)
+		+ filter[20] * GetRValue(colorref51)
+		+ filter[21] * GetRValue(colorref52)
+		+ filter[22] * GetRValue(colorref53)
+		+ filter[23] * GetRValue(colorref54)
+		+ filter[24] * GetRValue(colorref55);
+
+	r_value = (r_value < 0) ? 0 : r_value;
+
+	double g_value =
+		filter[0] * GetGValue(colorref11)
+		+ filter[1] * GetGValue(colorref12)
+		+ filter[2] * GetGValue(colorref13)
+		+ filter[3] * GetGValue(colorref14)
+		+ filter[4] * GetGValue(colorref15)
+		+ filter[5] * GetGValue(colorref21)
+		+ filter[6] * GetGValue(colorref22)
+		+ filter[7] * GetGValue(colorref23)
+		+ filter[8] * GetGValue(colorref24)
+		+ filter[9] * GetGValue(colorref25)
+		+ filter[10] * GetGValue(colorref31)
+		+ filter[11] * GetGValue(colorref32)
+		+ filter[12] * GetGValue(colorref33)
+		+ filter[13] * GetGValue(colorref34)
+		+ filter[14] * GetGValue(colorref35)
+		+ filter[15] * GetGValue(colorref41)
+		+ filter[16] * GetGValue(colorref42)
+		+ filter[17] * GetGValue(colorref43)
+		+ filter[18] * GetGValue(colorref44)
+		+ filter[19] * GetGValue(colorref45)
+		+ filter[20] * GetGValue(colorref51)
+		+ filter[21] * GetGValue(colorref52)
+		+ filter[22] * GetGValue(colorref53)
+		+ filter[23] * GetGValue(colorref54)
+		+ filter[24] * GetGValue(colorref55);
+
+	g_value = (g_value < 0) ? 0 : g_value;
+
+	double b_value =
+		filter[0] * GetBValue(colorref11)
+		+ filter[1] * GetBValue(colorref12)
+		+ filter[2] * GetBValue(colorref13)
+		+ filter[3] * GetBValue(colorref14)
+		+ filter[4] * GetBValue(colorref15)
+		+ filter[5] * GetBValue(colorref21)
+		+ filter[6] * GetBValue(colorref22)
+		+ filter[7] * GetBValue(colorref23)
+		+ filter[8] * GetBValue(colorref24)
+		+ filter[9] * GetBValue(colorref25)
+		+ filter[10] * GetBValue(colorref31)
+		+ filter[11] * GetBValue(colorref32)
+		+ filter[12] * GetBValue(colorref33)
+		+ filter[13] * GetBValue(colorref34)
+		+ filter[14] * GetBValue(colorref35)
+		+ filter[15] * GetBValue(colorref41)
+		+ filter[16] * GetBValue(colorref42)
+		+ filter[17] * GetBValue(colorref43)
+		+ filter[18] * GetBValue(colorref44)
+		+ filter[19] * GetBValue(colorref45)
+		+ filter[20] * GetBValue(colorref51)
+		+ filter[21] * GetBValue(colorref52)
+		+ filter[22] * GetBValue(colorref53)
+		+ filter[23] * GetBValue(colorref54)
+		+ filter[24] * GetBValue(colorref55);
+
+	b_value = (b_value < 0) ? 0 : b_value;
+
+	return RGB(int(r_value), int(g_value), int(b_value));
+}
+
+
+void CCGWorkView::antialias(CRect& rect, CDC* pDCToRender, CG::RenderMode renderMode, int width, int height, const double* filter_arr, int n)
+{
+	if (filter_arr == nullptr)
+		return;
+
+	if (n != 3 && n != 5)
+		return;
+
+	int temp_width = width * n;
+	int temp_height = height * n;
+
+	// temp rect
+	CRect temp_r(0, 0, temp_width, temp_height);
+
+	// temp Device Context
+	CDC* pDCToUse = new CDC();
+	pDCToUse->CreateCompatibleDC(pDCToRender);
+	HBITMAP pTempBitMap = CreateCompatibleBitmap(pDCToRender->m_hDC, temp_r.right, temp_r.bottom);
+	pDCToUse->SelectObject(pTempBitMap);
+
+	// compute the aspect ratio
+	// this will keep all dimension scales equal
+	double TempAspectRatio = (GLdouble)(temp_width) / (GLdouble)(temp_height);
+
+	// draw the aliased scene to pDCToUse
+	DrawScene(temp_r, pDCToUse, temp_width, temp_height, TempAspectRatio, renderMode);
+
+	// get the temp aliased scene pixels arr
+	COLORREF* temp_scene = getCurrentFramePixelArr(
+		pDCToUse->m_hDC, pTempBitMap, temp_width, temp_height);
+
+	if (temp_scene == nullptr)
+		return;
+
+	// free temp memory
+	DeleteDC(pDCToUse->m_hDC);
+	DeleteObject(pTempBitMap);
+	delete pDCToUse;
+	pDCToUse = nullptr;
+
+	// anti-aliased pixels arr
+	COLORREF* anti_aliased_pixels = new COLORREF[width * height]();
+	if (anti_aliased_pixels == nullptr)
+		return;
+
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			if (n == 3)
+			{
+				anti_aliased_pixels[y * width + x] =
+					calc3FilterColor(filter_arr,
+						temp_scene[(n * y) * temp_width + (n * x)],
+						temp_scene[(n * y) * temp_width + (n * x + 1)],
+						temp_scene[(n * y) * temp_width + (n * x + 2)],
+						temp_scene[(n * y + 1) * temp_width + (n * x)],
+						temp_scene[(n * y + 1) * temp_width + (n * x + 1)],
+						temp_scene[(n * y + 1) * temp_width + (n * x + 2)],
+						temp_scene[(n * y + 2) * temp_width + (n * x)],
+						temp_scene[(n * y + 2) * temp_width + (n * x + 1)],
+						temp_scene[(n * y + 2) * temp_width + (n * x + 2)]);
+			}
+			else if (n == 5)
+			{
+				anti_aliased_pixels[y * width + x] =
+					calc5FilterColor(filter_arr,
+						temp_scene[(n * y) * temp_width + (n * x)],
+						temp_scene[(n * y) * temp_width + (n * x + 1)],
+						temp_scene[(n * y) * temp_width + (n * x + 2)],
+						temp_scene[(n * y) * temp_width + (n * x + 3)],
+						temp_scene[(n * y) * temp_width + (n * x + 4)],
+						temp_scene[(n * y + 1) * temp_width + (n * x)],
+						temp_scene[(n * y + 1) * temp_width + (n * x + 1)],
+						temp_scene[(n * y + 1) * temp_width + (n * x + 2)],
+						temp_scene[(n * y + 1) * temp_width + (n * x + 3)],
+						temp_scene[(n * y + 1) * temp_width + (n * x + 4)],
+						temp_scene[(n * y + 2) * temp_width + (n * x)],
+						temp_scene[(n * y + 2) * temp_width + (n * x + 1)],
+						temp_scene[(n * y + 2) * temp_width + (n * x + 2)],
+						temp_scene[(n * y + 2) * temp_width + (n * x + 3)],
+						temp_scene[(n * y + 2) * temp_width + (n * x + 4)],
+						temp_scene[(n * y + 3) * temp_width + (n * x)],
+						temp_scene[(n * y + 3) * temp_width + (n * x + 1)],
+						temp_scene[(n * y + 3) * temp_width + (n * x + 2)],
+						temp_scene[(n * y + 3) * temp_width + (n * x + 3)],
+						temp_scene[(n * y + 3) * temp_width + (n * x + 4)],
+						temp_scene[(n * y + 4) * temp_width + (n * x)],
+						temp_scene[(n * y + 4) * temp_width + (n * x + 1)],
+						temp_scene[(n * y + 4) * temp_width + (n * x + 2)],
+						temp_scene[(n * y + 4) * temp_width + (n * x + 3)],
+						temp_scene[(n * y + 4) * temp_width + (n * x + 4)]);
+			}
+		}
+	}
+
+	delete temp_scene;
+	temp_scene = nullptr;
+
+	PixelsArrToDC(rect, pDCToRender, anti_aliased_pixels, width, height);
+
+	delete anti_aliased_pixels;
+	anti_aliased_pixels = nullptr;
+}
+
+void CCGWorkView::OnAntialiasing()
+{
+	// TODO: Add your command handler code here
+	CRect r;
+	GetClientRect(&r);
+
+	// render anti-aliased scene on the screen
+	antialias(r, m_pDC, m_renderMode, m_WindowWidth, m_WindowHeight, m_pFilterArr, m_nFilterSize);
+}
+
+
+void CCGWorkView::OnUpdateAntialiasingBox(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == BOX);
+}
+
+
+void CCGWorkView::OnUpdateAntialiasingGaussian(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == GAUSSIAN);
+}
+
+
+void CCGWorkView::OnUpdateAntialiasingSinc(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == SINC);
+}
+
+
+void CCGWorkView::OnUpdateAntialiasingTriangle(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == TRIANGLE);
+}
+
+
+void CCGWorkView::OnSinc3x3()
+{
+	// TODO: Add your command handler code here
+	m_nAAFilter = SINC;
+	m_pFilterArr = sinc3;
+	m_nFilterSize = 3;
+}
+
+
+void CCGWorkView::OnUpdateSinc3x3(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == SINC && m_nFilterSize == 3);
+}
+
+
+void CCGWorkView::OnSinc5x5()
+{
+	// TODO: Add your command handler code here
+	m_nAAFilter = SINC;
+	m_pFilterArr = sinc5;
+	m_nFilterSize = 5;
+}
+
+
+void CCGWorkView::OnUpdateSinc5x5(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == SINC && m_nFilterSize == 5);
+}
+
+
+void CCGWorkView::OnBox3x3()
+{
+	// TODO: Add your command handler code here
+	m_nAAFilter = BOX;
+	m_pFilterArr = box3;
+	m_nFilterSize = 3;
+}
+
+
+void CCGWorkView::OnUpdateBox3x3(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == BOX && m_nFilterSize == 3);
+}
+
+
+void CCGWorkView::OnBox5x5()
+{
+	// TODO: Add your command handler code here
+	m_nAAFilter = BOX;
+	m_pFilterArr = box5;
+	m_nFilterSize = 5;
+}
+
+
+void CCGWorkView::OnUpdateBox5x5(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == BOX && m_nFilterSize == 5);
+}
+
+
+void CCGWorkView::OnTriangle3x3()
+{
+	// TODO: Add your command handler code here
+	m_nAAFilter = TRIANGLE;
+	m_pFilterArr = triangle3;
+	m_nFilterSize = 3;
+}
+
+
+void CCGWorkView::OnUpdateTriangle3x3(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == TRIANGLE && m_nFilterSize == 3);
+}
+
+
+void CCGWorkView::OnTriangle5x5()
+{
+	// TODO: Add your command handler code here
+	m_nAAFilter = TRIANGLE;
+	m_pFilterArr = triangle5;
+	m_nFilterSize = 5;
+}
+
+
+void CCGWorkView::OnUpdateTriangle5x5(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == TRIANGLE && m_nFilterSize == 5);
+}
+
+
+void CCGWorkView::OnGaussian3x3()
+{
+	// TODO: Add your command handler code here
+	m_nAAFilter = GAUSSIAN;
+	m_pFilterArr = gaussian3;
+	m_nFilterSize = 3;
+}
+
+
+void CCGWorkView::OnUpdateGaussian3x3(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == GAUSSIAN && m_nFilterSize == 3);
+}
+
+
+void CCGWorkView::OnGaussian5x5()
+{
+	// TODO: Add your command handler code here
+	m_nAAFilter = GAUSSIAN;
+	m_pFilterArr = gaussian5;
+	m_nFilterSize = 5;
+}
+
+
+void CCGWorkView::OnUpdateGaussian5x5(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_nAAFilter == GAUSSIAN && m_nFilterSize == 5);
+}
+

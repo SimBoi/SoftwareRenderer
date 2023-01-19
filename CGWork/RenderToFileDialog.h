@@ -32,4 +32,6 @@ public:
 	afx_msg void OnBnClickedButtonCancelRendertoFile(); 
 	afx_msg void OnEnChangeEditWidth();
 	afx_msg void OnEnChangeEditHeight();
+	BOOL m_bAntiAliasing;
+	afx_msg void OnBnClickedAliasingCheck();
 };

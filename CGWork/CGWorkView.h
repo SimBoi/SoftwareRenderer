@@ -20,6 +20,58 @@
 #include "CG_Draw.h"
 #include "CG_Animation.h"
 
+/****************************************Common Filters fo Anti-Aliasing****************************************/
+typedef enum AAFilter { BOX, TRIANGLE, GAUSSIAN, SINC } AAFilter;
+
+const double sinc3[9] =
+{ 2 / 24.0, 3 / 24.0, 2 / 24.0,
+3 / 24.0, 4 / 24.0, 3 / 24.0,
+2 / 24.0, 3 / 24.0, 2 / 24.0 };
+
+double const sinc5[25] =
+{ -2 / 33.0, -1 / 33.0, 0, -1 / 33.0, -2 / 33.0,
+-1 / 33.0, 4 / 33.0, 6 / 33.0, 4 / 33.0, -1 / 33.0,
+0, 6 / 33.0, 9 / 33.0, 6 / 33.0, 0,
+-1 / 33.0, 4 / 33.0, 6 / 33.0, 4 / 33.0, -1 / 33.0,
+-2 / 33.0, -1 / 33.0, 0, -1 / 33.0, -2 / 33.0 };
+
+const double box3[9] =
+{ 1 / 9.0, 1 / 9.0, 1 / 9.0,
+1 / 9.0, 1 / 9.0, 1 / 9.0,
+1 / 9.0, 1 / 9.0, 1 / 9.0 };
+
+double const box5[25] =
+{ 1 / 25.0, 1 / 25.0, 1 / 25.0, 1 / 25.0, 1 / 25.0,
+1 / 25.0, 1 / 25.0, 1 / 25.0, 1 / 25.0, 1 / 25.0,
+1 / 25.0, 1 / 25.0, 1 / 25.0, 1 / 25.0, 1 / 25.0,
+1 / 25.0, 1 / 25.0, 1 / 25.0, 1 / 25.0, 1 / 25.0,
+1 / 25.0, 1 / 25.0, 1 / 25.0, 1 / 25.0, 1 / 25.0 };
+
+const double triangle3[9] =
+{ 1 / 16.0, 2 / 16.0, 1 / 16.0,
+2 / 16.0, 4 / 16.0, 2 / 16.0,
+1 / 16.0, 2 / 16.0, 1 / 16.0 };
+
+double const triangle5[25] =
+{ 1 / 81.0, 2 / 81.0, 3 / 81.0, 2 / 81.0, 1 / 81.0,
+ 2 / 81.0, 4 / 81.0, 6 / 81.0, 4 / 81.0, 2 / 81.0,
+ 3 / 81.0, 6 / 81.0, 9 / 81.0, 6 / 81.0, 3 / 81.0,
+ 2 / 81.0, 4 / 81.0, 6 / 81.0, 4 / 81.0, 2 / 81.0,
+ 1 / 81.0, 2 / 81.0, 3 / 81.0, 2 / 81.0, 1 / 81.0 };
+
+const double gaussian3[9] =
+{ 1 / 17.0, 2 / 17.0, 1 / 17.0,
+2 / 17.0, 5 / 17.0, 2 / 17.0,
+1 / 17.0, 2 / 17.0, 1 / 17.0 };
+
+double const gaussian5[25] =
+{ 1 / 50.0, 1 / 50.0, 1 / 50.0, 1 / 50.0, 1 / 50.0,
+1 / 50.0, 2 / 50.0, 4 / 50.0, 2 / 50.0, 1 / 50.0,
+1 / 50.0, 4 / 50.0, 10 / 50.0, 4 / 50.0, 1 / 50.0,
+1 / 50.0, 2 / 50.0, 4 / 50.0, 2 / 50.0, 1 / 50.0,
+1 / 50.0, 1 / 50.0, 1 / 50.0, 1 / 50.0, 1 / 50.0 };
+
+/****************************************************************************************************/
 
 class CCGWorkView : public CView
 {
@@ -47,6 +99,10 @@ private:
 	CG::RenderMode m_renderMode;	// rendering: wireframe, solid
 	bool m_backFaceCulling;
 	bool m_renderSilhouette;
+
+	AAFilter m_nAAFilter;
+	const double* m_pFilterArr;
+	int m_nFilterSize;
 
 	CString m_strItdFileName;		// file name of IRIT data
 
@@ -172,7 +228,7 @@ public:
 	void doScale(int x_val, int y_val, CG::Object& object);
 
 	CDC* RenderOnScreen(CG::RenderMode renderMode);								// Renders the scene on the screen
-	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode);		// Renders the scene to a file in PNG format
+	void RenderToPngFile(PngWrapper* png_file, CG::RenderMode renderMode, bool anti_aliasing = false);		// Renders the scene to a file in PNG format
 	void WriteDCToPngFile(HDC& hdc, HBITMAP& bitmap, 
 		PngWrapper* png_file, int width, int height);
 
@@ -210,8 +266,10 @@ public:
 	
 	void updateBluredPixelsArr(COLORREF* new_frame, const double t);					// update the blured pixels array with the new farme
 	void addBlurCurrentFrame();															// adds the current frame to the blured pixels array
-	void RenderMotionBlurResultToDC(const CDC* pDCToRender, int width, int height);		// renders the motion blur image result on screen
+	void RenderMotionBlurResultToDC(CRect& rect, const CDC* pDCToRender, int width, int height);		// renders the motion blur image result on screen
+	void PixelsArrToDC(CRect& rect, const CDC* pDCToRender, COLORREF* pixels, int width, int height);
 
+	void antialias(CRect& rect, CDC* pDCToRender, CG::RenderMode renderMode, int width, int height, const double* filter_arr, int n);
 
 	void CalculateVertexNormals();
 	void FindEdgeAdjacentFaces();
@@ -293,6 +351,27 @@ public:
 	afx_msg void OnMotionblur();
 	afx_msg void OnClearMotionblur();
 	afx_msg void OnUpdateClearMotionblur(CCmdUI* pCmdUI);
+	afx_msg void OnSinc3x3();
+	afx_msg void OnUpdateSinc3x3(CCmdUI* pCmdUI);
+	afx_msg void OnSinc5x5();
+	afx_msg void OnUpdateSinc5x5(CCmdUI* pCmdUI);
+	afx_msg void OnBox3x3();
+	afx_msg void OnUpdateBox3x3(CCmdUI* pCmdUI);
+	afx_msg void OnBox5x5();
+	afx_msg void OnUpdateBox5x5(CCmdUI* pCmdUI);
+	afx_msg void OnTriangle3x3();
+	afx_msg void OnUpdateTriangle5x5(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateAntialiasingBox(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateAntialiasingGaussian(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateAntialiasingSinc(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateAntialiasingTriangle(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateTriangle3x3(CCmdUI* pCmdUI);
+	afx_msg void OnTriangle5x5();
+	afx_msg void OnGaussian3x3();
+	afx_msg void OnUpdateGaussian3x3(CCmdUI* pCmdUI);
+	afx_msg void OnGaussian5x5();
+	afx_msg void OnUpdateGaussian5x5(CCmdUI* pCmdUI);
+	afx_msg void OnAntialiasing();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

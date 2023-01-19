@@ -20,6 +20,7 @@ RenderToFileDialog::RenderToFileDialog(CWnd* pParent /*=nullptr*/)
 	, m_ImageHeight(0)
 	, m_WindowWidth(0)
 	, m_WindowHeight(0)
+	, m_bAntiAliasing(TRUE)
 {
 
 }
@@ -36,6 +37,7 @@ void RenderToFileDialog::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxInt(pDX, m_ImageWidth, 0, INT_MAX);
 	DDX_Text(pDX, IDC_EDIT_HEIGHT, m_ImageHeight);
 	DDV_MinMaxInt(pDX, m_ImageHeight, 0, INT_MAX);
+	DDX_Check(pDX, IDC_ALIASING_CHECK, m_bAntiAliasing);
 }
 
 
@@ -45,6 +47,7 @@ BEGIN_MESSAGE_MAP(RenderToFileDialog, CDialog)
 	ON_BN_CLICKED(IDC_BUTTON_CANCEL_RENDERTO_FILE, &RenderToFileDialog::OnBnClickedButtonCancelRendertoFile)
 	ON_EN_CHANGE(IDC_EDIT_WIDTH, &RenderToFileDialog::OnEnChangeEditWidth)
 	ON_EN_CHANGE(IDC_EDIT_HEIGHT, &RenderToFileDialog::OnEnChangeEditHeight)
+	ON_BN_CLICKED(IDC_ALIASING_CHECK, &RenderToFileDialog::OnBnClickedAliasingCheck)
 END_MESSAGE_MAP()
 
 
@@ -98,5 +101,12 @@ void RenderToFileDialog::OnEnChangeEditHeight()
 	// with the ENM_CHANGE flag ORed into the mask.
 
 	// TODO:  Add your control notification handler code here
+	UpdateData(true);
+}
+
+
+void RenderToFileDialog::OnBnClickedAliasingCheck()
+{
+	// TODO: Add your control notification handler code here
 	UpdateData(true);
 }
