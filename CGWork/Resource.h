@@ -131,6 +131,7 @@
 #define IDC_BLUR_VALUE_STATIC           1114
 #define IDC_EDIT_BLUR_VALUE             1115
 #define IDC_SPIN_BLUR_VALUE             1116
+#define IDC_ALIASING_CHECK              1117
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -202,14 +203,28 @@
 #define ID_RESET_PLAYER_BUTTON          32876
 #define ID_MOTIONBLUR                   32880
 #define ID_CLEAR_MOTIONBLUR             32884
+#define ID_ANTIALIASING                 32885
+#define ID_RENDER_ANTIALIASING          32886
+#define ID_ANTIALIASING_SINC            32887
+#define ID_ANTIALIASING_BOX             32888
+#define ID_ANTIALIASING_TRIANGLE        32889
+#define ID_ANTIALIASING_GAUSSIAN        32890
+#define ID_SINC_3X3                     32891
+#define ID_SINC_5X5                     32892
+#define ID_BOX_3X3                      32893
+#define ID_BOX_5X5                      32894
+#define ID_TRIANGLE_3X3                 32895
+#define ID_TRIANGLE_5X5                 32896
+#define ID_GAUSSIAN_3X3                 32897
+#define ID_GAUSSIAN_5X5                 32898
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        170
-#define _APS_NEXT_COMMAND_VALUE         32885
-#define _APS_NEXT_CONTROL_VALUE         1117
+#define _APS_NEXT_COMMAND_VALUE         32899
+#define _APS_NEXT_CONTROL_VALUE         1118
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
