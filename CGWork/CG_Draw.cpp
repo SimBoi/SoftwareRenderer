@@ -520,6 +520,7 @@ namespace CG
 				p.RoundXY();
 				if (0 < t && t < 1)
 				{
+					if (i > 1) return;
 					if (shading == PHONG) intersections[yIndex][i].interpolated = it->global.startNormal * (1 - t) + it->global.endNormal * t;
 					else if (shading == GOURAUD) intersections[yIndex][i].interpolated = it->shadingP1 * (1 - t) + it->shadingP2 * t;
 					intersections[yIndex][i].projected = p;
@@ -540,6 +541,7 @@ namespace CG
 
 					if ((edge1->projected.p2.y - edge1->projected.p1.y) * (edge2->projected.p2.y - edge2->projected.p1.y) > 0)
 					{
+						if (i > 1) return;
 						if (shading == PHONG) intersections[yIndex][i].interpolated = edge1->global.endNormal;
 						else if (shading == GOURAUD) intersections[yIndex][i].interpolated = edge1->shadingP2;
 						intersections[yIndex][i].projected = edge1->projected.p2;
@@ -547,6 +549,7 @@ namespace CG
 					}
 					else
 					{
+						if (i > 0) return;
 						if (shading == PHONG) intersections[yIndex][i].interpolated = edge1->global.endNormal;
 						else if (shading == GOURAUD) intersections[yIndex][i].interpolated = edge1->shadingP2;
 						intersections[yIndex][i].projected = edge1->projected.p2;

@@ -222,7 +222,7 @@ CCGWorkView::CCGWorkView()
 	m_ambientLight.ambientIntensity = 0.2;
 	m_cosineFactor = 32;
 
-	fogEffect = true;
+	fogEffect = false;
 	fogDistance = 1000;
 	fogColor = RGB(100, 100, 100);
 
@@ -850,9 +850,9 @@ void CCGWorkView::InitializeView()
 	}
 
 	// check if all the polygons are convex
-	for (auto& child : parentObject.children)
-		for (auto& face : child.faces)
-			if (!IsConvex(face)) throw;
+	//for (auto& child : parentObject.children)
+	//	for (auto& face : child.faces)
+	//		if (!IsConvex(face)) throw;
 
 	// set camera position and orientation
 	camera.LookAt(vec4(0, 0, 600, 1), parentObject.wPosition(), vec4(0, 1, 0).normalized());
