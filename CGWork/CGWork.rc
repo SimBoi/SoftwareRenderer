@@ -195,6 +195,7 @@ BEGIN
         END
         MENUITEM "On Screen",                   ID_RENDER_ONSCREEN
         MENUITEM "To File",                     ID_RENDER_TOFILE
+        MENUITEM "show lights",                 ID_RENDER_SHOWLIGHTS
     END
     POPUP "&Help"
     BEGIN

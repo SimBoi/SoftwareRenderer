@@ -174,6 +174,8 @@ ON_UPDATE_COMMAND_UI(ID_GAUSSIAN_3X3, &CCGWorkView::OnUpdateGaussian3x3)
 ON_COMMAND(ID_GAUSSIAN_5X5, &CCGWorkView::OnGaussian5x5)
 ON_UPDATE_COMMAND_UI(ID_GAUSSIAN_5X5, &CCGWorkView::OnUpdateGaussian5x5)
 ON_COMMAND(ID_ANTIALIASING, &CCGWorkView::OnAntialiasing)
+ON_COMMAND(ID_RENDER_SHOWLIGHTS, &CCGWorkView::OnRenderShowlights)
+ON_UPDATE_COMMAND_UI(ID_RENDER_SHOWLIGHTS, &CCGWorkView::OnUpdateRenderShowlights)
 ON_COMMAND(IDC_CHECK_REWIND, &CCGWorkView::OnCheckRewind)
 ON_UPDATE_COMMAND_UI(ID_EDITOR_MODE, &CCGWorkView::OnUpdateEditorMode)
 ON_COMMAND(ID_EDITOR_MODE, &CCGWorkView::OnEditorMode)
@@ -243,6 +245,7 @@ CCGWorkView::CCGWorkView()
 	m_pFilterArr = sinc3;
 	m_nFilterSize = 3;
 
+	m_bShowLights = false;
 	m_nLightShading = FLAT;
 
 	m_lMaterialAmbient = 0.2;
@@ -1095,6 +1098,12 @@ void CCGWorkView::DrawScene(CRect& SceneRect, CDC* pDCToUse, int SceneWidth, int
 	//{
 	//	DrawFace(pDCToUse, face, false, false, camera, parentToCameraFrame, screenProjection, BoundingBoxColor, FaceNormalColor, VertexNormalColor);
 	//}
+
+	// to show lights directions, delete later
+	if (m_bShowLights)
+	{
+		showLights(pDCToUse, camera.cInverse, screenProjection);
+	}
 }
 
 
@@ -1918,6 +1927,12 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 			doAction(x_value, y_value, *selectedObject);
 		}
 	}
+	else if (nFlags == (MK_SHIFT))
+	{
+		CString mouse_position;
+		mouse_position.Format(_T("x: %d y: %d"), current_x_position, current_y_position);
+		STATUS_BAR_TEXT(mouse_position);
+	}
 
 	old_x_position = current_x_position;
 	old_y_position = current_y_position;
@@ -2529,7 +2544,7 @@ COLORREF* CCGWorkView::getCurrentFramePixelArr(
 	if (pixels == nullptr)
 		return nullptr;
 
-	int ret = GetDIBits(current_hdc, current_bitmap,
+	int ret = GetDIBits(current_hdc, current_bitmap, 
 		0, height, pixels, &bminfo, DIB_RGB_COLORS);
 
 	if (ret == 0)
@@ -2603,7 +2618,7 @@ void CCGWorkView::prepareBluredPixelsArr()
 			delete m_pBluredPixels;
 			m_pBluredPixels = resized_arr;
 		}
-	}
+	}	
 }
 
 
@@ -2659,7 +2674,7 @@ void CCGWorkView::OnMotionblur()
 			addBlurCurrentFrame();
 		}
 	}
-
+	
 	m_bShowMotionBlur = m_bDoBlur;
 	Invalidate();
 }
@@ -3108,7 +3123,40 @@ void CCGWorkView::OnUpdateGaussian5x5(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(m_nAAFilter == GAUSSIAN && m_nFilterSize == 5);
 }
 
+void CCGWorkView::showLights(CDC* pDCToUse, const mat4& globalToCamera, const mat4& projection)
+{
+	// initialize light sources
+	for (int i = 0; i < MAX_LIGHT; i++)
+	{
+		vec4 globalP1 = vec4(m_lights[i].posX, m_lights[i].posY, m_lights[i].posZ, 1);
+		vec4 globalP2 = globalP1 + vec4(m_lights[i].dirX, m_lights[i].dirY, m_lights[i].dirZ, 0) * 100;
 
+		vec4 screenP1 = globalToCamera * globalP1;
+		vec4 screenP2 = globalToCamera * globalP2;
+
+		DrawThickLine(pDCToUse, screenP1, screenP2, camera, projection, RGB(255, 255, 255));
+		
+		
+		/*MoveTo(screenP1.x, screenP1.y, screenP1.z);
+		LineTo(pDCToUse,
+			screenP2.x, screenP2.y, screenP2.z,
+			RGB(255, 255, 255));*/
+	}
+}
+
+void CCGWorkView::OnRenderShowlights()
+{
+	// TODO: Add your command handler code here
+	m_bShowLights = !m_bShowLights;
+
+}
+
+
+void CCGWorkView::OnUpdateRenderShowlights(CCmdUI* pCmdUI)
+{
+	// TODO: Add your command update UI handler code here
+	pCmdUI->SetCheck(m_bShowLights);
+}
 
 void CCGWorkView::OnCheckRewind()
 {
