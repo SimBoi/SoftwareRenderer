@@ -15,3 +15,9 @@ Features:
 - Z buffer rendering
 - Back face culling
 - many other smaller features
+
+
+Demo:
+![Teapot](Demo/teapot.png)
+![Car](Demo/car.png)
+![Laptop](Demo/laptop.png)
