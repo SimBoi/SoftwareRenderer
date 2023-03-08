@@ -17,7 +17,7 @@ Features:
 - many other smaller features
 
 
-Demo:
+Demo Renders:
 ![Teapot](Demo/teapot.png)
 ![Car](Demo/car.png)
 ![Laptop](Demo/laptop.png)
